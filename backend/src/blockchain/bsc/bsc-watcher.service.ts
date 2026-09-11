@@ -1,0 +1,741 @@
+import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+
+import { ConfigService } from '@nestjs/config';
+
+import { ethers } from 'ethers';
+
+import { InjectQueue } from '@nestjs/bull';
+
+import type { Queue } from 'bull';
+
+// ============================================================
+// TRADEX BSC DEPOSIT WATCHER
+// ============================================================
+//
+// BSC MAINNET ONLY
+// Chain ID: 56
+//
+// USDT:
+// 0x55d398326f99059fF775485246999027B3197955
+//
+// DEPOSIT VAULT:
+// 0x4fF37b7dEb8031F7dCF43cceC86CC20099a4394E
+//
+// IMPORTANT
+// ------------------------------------------------------------
+// This service watches USDT Transfer events sent to the
+// TradeX Deposit Vault.
+//
+// It does NOT credit user balances directly.
+// DepositService / confirmation worker handles that.
+//
+// ============================================================
+
+interface DepositJobData {
+  chainId: number;
+  transactionHash: string;
+  from: string;
+  to: string;
+  amount: string;
+  blockNumber: number;
+  detectedAt: string;
+}
+
+@Injectable()
+export class BscWatcherService implements OnModuleInit, OnModuleDestroy {
+  // ==========================================================
+  // PROVIDERS
+  // ==========================================================
+
+  private readonly providers: ethers.JsonRpcProvider[];
+
+  private activeProviderIndex = 0;
+
+  // ==========================================================
+  // CONTRACT
+  // ==========================================================
+
+  private readonly usdtInterface = new ethers.Interface([
+    'event Transfer(address indexed from, address indexed to, uint256 value)',
+  ]);
+
+  // ==========================================================
+  // CONFIG
+  // ==========================================================
+
+  private readonly usdtAddress: string;
+
+  private readonly vaultAddress: string;
+
+  private readonly chainId: number;
+
+  private readonly requiredConfirmations: number;
+
+  private readonly scanInterval: number;
+
+  private readonly maxBlocksPerScan: number;
+
+  // ==========================================================
+  // STATE
+  // ==========================================================
+
+  private lastProcessedBlock = 0;
+
+  private isScanning = false;
+
+  private intervalHandle: ReturnType<typeof setInterval> | null = null;
+
+  // ==========================================================
+  // DUPLICATE PROTECTION
+  // ==========================================================
+
+  private readonly queuedTransactions = new Set<string>();
+
+  // ==========================================================
+  // RPC SETTINGS
+  // ==========================================================
+
+  private readonly maxRpcAttempts = 3;
+
+  private readonly rpcRetryDelays = [2000, 5000, 10000];
+
+  // ==========================================================
+  // STARTUP LOOKBACK
+  // ==========================================================
+
+  private readonly startupLookbackBlocks = 100;
+
+  // ==========================================================
+  // CONSTRUCTOR
+  // ==========================================================
+
+  constructor(
+    private readonly configService: ConfigService,
+
+    @InjectQueue('deposit-detection')
+    private readonly depositQueue: Queue,
+  ) {
+    // ========================================================
+    // RPC
+    // ========================================================
+
+    const primaryRpc = this.configService.get<string>('BSC_RPC_URL')?.trim();
+
+    const fallbackRpc = this.configService
+      .get<string>('BSC_RPC_URL_FALLBACK')
+      ?.trim();
+
+    if (!primaryRpc) {
+      throw new Error('BSC_RPC_URL is not configured');
+    }
+
+    if (!fallbackRpc) {
+      throw new Error('BSC_RPC_URL_FALLBACK is not configured');
+    }
+
+    this.providers = [
+      new ethers.JsonRpcProvider(primaryRpc, 56, {
+        staticNetwork: true,
+      }),
+
+      new ethers.JsonRpcProvider(fallbackRpc, 56, {
+        staticNetwork: true,
+      }),
+    ];
+
+    // ========================================================
+    // USDT
+    // ========================================================
+
+    const configuredUsdt = this.configService
+      .get<string>('BSC_USDT_ADDRESS')
+      ?.trim();
+
+    if (!configuredUsdt) {
+      throw new Error('BSC_USDT_ADDRESS is not configured');
+    }
+
+    this.usdtAddress = ethers.getAddress(configuredUsdt);
+
+    // ========================================================
+    // VAULT
+    // ========================================================
+
+    const configuredVault = this.configService
+      .get<string>('TRADEX_VAULT_ADDRESS')
+      ?.trim();
+
+    if (!configuredVault) {
+      throw new Error('TRADEX_VAULT_ADDRESS is not configured');
+    }
+
+    this.vaultAddress = ethers.getAddress(configuredVault);
+
+    // ========================================================
+    // CHAIN
+    // ========================================================
+
+    this.chainId = Number(
+      this.configService.get<string>('BSC_CHAIN_ID') || '56',
+    );
+
+    if (this.chainId !== 56) {
+      throw new Error(
+        `TradeX requires BSC Mainnet. Current chainId=${this.chainId}`,
+      );
+    }
+
+    // ========================================================
+    // CONFIRMATIONS
+    // ========================================================
+
+    this.requiredConfirmations = Number(
+      this.configService.get<string>('BSC_REQUIRED_CONFIRMATIONS') || '15',
+    );
+
+    // ========================================================
+    // SCAN INTERVAL
+    // ========================================================
+
+    this.scanInterval = Number(
+      this.configService.get<string>('BSC_SCAN_INTERVAL') || '60000',
+    );
+
+    // ========================================================
+    // MAX BLOCKS
+    // ========================================================
+
+    const configuredMaxBlocks = Number(
+      this.configService.get<string>('BSC_MAX_BLOCKS_PER_SCAN') || '10',
+    );
+
+    this.maxBlocksPerScan = Math.max(1, Math.min(configuredMaxBlocks, 10));
+
+    // ========================================================
+    // LOG
+    // ========================================================
+
+    console.log('📡 TradeX BSC Watcher configuration');
+
+    console.log(`⛓️ Chain ID: ${this.chainId}`);
+
+    console.log(`💵 USDT: ${this.usdtAddress}`);
+
+    console.log(`🏦 Deposit Vault: ${this.vaultAddress}`);
+
+    console.log(`🔐 Required confirmations: ${this.requiredConfirmations}`);
+
+    console.log(`📦 Max blocks per log request: ${this.maxBlocksPerScan}`);
+
+    console.log(`🔁 Scan interval: ${this.scanInterval}ms`);
+
+    console.log('🛟 Fallback RPC: enabled');
+  }
+
+  // ==========================================================
+  // MODULE INIT
+  // ==========================================================
+
+  async onModuleInit(): Promise<void> {
+    const currentBlock = await this.getCurrentBlock();
+
+    this.lastProcessedBlock = Math.max(
+      0,
+      currentBlock - this.startupLookbackBlocks,
+    );
+
+    console.log('📡 BSC Watcher initialized');
+
+    console.log(`⛓️ Active BSC chainId: ${this.chainId}`);
+
+    console.log(`📍 Current block: ${currentBlock}`);
+
+    console.log(`📍 Starting scan from: ${this.lastProcessedBlock}`);
+
+    // ========================================================
+    // IMPORTANT
+    // ========================================================
+    //
+    // Do NOT run a huge startup scan.
+    //
+    // First scan the controlled lookback window.
+    //
+    // ========================================================
+
+    await this.scanMissedBlocks();
+
+    this.startWatching();
+  }
+
+  // ==========================================================
+  // MODULE DESTROY
+  // ==========================================================
+
+  onModuleDestroy(): void {
+    if (this.intervalHandle) {
+      clearInterval(this.intervalHandle);
+
+      this.intervalHandle = null;
+    }
+  }
+
+  // ==========================================================
+  // START WATCHER
+  // ==========================================================
+
+  private startWatching(): void {
+    if (this.intervalHandle) {
+      return;
+    }
+
+    console.log('🚀 Starting BSC deposit watcher...');
+
+    this.intervalHandle = setInterval(() => {
+      void this.scanMissedBlocks();
+    }, this.scanInterval);
+
+    console.log('✅ BSC watcher started successfully');
+  }
+
+  // ==========================================================
+  // CURRENT BLOCK
+  // ==========================================================
+
+  private async getCurrentBlock(): Promise<number> {
+    const provider = this.getActiveProvider();
+
+    try {
+      return await provider.getBlockNumber();
+    } catch (error) {
+      console.warn(
+        `⚠️ Current block request failed on RPC ${
+          this.activeProviderIndex + 1
+        }. Switching provider.`,
+      );
+
+      this.switchProvider();
+
+      return await this.getActiveProvider().getBlockNumber();
+    }
+  }
+
+  // ==========================================================
+  // SCAN
+  // ==========================================================
+
+  private async scanMissedBlocks(): Promise<void> {
+    if (this.isScanning) {
+      return;
+    }
+
+    this.isScanning = true;
+
+    try {
+      const currentBlock = await this.getCurrentBlock();
+
+      if (this.lastProcessedBlock >= currentBlock) {
+        return;
+      }
+
+      console.log(
+        `🔍 Scanning BSC blocks: ${
+          this.lastProcessedBlock + 1
+        } → ${currentBlock}`,
+      );
+
+      let fromBlock = this.lastProcessedBlock + 1;
+
+      while (fromBlock <= currentBlock) {
+        const toBlock = Math.min(
+          fromBlock + this.maxBlocksPerScan - 1,
+          currentBlock,
+        );
+
+        console.log(`🔎 Checking blocks ${fromBlock} → ${toBlock}`);
+
+        let logs: ethers.Log[];
+
+        try {
+          logs = await this.getTransferLogs(fromBlock, toBlock);
+        } catch (error) {
+          console.error(
+            `❌ Unable to read blocks ${fromBlock} → ${toBlock}`,
+            error,
+          );
+
+          // ==================================================
+          // VERY IMPORTANT
+          // ==================================================
+          //
+          // Do NOT advance lastProcessedBlock.
+          //
+          // Failed block will be retried on next scan.
+          //
+          // ==================================================
+
+          return;
+        }
+
+        await this.processLogs(logs);
+
+        // ====================================================
+        // ONLY AFTER SUCCESS
+        // ====================================================
+
+        this.lastProcessedBlock = toBlock;
+
+        fromBlock = toBlock + 1;
+
+        // ====================================================
+        // Small cooldown between log requests.
+        //
+        // This is important for public RPC endpoints.
+        // ====================================================
+
+        if (fromBlock <= currentBlock) {
+          await this.sleep(300);
+        }
+      }
+
+      console.log(`✅ BSC scan completed through block ${currentBlock}`);
+    } catch (error) {
+      console.error('❌ Error in BSC block scanner:', error);
+    } finally {
+      this.isScanning = false;
+    }
+  }
+
+  // ==========================================================
+  // GET TRANSFER LOGS
+  // ==========================================================
+
+  private async getTransferLogs(
+    fromBlock: number,
+    toBlock: number,
+  ): Promise<ethers.Log[]> {
+    let lastError: unknown = null;
+
+    for (
+      let providerAttempt = 0;
+      providerAttempt < this.providers.length;
+      providerAttempt++
+    ) {
+      const provider = this.getActiveProvider();
+
+      for (let attempt = 0; attempt < this.maxRpcAttempts; attempt++) {
+        try {
+          const logs = await provider.getLogs({
+            address: this.usdtAddress,
+
+            fromBlock,
+
+            toBlock,
+
+            topics: [
+              ethers.id('Transfer(address,address,uint256)'),
+
+              null,
+
+              ethers.zeroPadValue(this.vaultAddress, 32),
+            ],
+          });
+
+          return logs;
+        } catch (error) {
+          lastError = error;
+
+          const message = this.getErrorMessage(error);
+
+          console.warn(
+            `⚠️ BSC RPC error (provider ${
+              this.activeProviderIndex + 1
+            }/${this.providers.length}, attempt ${
+              attempt + 1
+            }/${this.maxRpcAttempts}): ${message}`,
+          );
+
+          // ==================================================
+          // RATE LIMIT
+          // ==================================================
+
+          if (this.isRateLimitError(error)) {
+            // ----------------------------------------------
+            // Wait before doing anything else.
+            // ----------------------------------------------
+
+            const delay = this.rpcRetryDelays[attempt] ?? 10000;
+
+            console.warn(`⏳ RPC rate limit. Waiting ${delay}ms...`);
+
+            await this.sleep(delay);
+
+            // ----------------------------------------------
+            // After repeated rate limit,
+            // switch provider.
+            // ----------------------------------------------
+
+            if (attempt === this.maxRpcAttempts - 1) {
+              console.warn(`🔄 Switching BSC RPC provider.`);
+
+              this.switchProvider();
+            }
+
+            continue;
+          }
+
+          // ==================================================
+          // OTHER RPC ERROR
+          // ==================================================
+
+          await this.sleep(this.rpcRetryDelays[attempt] ?? 10000);
+        }
+      }
+    }
+
+    throw lastError || new Error('All BSC RPC providers failed');
+  }
+
+  // ==========================================================
+  // PROCESS LOGS
+  // ==========================================================
+
+  private async processLogs(logs: ethers.Log[]): Promise<void> {
+    if (!logs.length) {
+      return;
+    }
+
+    console.log(`💵 Found ${logs.length} USDT transfer(s) to TradeX vault`);
+
+    for (const log of logs) {
+      try {
+        const parsed = this.usdtInterface.parseLog({
+          topics: log.topics,
+          data: log.data,
+        });
+
+        if (!parsed) {
+          continue;
+        }
+
+        if (parsed.name !== 'Transfer') {
+          continue;
+        }
+
+        const from = ethers.getAddress(parsed.args[0] as string);
+
+        const to = ethers.getAddress(parsed.args[1] as string);
+
+        const amount = parsed.args[2] as bigint;
+
+        // ====================================================
+        // FINAL SECURITY CHECK
+        // ====================================================
+
+        if (to !== this.vaultAddress) {
+          continue;
+        }
+
+        if (amount <= 0n) {
+          continue;
+        }
+
+        if (!log.transactionHash) {
+          continue;
+        }
+
+        await this.handleTransfer(
+          from,
+          to,
+          amount,
+          log.transactionHash,
+          log.blockNumber,
+        );
+      } catch (error) {
+        console.error(
+          `❌ Failed to process USDT transfer log ${log.transactionHash}:`,
+          error,
+        );
+      }
+    }
+  }
+
+  // ==========================================================
+  // HANDLE TRANSFER
+  // ==========================================================
+
+  private async handleTransfer(
+    from: string,
+    to: string,
+    amount: bigint,
+    txHash: string,
+    blockNumber: number,
+  ): Promise<void> {
+    const normalizedTx = txHash.toLowerCase();
+
+    // ========================================================
+    // MEMORY DUPLICATE PROTECTION
+    // ========================================================
+
+    if (this.queuedTransactions.has(normalizedTx)) {
+      console.log(`⚠️ Deposit already queued: ${txHash}`);
+
+      return;
+    }
+
+    this.queuedTransactions.add(normalizedTx);
+
+    try {
+      // ======================================================
+      // VERIFY RECEIPT
+      // ======================================================
+
+      const receipt = await this.getTransactionReceipt(txHash);
+
+      if (!receipt) {
+        throw new Error(`Transaction receipt not found: ${txHash}`);
+      }
+
+      if (receipt.status !== 1) {
+        console.warn(`⚠️ Transaction failed: ${txHash}`);
+
+        return;
+      }
+
+      // ======================================================
+      // QUEUE
+      // ======================================================
+
+      const jobData: DepositJobData = {
+        chainId: this.chainId,
+
+        transactionHash: txHash,
+
+        from,
+
+        to,
+
+        amount: amount.toString(),
+
+        blockNumber,
+
+        detectedAt: new Date().toISOString(),
+      };
+
+      await this.depositQueue.add('detect-deposit', jobData, {
+        jobId: `deposit-${normalizedTx}`,
+
+        attempts: 5,
+
+        backoff: {
+          type: 'exponential',
+          delay: 5000,
+        },
+
+        removeOnComplete: true,
+
+        removeOnFail: false,
+      });
+
+      console.log(`📥 Deposit queued: ${txHash}`);
+
+      console.log(`💰 Amount: ${ethers.formatUnits(amount, 18)} USDT`);
+
+      console.log(`👤 From: ${from}`);
+
+      console.log(`🏦 Vault: ${to}`);
+    } catch (error) {
+      // ======================================================
+      // Allow future retry if queue/verification failed.
+      // ======================================================
+
+      this.queuedTransactions.delete(normalizedTx);
+
+      throw error;
+    }
+  }
+
+  // ==========================================================
+  // RECEIPT
+  // ==========================================================
+
+  private async getTransactionReceipt(
+    txHash: string,
+  ): Promise<ethers.TransactionReceipt | null> {
+    try {
+      return await this.getActiveProvider().getTransactionReceipt(txHash);
+    } catch {
+      this.switchProvider();
+
+      return await this.getActiveProvider().getTransactionReceipt(txHash);
+    }
+  }
+
+  // ==========================================================
+  // PROVIDER
+  // ==========================================================
+
+  private getActiveProvider(): ethers.JsonRpcProvider {
+    return this.providers[this.activeProviderIndex];
+  }
+
+  // ==========================================================
+  // SWITCH PROVIDER
+  // ==========================================================
+
+  private switchProvider(): void {
+    this.activeProviderIndex = this.activeProviderIndex === 0 ? 1 : 0;
+
+    console.log(
+      `🔄 Active RPC provider switched to ${this.activeProviderIndex + 1}`,
+    );
+  }
+
+  // ==========================================================
+  // RATE LIMIT DETECTION
+  // ==========================================================
+
+  private isRateLimitError(error: unknown): boolean {
+    const message = this.getErrorMessage(error).toLowerCase();
+
+    return (
+      message.includes('-32005') ||
+      message.includes('rate limit') ||
+      message.includes('limit exceeded') ||
+      message.includes('eth_getlogs') ||
+      message.includes('method eth_getlogs') ||
+      message.includes('too many requests') ||
+      message.includes('too many results') ||
+      message.includes('request limit')
+    );
+  }
+
+  // ==========================================================
+  // ERROR MESSAGE
+  // ==========================================================
+
+  private getErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+      return error.message;
+    }
+
+    if (typeof error === 'string') {
+      return error;
+    }
+
+    try {
+      return JSON.stringify(error);
+    } catch {
+      return 'Unknown RPC error';
+    }
+  }
+
+  // ==========================================================
+  // SLEEP
+  // ==========================================================
+
+  private async sleep(milliseconds: number): Promise<void> {
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, milliseconds);
+    });
+  }
+}

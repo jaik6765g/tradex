@@ -1,0 +1,24 @@
+export enum TradeDirection {
+  LONG = 'LONG',
+  SHORT = 'SHORT',
+}
+
+export enum TradeResult {
+  WIN = 'WIN',
+  LOSS = 'LOSS',
+  DRAW = 'DRAW',
+}
+
+export enum TradeStatus {
+  CREATED = 'CREATED',
+  VALIDATING = 'VALIDATING',
+  ACCEPTED = 'ACCEPTED',
+  ENTRY_CLOSED = 'ENTRY_CLOSED',
+  EXPIRING = 'EXPIRING',
+  SETTLING = 'SETTLING',
+  SETTLEMENT_DELAYED = 'SETTLEMENT_DELAYED',
+  SETTLED = 'SETTLED',
+  REJECTED = 'REJECTED',
+  CANCELLED = 'CANCELLED',
+  SETTLEMENT_FAILED = 'SETTLEMENT_FAILED',
+}

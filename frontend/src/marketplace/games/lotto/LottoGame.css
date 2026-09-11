@@ -1,0 +1,811 @@
+/* src/marketplace/games/lotto/LottoGame.css */
+
+.lotto-game-container {
+  max-width: 480px;
+  width: 100%;
+  margin: 0 auto;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #0a0a15;
+  min-height: 100vh;
+  color: #ffffff;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.lotto-game-container * {
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+/* ============================================================
+   HOW TO PLAY - Photo Style
+   ============================================================ */
+.how-to-play {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  background: #0f0f1a;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.how-to-label {
+  font-size: 12px;
+  color: #8888aa;
+  font-weight: 500;
+}
+
+.how-to-timer {
+  font-size: 12px;
+  color: #ffd700;
+  font-weight: 600;
+  background: rgba(255, 215, 0, 0.1);
+  padding: 2px 12px;
+  border-radius: 12px;
+}
+
+/* ============================================================
+   HEADER - Full Width Logo with Balance
+   ============================================================ */
+.header-container {
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.header-logo-full {
+  width: 100%;
+  height: auto;
+  max-height: 80px; /* Fixed height */
+  object-fit: contain;
+  display: block;
+  background: transparent;
+}
+
+/* Agar background white hai to transparent karne ke liye */
+.header-logo-full {
+  mix-blend-mode: multiply;
+}
+
+/* ============================================================
+   ROUND & TIME LEFT - Photo Style
+   ============================================================ */
+.round-time-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  background: #0f0f1a;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.round-info, .time-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.round-label, .time-label {
+  font-size: 10px;
+  color: #666688;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.round-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.time-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ff6b6b;
+  font-family: 'Courier New', monospace;
+}
+
+/* ============================================================
+   CHOOSE YOUR NUMBER - Photo Style
+   ============================================================ */
+.choose-number-label {
+  text-align: center;
+  padding: 12px 0 8px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #8888aa;
+  letter-spacing: 2px;
+}
+
+/* ============================================================
+   NUMBER GRID - Photo Style
+   ============================================================ */
+.number-grid-container {
+  padding: 0 16px;
+  margin-bottom: 4px;
+}
+
+.number-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.number-btn {
+  position: relative;
+  padding: 12px 0;
+  border-radius: 10px;
+  border: 1.5px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  min-height: 48px;
+  overflow: hidden;
+}
+
+.number-btn:hover:not(.disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  transform: scale(1.04);
+}
+
+.number-btn.selected {
+  border-color: #ffd700 !important;
+  background: rgba(255, 215, 0, 0.12);
+  box-shadow: 0 0 25px rgba(255, 215, 0, 0.15);
+  transform: scale(1.05);
+}
+
+.number-btn.disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.number-text {
+  font-size: 18px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+/* Color coding for numbers */
+.number-btn.border-green-500\/50 { border-color: rgba(34, 197, 94, 0.25); }
+.number-btn.border-blue-500\/50 { border-color: rgba(59, 130, 246, 0.25); }
+.number-btn.border-purple-500\/50 { border-color: rgba(139, 92, 246, 0.25); }
+.number-btn.border-red-500\/50 { border-color: rgba(239, 68, 68, 0.25); }
+
+.number-btn.text-green-400 { color: #4ade80; }
+.number-btn.text-blue-400 { color: #60a5fa; }
+.number-btn.text-purple-400 { color: #a78bfa; }
+.number-btn.text-red-400 { color: #f87171; }
+
+.selected-overlay {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 20px;
+  height: 20px;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3);
+  border: 2px solid #0a0a15;
+}
+
+.check-mark {
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* ============================================================
+   ODD / EVEN BUTTONS - Photo Style
+   ============================================================ */
+.odd-even-container {
+  display: flex;
+  gap: 10px;
+  padding: 8px 16px;
+  margin: 4px 0;
+}
+
+.odd-even-btn {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: #141425;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+
+.odd-even-btn:hover:not(:disabled) {
+  border-color: rgba(255, 215, 0, 0.3);
+  background: #1a1a35;
+}
+
+.odd-even-btn.active {
+  border-color: #ffd700;
+  background: rgba(255, 215, 0, 0.15);
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.1);
+}
+
+.odd-even-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.odd-even-btn .multiplier {
+  font-size: 11px;
+  color: #ffd700;
+  font-weight: 400;
+}
+
+/* ============================================================
+   RECENT RESULTS - Photo Style
+   ============================================================ */
+.recent-results {
+  padding: 8px 16px;
+  margin: 4px 0;
+}
+
+.recent-label {
+  font-size: 10px;
+  color: #666688;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.recent-numbers {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.recent-number {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  background: #141425;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.recent-number.win {
+  border-color: rgba(0, 255, 100, 0.3);
+  color: #00ff64;
+}
+
+.recent-number.lose {
+  border-color: rgba(255, 0, 0, 0.2);
+  color: #ff4444;
+}
+
+/* ============================================================
+   SELECT AMOUNT - Photo Style
+   ============================================================ */
+.select-amount {
+  padding: 8px 16px;
+  margin: 4px 0;
+}
+
+.amount-label {
+  font-size: 10px;
+  color: #666688;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.amount-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.amount-btn {
+  flex: 1;
+  padding: 10px 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: #141425;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.amount-btn:hover:not(:disabled) {
+  border-color: rgba(255, 215, 0, 0.3);
+  background: #1a1a35;
+}
+
+.amount-btn.active {
+  border-color: #ffd700;
+  background: rgba(255, 215, 0, 0.15);
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.1);
+}
+
+.amount-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ============================================================
+   PLAY BUTTON - Photo Style
+   ============================================================ */
+.play-btn {
+  width: calc(100% - 32px);
+  margin: 12px 16px;
+  padding: 14px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #ffd700, #f0a500);
+  color: #0a0a15;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.play-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(255, 215, 0, 0.3);
+}
+
+.play-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.play-btn.disabled {
+  opacity: 0.6;
+}
+
+/* ============================================================
+   TIMER - Photo Style
+   ============================================================ */
+.timer-container {
+  display: inline-block;
+}
+
+.timer-display {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.timer-label {
+  font-size: 8px;
+  color: #666688;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.timer-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ff6b6b;
+  font-family: 'Courier New', monospace;
+}
+
+.timer-progress {
+  display: none;
+}
+
+/* ============================================================
+   RESULT SPINNER
+   ============================================================ */
+.result-spinner {
+  text-align: center;
+  padding: 16px;
+  margin: 4px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.result-number {
+  font-size: 48px;
+  font-weight: 900;
+  line-height: 1;
+  color: #ffffff;
+}
+
+.result-number.spinning {
+  animation: pulse 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.5; transform: scale(0.95); }
+  100% { opacity: 1; transform: scale(1.05); }
+}
+
+.spinner-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  animation: dotPulse 1s ease-in-out infinite;
+}
+
+.dot:nth-child(2) { animation-delay: 0.2s; }
+.dot:nth-child(3) { animation-delay: 0.4s; }
+.dot:nth-child(4) { animation-delay: 0.6s; }
+
+@keyframes dotPulse {
+  0%, 100% { opacity: 0.2; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+/* ============================================================
+   WIN/LOSE ANIMATIONS
+   ============================================================ */
+.win-animation,
+.lose-animation {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  z-index: 999;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.win-content,
+.lose-content {
+  background: rgba(20, 20, 37, 0.95);
+  padding: 32px;
+  border-radius: 16px;
+  text-align: center;
+  border: 2px solid;
+  max-width: 90%;
+  animation: scaleIn 0.4s ease;
+}
+
+@keyframes scaleIn {
+  0% { transform: scale(0.8); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.win-content {
+  border-color: #22c55e;
+}
+
+.lose-content {
+  border-color: #ef4444;
+}
+
+.win-icon {
+  font-size: 48px;
+  animation: bounce 0.6s ease infinite alternate;
+}
+
+.lose-icon {
+  font-size: 48px;
+}
+
+@keyframes bounce {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-10px); }
+}
+
+.win-title {
+  color: #22c55e;
+  font-size: 22px;
+  font-weight: 700;
+  margin: 8px 0;
+}
+
+.lose-title {
+  color: #ef4444;
+  font-size: 20px;
+  font-weight: 700;
+  margin: 8px 0;
+}
+
+.win-amount-display {
+  color: #ffd700;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.win-confetti {
+  font-size: 24px;
+  margin-top: 8px;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 420px) {
+  .lotto-game-container {
+    max-width: 100%;
+  }
+
+  .how-to-play {
+    padding: 8px 12px;
+  }
+
+  .how-to-label {
+    font-size: 11px;
+  }
+
+  .how-to-timer {
+    font-size: 11px;
+    padding: 2px 10px;
+  }
+
+  .header-logo-full {
+    max-height: 60px;
+  }
+
+  .round-time-container {
+    padding: 8px 12px;
+  }
+
+  .round-value, .time-value {
+    font-size: 14px;
+  }
+
+  .choose-number-label {
+    font-size: 11px;
+    padding: 10px 0 6px 0;
+  }
+
+  .number-grid {
+    gap: 6px;
+  }
+
+  .number-btn {
+    min-height: 40px;
+    padding: 10px 0;
+  }
+
+  .number-text {
+    font-size: 16px;
+  }
+
+  .odd-even-container {
+    padding: 6px 12px;
+  }
+
+  .odd-even-btn {
+    padding: 8px;
+    font-size: 13px;
+  }
+
+  .recent-results {
+    padding: 6px 12px;
+  }
+
+  .recent-number {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+
+  .select-amount {
+    padding: 6px 12px;
+  }
+
+  .amount-btn {
+    padding: 8px 0;
+    font-size: 13px;
+  }
+
+  .play-btn {
+    width: calc(100% - 24px);
+    margin: 10px 12px;
+    padding: 12px;
+    font-size: 14px;
+  }
+
+  .result-number {
+    font-size: 40px;
+  }
+
+  .selected-overlay {
+    width: 17px;
+    height: 17px;
+    top: -3px;
+    right: -3px;
+  }
+
+  .check-mark {
+    font-size: 8px;
+  }
+
+  .win-content, .lose-content {
+    padding: 24px;
+  }
+
+  .win-title {
+    font-size: 18px;
+  }
+
+  .lose-title {
+    font-size: 16px;
+  }
+
+  .win-amount-display {
+    font-size: 17px;
+  }
+}
+
+@media (max-width: 360px) {
+  .how-to-play {
+    padding: 6px 10px;
+  }
+
+  .how-to-label {
+    font-size: 10px;
+  }
+
+  .how-to-timer {
+    font-size: 10px;
+    padding: 2px 8px;
+  }
+
+  .header-logo-full {
+    max-height: 50px;
+  }
+
+  .round-time-container {
+    padding: 6px 10px;
+  }
+
+  .round-value, .time-value {
+    font-size: 12px;
+  }
+
+  .round-label, .time-label {
+    font-size: 9px;
+  }
+
+  .choose-number-label {
+    font-size: 10px;
+    padding: 8px 0 4px 0;
+  }
+
+  .number-grid {
+    gap: 5px;
+  }
+
+  .number-btn {
+    min-height: 34px;
+    padding: 8px 0;
+  }
+
+  .number-text {
+    font-size: 14px;
+  }
+
+  .odd-even-container {
+    padding: 4px 10px;
+    gap: 6px;
+  }
+
+  .odd-even-btn {
+    padding: 6px;
+    font-size: 12px;
+  }
+
+  .odd-even-btn .multiplier {
+    font-size: 10px;
+  }
+
+  .recent-results {
+    padding: 4px 10px;
+  }
+
+  .recent-number {
+    width: 24px;
+    height: 24px;
+    font-size: 11px;
+  }
+
+  .select-amount {
+    padding: 4px 10px;
+  }
+
+  .amount-btn {
+    padding: 6px 0;
+    font-size: 12px;
+  }
+
+  .amount-label {
+    font-size: 9px;
+    margin-bottom: 6px;
+  }
+
+  .play-btn {
+    width: calc(100% - 20px);
+    margin: 8px 10px;
+    padding: 10px;
+    font-size: 13px;
+    border-radius: 8px;
+  }
+
+  .result-number {
+    font-size: 34px;
+  }
+
+  .result-spinner {
+    padding: 12px;
+    margin: 2px 10px;
+  }
+
+  .selected-overlay {
+    width: 14px;
+    height: 14px;
+    top: -2px;
+    right: -2px;
+  }
+
+  .check-mark {
+    font-size: 7px;
+  }
+
+  .win-content, .lose-content {
+    padding: 20px;
+  }
+
+  .win-title {
+    font-size: 16px;
+  }
+
+  .lose-title {
+    font-size: 14px;
+  }
+
+  .win-amount-display {
+    font-size: 15px;
+  }
+
+  .win-icon, .lose-icon {
+    font-size: 40px;
+  }
+}

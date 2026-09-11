@@ -1,0 +1,190 @@
+import { AxiosError } from 'axios';
+import { apiClient } from '../../../core/api/client';
+
+export type CreateWithdrawalRequest = {
+  walletAddress: string;
+  chainId: number;
+  tokenAddress: string;
+  tdxAmount: string;
+};
+
+export type WithdrawalStatus =
+  | 'REQUESTED'
+  | 'RISK_CHECKING'
+  | 'LIQUIDITY_CHECK'
+  | 'PENDING_ADMIN_APPROVAL'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'QUEUED'
+  | 'PROCESSING'
+  | 'SENT'
+  | 'COMPLETED'
+  | 'CANCELLED'
+  | 'FAILED'
+  | 'HOLD';
+
+export type WithdrawalResponse = {
+  id: string;
+  userId: string;
+  walletAddress: string;
+  chainId: number;
+  tokenAddress: string;
+  tdxAmount: string;
+  usdtAmount: string;
+  fee: string;
+  status: WithdrawalStatus;
+  riskPassed: boolean;
+  liquidityPassed: boolean;
+  adminApproved: boolean;
+  approvedBy?: string;
+  approvedAt?: string;
+  txHash?: string;
+  metadata?: Record<string, unknown>;
+  payoutAttempted: boolean;
+  payoutIdempotencyKey?: string;
+  payoutSubmittedAt?: string;
+  payoutConfirmedAt?: string;
+  rejectionReason?: string;
+  riskReason?: string;
+  verifiedAt?: string;
+  processedAt?: string;
+  completedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type CreateWithdrawalOptions = {
+  signal?: AbortSignal;
+};
+
+type RequestWithdrawalResponse = {
+  withdrawalId: string;
+  usdtAmount: string;
+  status: WithdrawalStatus;
+};
+
+type ApiEnvelope<T> = {
+  success: boolean;
+  data: T;
+  message?: string;
+};
+
+type WithdrawalApiErrorPayload = {
+  statusCode?: number;
+  message?: string | string[];
+  error?: string;
+};
+
+const ACTIVE_WITHDRAWAL_CONFLICT_MESSAGE =
+  'You already have an active withdrawal request. Please wait for it to finish before requesting another withdrawal.';
+
+const normalizeErrorMessage = (message?: string | string[]): string | undefined => {
+  if (typeof message === 'string') {
+    return message.trim() || undefined;
+  }
+
+  if (Array.isArray(message)) {
+    const merged = message
+      .map((entry) => (typeof entry === 'string' ? entry.trim() : ''))
+      .filter(Boolean)
+      .join(' ');
+
+    return merged || undefined;
+  }
+
+  return undefined;
+};
+
+export const parseWithdrawalApiError = (error: unknown): Error => {
+  if (!(error instanceof AxiosError)) {
+    return error instanceof Error ? error : new Error('Withdrawal request failed');
+  }
+
+  const status = error.response?.status;
+  const data = (error.response?.data ?? {}) as WithdrawalApiErrorPayload;
+  const backendMessage = normalizeErrorMessage(data.message);
+  const upperMessage = (backendMessage ?? '').toUpperCase();
+
+  if (status === 401) {
+    return new Error('Authentication expired. Please reconnect wallet and login again.');
+  }
+
+  if (status === 409) {
+    if (upperMessage.includes('ACTIVE WITHDRAWAL REQUEST ALREADY EXISTS')) {
+      return new Error(ACTIVE_WITHDRAWAL_CONFLICT_MESSAGE);
+    }
+
+    return new Error(backendMessage || ACTIVE_WITHDRAWAL_CONFLICT_MESSAGE);
+  }
+
+  if (status === 400 || status === 422) {
+    return new Error(backendMessage || 'Invalid withdrawal request. Please verify your input.');
+  }
+
+  if (status === 500) {
+    return new Error('Withdrawal service is temporarily unavailable. Please try again shortly.');
+  }
+
+  return new Error(backendMessage || error.message || 'Withdrawal request failed');
+};
+
+export const withdrawalService = {
+  createWithdrawal: async (
+    payload: CreateWithdrawalRequest,
+    options?: CreateWithdrawalOptions,
+  ): Promise<WithdrawalResponse> => {
+    try {
+      const response = await apiClient.post<ApiEnvelope<WithdrawalResponse>>(
+        '/withdrawals',
+        {
+          walletAddress: payload.walletAddress,
+          chainId: payload.chainId,
+          tokenAddress: payload.tokenAddress,
+          tdxAmount: payload.tdxAmount,
+        },
+        options,
+      );
+
+      return response.data.data;
+    } catch (error) {
+      throw parseWithdrawalApiError(error);
+    }
+  },
+
+  requestWithdrawal: async (
+    walletAddress: string,
+    tdxAmount: string,
+    options?: CreateWithdrawalOptions,
+  ): Promise<RequestWithdrawalResponse> => {
+    const chainId = Number(import.meta.env.VITE_BSC_CHAIN_ID || '56');
+    const tokenAddress = import.meta.env.VITE_BSC_USDT_CONTRACT || '';
+
+    const withdrawal = await withdrawalService.createWithdrawal(
+      {
+        walletAddress,
+        chainId,
+        tokenAddress,
+        tdxAmount,
+      },
+      options,
+    );
+
+    return {
+      withdrawalId: withdrawal.id,
+      usdtAmount: withdrawal.usdtAmount,
+      status: withdrawal.status,
+    };
+  },
+
+  getWithdrawalById: async (
+    withdrawalId: string,
+  ): Promise<WithdrawalResponse> => {
+    const response = await apiClient.get<ApiEnvelope<WithdrawalResponse>>(
+      `/withdrawals/my/${encodeURIComponent(withdrawalId)}`,
+    );
+
+    return response.data.data;
+  },
+};
+
+export const WithdrawalService = withdrawalService;
