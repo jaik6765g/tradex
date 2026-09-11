@@ -42,6 +42,12 @@ export default function BotAccountCard({
       bgSoft: '#FEF2F2',
       borderSoft: '#FECACA',
     },
+    inactive: {
+      badge: 'neutral' as const,
+      dotColor: '#94A3B8',
+      bgSoft: '#F1F5F9',
+      borderSoft: '#E2E8F0',
+    },
     pending: {
       badge: 'neutral' as const,
       dotColor: '#64748B',

@@ -40,6 +40,12 @@ export default function BotHeader({
       bgSoft: '#FEF2F2',
       label: 'CLOSED',
     },
+    inactive: {
+      badge: 'neutral' as const,
+      dotColor: '#94A3B8',
+      bgSoft: '#F1F5F9',
+      label: 'INACTIVE',
+    },
     pending: {
       badge: 'neutral' as const,
       dotColor: '#64748B',

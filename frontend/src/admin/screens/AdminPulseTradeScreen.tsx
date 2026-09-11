@@ -189,7 +189,7 @@ function PulseTradeTableRow({
         <Badge variant={getPulseTradeStatusBadgeVariant(trade.status)}>{formatPulseTradeStatus(trade.status)}</Badge>
       </td>
       <td className="px-3 py-2 text-xs">
-        <Badge variant={getPulseTradeResultBadgeVariant(trade.result)}>{trade.result || '—'}</Badge>
+        <Badge variant={getPulseTradeResultBadgeVariant(trade.result ?? undefined)}>{trade.result || '—'}</Badge>
       </td>
       <td className="px-3 py-2 text-xs text-[#111827] cursor-help">{formatRelativeTime(trade.createdAt)}</td>
       <td className="px-3 py-2 text-xs text-[#111827]">
@@ -482,7 +482,7 @@ export default function AdminPulseTradeScreen() {
               <p><span className="text-[#667085]">Market:</span> <span className="font-bold text-[#111827]">{selectedTrade.symbol} / {formatPulseDuration(selectedTrade.duration)}</span></p>
               <p><span className="text-[#667085]">Direction:</span> <Badge variant={selectedTrade.direction === 'LONG' ? 'success' : 'warning'}>{selectedTrade.direction}</Badge></p>
               <p><span className="text-[#667085]">Status:</span> <Badge variant={getPulseTradeStatusBadgeVariant(selectedTrade.status)}>{formatPulseTradeStatus(selectedTrade.status)}</Badge></p>
-              <p><span className="text-[#667085]">Result:</span> <Badge variant={getPulseTradeResultBadgeVariant(selectedTrade.result)}>{selectedTrade.result || '—'}</Badge></p>
+              <p><span className="text-[#667085]">Result:</span> <Badge variant={getPulseTradeResultBadgeVariant(selectedTrade.result ?? undefined)}>{selectedTrade.result || '—'}</Badge></p>
               <p><span className="text-[#667085]">Stake:</span> <span className="font-bold text-[#111827]">{formatTokenAmount(selectedTrade.stake)}</span></p>
               <p><span className="text-[#667085]">Fee:</span> <span className="font-bold text-[#111827]">{formatTokenAmount(selectedTrade.fee)}</span></p>
               <p><span className="text-[#667085]">Net Stake:</span> <span className="font-bold text-[#111827]">{formatTokenAmount(selectedTrade.netStake)}</span></p>
