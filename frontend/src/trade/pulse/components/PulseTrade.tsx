@@ -7,6 +7,8 @@ import React, { useMemo } from 'react';
 import { RealChart } from './RealChart';
 import { usePulseTrade } from '../hooks/usePulseTrade';
 
+import WinLossPopup from '../../../shared/components/WinLossPopup';
+
 import {
   PULSE_MAX_AMOUNT_TDX,
   PULSE_MIN_AMOUNT_TDX,
@@ -249,6 +251,8 @@ export function PulseTrade() {
     message,
     loading,
     placingTrade,
+    settlementPopup,
+    dismissSettlementPopup,
     walletAvailable,
     placeTrade,
   } = usePulseTrade();
@@ -273,14 +277,16 @@ export function PulseTrade() {
 
   const handleLongClick = () => {
     if (isSubmitDisabled) return;
+    // Explicitly pass the clicked direction so the trade is
+    // always placed for THIS button (no stale-closure mixups).
     setSelectedDirection('LONG');
-    void placeTrade();
+    void placeTrade('LONG');
   };
 
   const handleShortClick = () => {
     if (isSubmitDisabled) return;
     setSelectedDirection('SHORT');
-    void placeTrade();
+    void placeTrade('SHORT');
   };
 
   // ==========================================================
@@ -293,6 +299,12 @@ export function PulseTrade() {
 
   return (
       <div className="min-h-screen bg-[#F8FAFC] px-2 py-2 sm:px-4 sm:py-4">
+
+        {/* Win/Loss settlement popup */}
+        <WinLossPopup
+          value={settlementPopup}
+          onClose={dismissSettlementPopup}
+        />
 
         <div className="mx-auto w-full max-w-7xl space-y-3 sm:space-y-4">
 
@@ -415,8 +427,8 @@ export function PulseTrade() {
                       disabled={isSubmitDisabled}
                       className={`h-12 rounded-xl text-sm font-bold transition-all ${
                           selectedDirection === 'LONG'
-                              ? 'bg-[#16A34A] text-white shadow-[0_4px_15px_rgba(22,163,74,0.4)]'
-                              : 'bg-[#F2F4F7] text-[#667085] hover:bg-[#EAECF0] hover:text-[#101828]'
+                              ? 'bg-[#16A34A] text-white shadow-[0_4px_15px_rgba(22,163,74,0.4)] ring-2 ring-[#16A34A]/30'
+                              : 'bg-[#16A34A]/10 text-[#16A34A] border border-[#16A34A]/40 hover:bg-[#16A34A]/20'
                       }`}
                   >
                     ▲ LONG
@@ -428,8 +440,8 @@ export function PulseTrade() {
                       disabled={isSubmitDisabled}
                       className={`h-12 rounded-xl text-sm font-bold transition-all ${
                           selectedDirection === 'SHORT'
-                              ? 'bg-[#DC2626] text-white shadow-[0_4px_15px_rgba(220,38,38,0.4)]'
-                              : 'bg-[#F2F4F7] text-[#667085] hover:bg-[#EAECF0] hover:text-[#101828]'
+                              ? 'bg-[#DC2626] text-white shadow-[0_4px_15px_rgba(220,38,38,0.4)] ring-2 ring-[#DC2626]/30'
+                              : 'bg-[#DC2626]/10 text-[#DC2626] border border-[#DC2626]/40 hover:bg-[#DC2626]/20'
                       }`}
                   >
                     ▼ SHORT

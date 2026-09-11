@@ -12,6 +12,8 @@ import LottoNumberGrid from './components/LottoNumberGrid';
 import LottoBuyTicket from './components/LottoBuyTicket';
 import LottoHistoryTabs from './components/LottoHistoryTabs';
 
+import WinLossPopup from '../../../shared/components/WinLossPopup';
+
 import { useLottoGame } from './hooks/useLottoGame';
 import { useLottoRoundTimer } from './hooks/useLottoRoundTimer';
 import { LOTTO_CONSTANTS, CATEGORY_DURATION_SECONDS } from './utils/constants';
@@ -44,6 +46,8 @@ export default function LottoGame({ onBack } = {}) {
     controls,
     error,
     latestTicket,
+    settlementPopup,
+    dismissSettlementPopup,
     placeBet,
     refreshLottoState,
     selectCategory,
@@ -252,6 +256,12 @@ export default function LottoGame({ onBack } = {}) {
           onGoToHistoryPage={handleGoToHistoryPage}
         />
       </div>
+
+      {/* Win/Loss settlement popup */}
+      <WinLossPopup
+        value={settlementPopup}
+        onClose={dismissSettlementPopup}
+      />
     </div>
   );
 }

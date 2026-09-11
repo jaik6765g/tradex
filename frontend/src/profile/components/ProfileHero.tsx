@@ -10,16 +10,21 @@ import { useAccount } from 'wagmi';
 import { useWalletContext } from '../../wallet/context/WalletContext';
 
 export default function ProfileHero() {
-  const { address, isConnected } = useAccount();
-  const { tdxBalance } = useWalletContext();
+  const { isConnected } = useAccount();
+  const { authUser } = useWalletContext();
   const [copied, setCopied] = useState(false);
 
-  const userId = address ? `TDX-${address.slice(2, 10).toUpperCase()}` : 'TDX-8F29K';
-  const memberSince = 'August 2025';
+  // Referral code
+  const referralCode = authUser?.referralCode || '';
 
-  const copyId = async () => {
+  const memberSince = authUser?.createdAt
+    ? new Date(authUser.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+    : 'August 2025';
+
+  const copyReferral = async () => {
+    if (!referralCode) return;
     try {
-      await navigator.clipboard.writeText(userId);
+      await navigator.clipboard.writeText(referralCode);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -64,23 +69,43 @@ export default function ProfileHero() {
           <div className="flex items-center gap-2">
             <h2 className="text-base font-bold text-gray-900">TradeX User</h2>
             <BadgeCheck size={14} className="text-green-500 shrink-0" />
-          </div>
-
-          <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-xs font-mono text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
-              {userId}
-            </span>
-            <button onClick={copyId} className="text-gray-400 hover:text-gray-600">
-              {copied ? <Check size={12} className="text-green-500" /> : <Copy size={12} />}
-            </button>
-          </div>
-
-          <div className="flex items-center gap-3 mt-1">
-            <span className="text-[10px] text-gray-400 flex items-center gap-1">
-              <Calendar size={10} /> {memberSince}
-            </span>
             <span className="text-[10px] font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full border border-green-200">
               Verified
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 mt-1">
+            {referralCode && (
+              <button
+                type="button"
+                onClick={() => void copyReferral()}
+                aria-label="Copy referral code"
+                className="
+                  text-[10px]
+                  font-bold
+                  text-purple-700
+                  bg-purple-50
+                  px-2
+                  py-0.5
+                  rounded-full
+                  border
+                  border-purple-200
+                  flex
+                  items-center
+                  gap-1
+                "
+              >
+                UID: {referralCode}
+                {copied ? (
+                  <Check size={10} className="text-green-600" />
+                ) : (
+                  <Copy size={10} />
+                )}
+              </button>
+            )}
+            <span className="flex items-center gap-1 text-[10px] text-gray-400">
+              <Calendar size={10} className="text-gray-400" />
+              {memberSince}
             </span>
           </div>
         </div>

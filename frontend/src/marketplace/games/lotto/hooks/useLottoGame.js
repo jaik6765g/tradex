@@ -195,6 +195,11 @@ export const useLottoGame = () => {
 
   const [latestTicket, setLatestTicket] = useState(null);
 
+  // Win/Loss settlement popup (shared WinLossPopup component)
+  const [settlementPopup, setSettlementPopup] = useState(null);
+  const notifiedTicketIdsRef = useRef(new Set());
+  const sessionStartedAtRef = useRef(Date.now());
+
   const isMountedRef = useRef(false);
   const pollRef = useRef(null);
   const activeRoundRef = useRef(null);
@@ -596,6 +601,69 @@ export const useLottoGame = () => {
     [fetchBalance, getActiveRound, getHistory, getLastResult, isAuthenticated, userId],
   );
 
+  // ============================================================
+  // WIN/LOSS SETTLEMENT POPUP
+  // ============================================================
+  // Fires when one of the user's tickets settles with WIN/LOSS
+  // AFTER this screen session started (session filter prevents
+  // spamming popups from old history rows on first load).
+  // One popup at a time — the first newly-settled ticket wins.
+  // ============================================================
+
+  useEffect(() => {
+    if (!isMountedRef.current || !Array.isArray(history) || history.length === 0) {
+      return;
+    }
+
+    for (const ticket of history) {
+      if (!ticket?.isSettled || !ticket?.id) {
+        continue;
+      }
+
+      const settledAtMs = new Date(
+        ticket.settledAt ?? ticket.updatedAt ?? 0,
+      ).getTime();
+
+      if (
+        !Number.isFinite(settledAtMs) ||
+        settledAtMs < sessionStartedAtRef.current
+      ) {
+        continue;
+      }
+
+      if (notifiedTicketIdsRef.current.has(ticket.id)) {
+        continue;
+      }
+
+      notifiedTicketIdsRef.current.add(ticket.id);
+
+      const won = Boolean(ticket.isWin);
+      const stake = Number(ticket.amount ?? 0);
+      const winAmount = Number(ticket.winAmount ?? 0);
+
+      const formatTdx = (value) =>
+        Number(value ?? 0).toLocaleString('en-IN', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        });
+
+      setSettlementPopup({
+        id: String(ticket.id),
+        outcome: won ? 'win' : 'loss',
+        title: won ? '🎉 Ticket Won!' : 'No Win This Round',
+        detail: `Round ${ticket.roundNumber ?? '—'} • ${ticket.selectedNumbers?.length ?? 0} numbers`,
+        amount: won
+          ? `+${formatTdx(winAmount)} TDX`
+          : `${formatTdx(stake)} TDX`,
+        meta: won
+          ? 'Winnings credited to your wallet'
+          : 'Better luck next round!',
+      });
+
+      break;
+    }
+  }, [history]);
+
   useEffect(() => {
     isMountedRef.current = true;
 
@@ -638,6 +706,13 @@ export const useLottoGame = () => {
     ticketDetailLoading,
     ticketDetailError,
     latestTicket,
+
+    settlementPopup,
+
+    dismissSettlementPopup: () => {
+      if (!isMountedRef.current) return;
+      setSettlementPopup(null);
+    },
 
     isAuthenticated,
 

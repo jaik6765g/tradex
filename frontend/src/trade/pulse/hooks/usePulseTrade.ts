@@ -34,6 +34,8 @@ import {
   PULSE_SUPPORTED_PAIRS,
 } from '../types';
 
+import type { WinLossPopupData } from '../../../shared/components/WinLossPopup';
+
 // ============================================================
 // DEFAULTS
 // ============================================================
@@ -224,6 +226,17 @@ export function usePulseTrade() {
   ] = useState<UiMessage>(null);
 
   // ==========================================================
+  // SETTLEMENT POPUP (WIN/LOSS/DRAW)
+  // ==========================================================
+
+  const [
+    settlementPopup,
+    setSettlementPopup,
+  ] = useState<WinLossPopupData | null>(
+    null,
+  );
+
+  // ==========================================================
   // REFS
   // ==========================================================
 
@@ -232,6 +245,15 @@ export function usePulseTrade() {
 
   const clientRequestIdRef =
     useRef<string | null>(null);
+
+  // Settlement popup refs — only trades that settle AFTER this
+  // screen session started trigger a popup (no old-history spam),
+  // and each trade id notifies at most once.
+  const notifiedTradeIdsRef =
+    useRef<Set<string>>(new Set());
+
+  const sessionStartedAtRef =
+    useRef(Date.now());
 
   // ==========================================================
   // ACTIVE TRADE
@@ -659,7 +681,23 @@ export function usePulseTrade() {
 
   const placeTrade =
     useCallback(
-      async () => {
+      async (
+        directionOverride?: PulseDirection,
+      ) => {
+        // ----------------------------------------------------
+        // Resolve direction
+        //
+        // The caller may pass the direction explicitly at
+        // click time (LONG/SHORT buttons). This avoids the
+        // stale-closure bug where setSelectedDirection('SHORT')
+        // followed by an immediate placeTrade() would still read
+        // the PREVIOUS render's selectedDirection and place the
+        // WRONG side of the trade.
+        // ----------------------------------------------------
+
+        const direction =
+          directionOverride ?? selectedDirection;
+
         // ----------------------------------------------------
         // Authentication
         // ----------------------------------------------------
@@ -732,8 +770,7 @@ export function usePulseTrade() {
                 symbol:
                   selectedPair,
 
-                direction:
-                  selectedDirection,
+                direction,
 
                 duration:
                   selectedDuration,
@@ -815,6 +852,105 @@ export function usePulseTrade() {
         refreshWallet,
       ],
     );
+
+  // ==========================================================
+  // SETTLEMENT POPUP DETECTION
+  // ==========================================================
+  // History is refreshed every 3 seconds by polling. When a
+  // trade that settled after session start shows a WIN/LOSS/
+  // DRAW result, fire the shared WinLossPopup once.
+  // ==========================================================
+
+  useEffect(() => {
+    if (!history || history.length === 0) {
+      return;
+    }
+
+    for (const trade of history) {
+      const result = String(
+        trade.result ?? '',
+      ).toUpperCase();
+
+      if (
+        result !== 'WIN' &&
+        result !== 'WON' &&
+        result !== 'LOSS' &&
+        result !== 'LOST' &&
+        result !== 'DRAW'
+      ) {
+        continue;
+      }
+
+      const settledAtMs = new Date(
+        trade.settledAt ?? trade.expiresAt ?? 0,
+      ).getTime();
+
+      if (
+        !Number.isFinite(settledAtMs) ||
+        settledAtMs < sessionStartedAtRef.current
+      ) {
+        continue;
+      }
+
+      if (notifiedTradeIdsRef.current.has(trade.id)) {
+        continue;
+      }
+
+      notifiedTradeIdsRef.current.add(trade.id);
+
+      const isWin =
+        result === 'WIN' || result === 'WON';
+
+      const isDraw = result === 'DRAW';
+
+      const stake = Number(trade.stake ?? 0);
+
+      const payout = Number(trade.payout ?? 0);
+
+      const formatTdx = (value: number) =>
+        Number.isFinite(value)
+          ? value.toLocaleString('en-IN', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })
+          : '0.00';
+
+      const creditedAmount = isWin
+        ? payout > 0
+          ? payout
+          : stake
+        : stake;
+
+      setSettlementPopup({
+        id: String(trade.id),
+        outcome: isWin
+          ? 'win'
+          : isDraw
+            ? 'draw'
+            : 'loss',
+        title: isWin
+          ? 'Trade Won!'
+          : isDraw
+            ? "It's a Draw"
+            : 'Trade Lost',
+        detail: `${trade.symbol} • ${
+          trade.direction === 'LONG'
+            ? '▲ LONG'
+            : '▼ SHORT'
+        } • ${trade.duration}`,
+        amount: isWin
+          ? `+${formatTdx(creditedAmount)} TDX`
+          : `${formatTdx(stake)} TDX`,
+        meta: isWin
+          ? 'Profit credited to your wallet'
+          : isDraw
+            ? 'Stake refunded to your wallet'
+            : 'Better luck next trade!',
+      });
+
+      break;
+    }
+  }, [history]);
 
   // ==========================================================
   // INITIAL LOAD
@@ -973,6 +1109,14 @@ export function usePulseTrade() {
     activeTradeDetail,
 
     lastPlaced,
+
+    // --------------------------------------------------------
+    // SETTLEMENT POPUP
+    // --------------------------------------------------------
+
+    settlementPopup,
+
+    dismissSettlementPopup: () => setSettlementPopup(null),
 
     // --------------------------------------------------------
     // PORTFOLIO / RISK
