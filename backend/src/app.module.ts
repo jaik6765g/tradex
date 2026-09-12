@@ -108,13 +108,21 @@ import { BotModule } from './bot/bot.module';
     BullModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        connection: {
-          host: configService.get<string>('REDIS_HOST', 'localhost'),
-          port: Number(configService.get<string>('REDIS_PORT', '6379')),
-          password: configService.get<string>('REDIS_PASSWORD') || undefined,
-        },
-      }),
+      useFactory: (configService: ConfigService) => {
+        const redisUrl = configService.get<string>('REDIS_URL');
+
+        if (!redisUrl) {
+          throw new Error('REDIS_URL is not configured');
+        }
+
+        // @nestjs/bullmq: QueueOptions.connection must be a
+        // ConnectionOptions object; RedisOptions.url accepts the
+        // Render-style REDIS_URL string. Queue producers and
+        // processors in this app all share this single connection.
+        return {
+          connection: { url: redisUrl },
+        };
+      },
     }),
     AuthModule,
     UsersModule,
