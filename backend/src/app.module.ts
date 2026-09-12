@@ -97,7 +97,12 @@ import { BotModule } from './bot/bot.module';
           BotSetting,
         ],
         synchronize: false,
-        logging: true,
+        // Query logging floods production logs with every SELECT —
+        // enable only outside production (or via DATABASE_LOGGING=true).
+        logging:
+          configService.get<string>('NODE_ENV', 'development') !==
+            'production' ||
+          configService.get<boolean>('DATABASE_LOGGING', false) === true,
       }),
     }),
     BullModule.forRootAsync({

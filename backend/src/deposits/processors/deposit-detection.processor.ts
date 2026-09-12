@@ -177,7 +177,18 @@ export class DepositDetectionProcessor {
   async handleDepositDetection(job: Job<DepositJobData>): Promise<void> {
     const { chainId, transactionHash, from, to, amount } = job.data;
 
-    console.log(`🔍 Detecting deposit: ${transactionHash}`);
+    // ==========================================================
+    // PROCESSOR ENTRY DIAGNOSTICS
+    // ==========================================================
+
+    const attemptsMade = Number(job.attemptsMade ?? 0);
+
+    const maxAttempts = Number(job.opts?.attempts ?? 12);
+
+    console.log(
+      `🔍 Detecting deposit: ${transactionHash} ` +
+        `(jobId=${job.id}, jobName=${job.name}, attempt=${attemptsMade}/${maxAttempts})`,
+    );
 
     try {
       // ======================================================
@@ -444,9 +455,6 @@ export class DepositDetectionProcessor {
       );
 
       if (!wallet) {
-        const attemptsMade = Number(job.attemptsMade ?? 0);
-        const maxAttempts = Number(job.opts?.attempts ?? 5);
-
         console.log(
           `⏳ Wallet not registered yet, retrying deposit detection: ${transactionHash} ` +
             `(sender=${normalizedFrom}, chain=${chainId}, attempt=${attemptsMade}/${maxAttempts})`,
@@ -536,6 +544,10 @@ export class DepositDetectionProcessor {
       // ======================================================
       // CREATE DEPOSIT
       // ======================================================
+
+      console.log(
+        `💾 createDeposit started: ${transactionHash} (userId=${wallet.userId}, walletId=${wallet.id})`,
+      );
 
       const deposit = await this.depositService.createDeposit(depositData);
 

@@ -498,6 +498,26 @@ export class BscWatcherService implements OnModuleInit, OnModuleDestroy {
 
     console.log(`💵 Found ${logs.length} USDT transfer(s) to TradeX vault`);
 
+    // ====================================================
+    // FAILURE TRACKING
+    // ====================================================
+    //
+    // If ANY transfer fails to process (transient RPC failure while
+    // verifying the receipt, or Redis/queue failure), the caller MUST
+    // NOT advance lastProcessedBlock past this block. Advancing would
+    // permanently drop the deposit — it would never be re-scanned and
+    // never reach the deposits table.
+    //
+    // We continue processing the remaining logs in the batch (so one
+    // bad log does not block the others), then rethrow at the end so
+    // scanMissedBlocks() leaves lastProcessedBlock unchanged. The same
+    // block range is retried on the next scan cycle, and existing
+    // duplicate protection (queuedTransactions set + jobId + deposits
+    // unique transaction_hash) prevents double-queueing.
+    // ====================================================
+
+    let failed = false;
+
     for (const log of logs) {
       try {
         const parsed = this.usdtInterface.parseLog({
@@ -543,11 +563,19 @@ export class BscWatcherService implements OnModuleInit, OnModuleDestroy {
           log.blockNumber,
         );
       } catch (error) {
+        failed = true;
+
         console.error(
           `❌ Failed to process USDT transfer log ${log.transactionHash}:`,
           error,
         );
       }
+    }
+
+    if (failed) {
+      throw new Error(
+        'One or more USDT transfers failed to process — block range will be retried on the next scan',
+      );
     }
   }
 
@@ -613,10 +641,20 @@ export class BscWatcherService implements OnModuleInit, OnModuleDestroy {
         detectedAt: new Date().toISOString(),
       };
 
-      await this.depositQueue.add('detect-deposit', jobData, {
-        jobId: `deposit-${normalizedTx}`,
+      const queueJobId = `deposit-${normalizedTx}`;
 
-        attempts: 5,
+      console.log(
+        `📤 Queueing deposit detection job: ${queueJobId} (queue=deposit-detection)`,
+      );
+
+      await this.depositQueue.add('detect-deposit', jobData, {
+        // Retry window: 12 attempts with exponential backoff (5s → 10s →
+        // 20s → ... ≈ 2.8h cumulative) so a deposit is NOT permanently
+        // lost if the sender wallet registers shortly AFTER the on-chain
+        // transfer. Same job id — no duplicate jobs are created.
+        jobId: queueJobId,
+
+        attempts: 12,
 
         backoff: {
           type: 'exponential',
@@ -629,6 +667,10 @@ export class BscWatcherService implements OnModuleInit, OnModuleDestroy {
       });
 
       console.log(`📥 Deposit queued: ${txHash}`);
+
+      console.log(
+        `🆔 Job ID: ${queueJobId} | Queue: deposit-detection | Attempts: 12`,
+      );
 
       console.log(`💰 Amount: ${ethers.formatUnits(amount, 18)} USDT`);
 
