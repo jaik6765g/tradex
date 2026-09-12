@@ -47,11 +47,11 @@ import { Injectable } from '@nestjs/common';
 
 import { ethers } from 'ethers';
 
-import { ConfigService } from '@nestjs/config';
-
 import { DepositService } from '../deposit.service';
 
 import { WalletsService } from '../../wallets/wallets.service';
+
+import { BscRpcService } from '../../blockchain/bsc/bsc-rpc.service';
 
 // ============================================================
 // JOB DATA
@@ -81,14 +81,6 @@ interface DepositJobData {
 @Injectable()
 export class DepositDetectionProcessor {
   // ==========================================================
-  // BLOCKCHAIN
-  // ==========================================================
-
-  private readonly provider: ethers.JsonRpcProvider;
-
-  private readonly usdtContract: ethers.Contract;
-
-  // ==========================================================
   // CONFIG
   // ==========================================================
 
@@ -111,7 +103,7 @@ export class DepositDetectionProcessor {
   constructor(
     private readonly depositService: DepositService,
 
-    private readonly configService: ConfigService,
+    private readonly bscRpcService: BscRpcService,
 
     private readonly walletsService: WalletsService,
 
@@ -119,52 +111,15 @@ export class DepositDetectionProcessor {
     private readonly confirmationQueue: Queue,
   ) {
     // ========================================================
-    // RPC
+    // BSC RPC / CHAIN / CONTRACT CONFIG
+    // ========================================================
+    //
+    // All BSC Mainnet reads use BscRpcService, which owns the
+    // resilient RPC fallback chain (primary → fallback → fallback_2).
     // ========================================================
 
-    const rpcUrl = this.configService.get<string>('BSC_RPC_URL')?.trim() || '';
-
-    if (!rpcUrl) {
-      throw new Error('BSC_RPC_URL is not configured');
-    }
-
-    this.provider = new ethers.JsonRpcProvider(rpcUrl, 56, {
-      staticNetwork: true,
-    });
-
-    // ========================================================
-    // USDT
-    // ========================================================
-
-    const usdtAddress =
-      this.configService.get<string>('BSC_USDT_ADDRESS')?.trim() || '';
-
-    if (!usdtAddress) {
-      throw new Error('BSC_USDT_ADDRESS is not configured');
-    }
-
-    this.expectedUsdtAddress = ethers.getAddress(usdtAddress);
-
-    // ========================================================
-    // VAULT
-    // ========================================================
-
-    const vaultAddress =
-      this.configService.get<string>('TRADEX_VAULT_ADDRESS')?.trim() || '';
-
-    if (!vaultAddress) {
-      throw new Error('TRADEX_VAULT_ADDRESS is not configured');
-    }
-
-    this.expectedVaultAddress = ethers.getAddress(vaultAddress);
-
-    // ========================================================
-    // CHAIN
-    // ========================================================
-
-    this.expectedChainId = Number(
-      this.configService.get<string>('BSC_CHAIN_ID') || '56',
-    );
+    this.expectedChainId =
+      this.bscRpcService.getExpectedChainId();
 
     if (this.expectedChainId !== 56) {
       throw new Error(
@@ -172,44 +127,29 @@ export class DepositDetectionProcessor {
       );
     }
 
-    // ========================================================
-    // CONFIRMATIONS
-    // ========================================================
+    this.expectedUsdtAddress =
+      ethers.getAddress(this.bscRpcService.getUsdtAddress());
 
-    this.requiredConfirmations = Number(
-      this.configService.get<string>('BSC_REQUIRED_CONFIRMATIONS') || '15',
-    );
+    this.expectedVaultAddress =
+      ethers.getAddress(this.bscRpcService.getVaultAddress());
+
+    this.requiredConfirmations =
+      this.bscRpcService.getRequiredConfirmations();
 
     // ========================================================
     // USDT DECIMALS
     // ========================================================
     //
     // BSC USDT used by TradeX has 18 decimals.
-    //
-    // Can be overridden through environment if needed.
     // ========================================================
 
     this.usdtDecimals = Number(
-      this.configService.get<string>('BSC_USDT_DECIMALS') || '18',
+      process.env.BSC_USDT_DECIMALS || '18',
     );
 
     this.minUsdtDeposit = ethers.parseUnits(
-      this.configService.get<string>('MIN_USDT_DEPOSIT') || '1',
+      process.env.MIN_USDT_DEPOSIT || '1',
       this.usdtDecimals,
-    );
-
-    // ========================================================
-    // USDT ABI
-    // ========================================================
-
-    const abi = [
-      'event Transfer(address indexed from, address indexed to, uint256 value)',
-    ] as const;
-
-    this.usdtContract = new ethers.Contract(
-      this.expectedUsdtAddress,
-      abi,
-      this.provider,
     );
 
     // ========================================================
@@ -314,7 +254,7 @@ export class DepositDetectionProcessor {
       // ======================================================
 
       const receipt =
-        await this.provider.getTransactionReceipt(transactionHash);
+        await this.bscRpcService.withFailover((provider) => provider.getTransactionReceipt(transactionHash), { label: "getTransactionReceipt" });
 
       if (!receipt) {
         throw new Error(`Transaction receipt not found: ${transactionHash}`);
@@ -334,7 +274,7 @@ export class DepositDetectionProcessor {
       // CHECK 6 — PROVIDER NETWORK
       // ======================================================
 
-      const network = await this.provider.getNetwork();
+      const network = await this.bscRpcService.withFailover((provider) => provider.getNetwork(), { label: "getNetwork" });
 
       const providerChainId = Number(network.chainId);
 
@@ -396,7 +336,11 @@ export class DepositDetectionProcessor {
         // ----------------------------------------------------
 
         try {
-          const parsed = this.usdtContract.interface.parseLog(log);
+          const transferInterface = new ethers.Interface([
+            'event Transfer(address indexed from, address indexed to, uint256 value)',
+          ]);
+
+          const parsed = transferInterface.parseLog(log);
 
           if (!parsed || parsed.name !== 'Transfer') {
             continue;
@@ -455,7 +399,7 @@ export class DepositDetectionProcessor {
       // CURRENT BLOCK
       // ======================================================
 
-      const currentBlock = await this.provider.getBlockNumber();
+      const currentBlock = await this.bscRpcService.withFailover((provider) => provider.getBlockNumber(), { label: "getBlockNumber" });
 
       // ======================================================
       // CONFIRMATIONS
@@ -471,7 +415,7 @@ export class DepositDetectionProcessor {
       // BLOCK TIMESTAMP
       // ======================================================
 
-      const block = await this.provider.getBlock(receipt.blockNumber);
+      const block = await this.bscRpcService.withFailover((provider) => provider.getBlock(receipt.blockNumber), { label: "getBlock" });
 
       if (!block) {
         throw new Error(`Block not found: ${receipt.blockNumber}`);

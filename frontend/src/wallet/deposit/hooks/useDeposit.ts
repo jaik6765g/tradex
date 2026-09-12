@@ -321,6 +321,10 @@ export function useDeposit(
           approvalHash,
         );
 
+        // Approval is part of the wallet transaction flow. It must be
+        // mined before the deposit itself is submitted, so wait for its
+        // receipt via the connected wallet provider's public client.
+        // (Deposit confirmation itself is backend-owned — see below.)
         await publicClient.waitForTransactionReceipt({
           hash: approvalHash,
         });
@@ -364,23 +368,19 @@ export function useDeposit(
       setTxHash(depositHash);
 
       // ================================================
-      // WAIT FOR BLOCKCHAIN CONFIRMATION
+      // SUBMIT HASH → BACKEND VERIFICATION
       // ================================================
-
-      const receipt =
-        await publicClient.waitForTransactionReceipt({
-          hash: depositHash,
-        });
-
-      if (receipt.status !== 'success') {
-        setStatus('paymentNotDone');
-        setError('The deposit transaction was reverted on the blockchain. No TDX was credited.');
-
-        return {
-          success: false,
-          error: 'The deposit transaction was reverted on the blockchain. No TDX was credited.',
-        };
-      }
+      //
+      // The frontend does NOT wait for the deposit receipt via RPC.
+      // After submission the transaction hash is sent to the backend
+      // (status polling below) and Processing is shown immediately.
+      // The backend verifies the receipt + USDT Transfer using its
+      // own resilient BSC Mainnet RPC fallback chain (primary →
+      // fallback → fallback_2). No dependency on WalletConnect RPC.
+      //
+      // If the backend eventually reports the tx reverted/failed,
+      // waitForBackendConfirmation returns 'notDone' and the
+      // existing failure state is shown.
 
       // ================================================
       // BLOCKCHAIN SUBMITTED → BACKEND VERIFICATION

@@ -98,6 +98,17 @@ if (!projectId) {
 const bscRpcUrl =
   import.meta.env.VITE_BSC_RPC_URL?.trim();
 
+// ============================================================
+// BSC WAIT — SINGLE ENV-CONFIGURED RPC
+// ============================================================
+//
+// The frontend points wallet reads/writes at the environment-
+// configured VITE_BSC_RPC_URL ONLY. No fallback RPC URLs live in
+// frontend code or VITE_* variables — the backend owns the BSC
+// Mainnet RPC fallback chain (primary → fallback → fallback_2)
+// for all deposit/tx verification reads.
+// ============================================================
+
 const customRpcUrls =
   bscRpcUrl
     ? {

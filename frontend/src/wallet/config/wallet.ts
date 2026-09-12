@@ -64,8 +64,7 @@ export const BSC_NATIVE_SYMBOL =
 // ============================================================
 
 export const BSC_RPC_URL =
-  import.meta.env.VITE_BSC_RPC_URL ||
-  'https://bsc-dataseed.binance.org';
+  import.meta.env.VITE_BSC_RPC_URL || '';
 
 
 // ============================================================

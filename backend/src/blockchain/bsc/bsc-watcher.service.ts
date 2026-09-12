@@ -116,13 +116,17 @@ export class BscWatcherService implements OnModuleInit, OnModuleDestroy {
     private readonly depositQueue: Queue,
   ) {
     // ========================================================
-    // RPC
+    // RPC (primary → fallback → fallback_2)
     // ========================================================
 
     const primaryRpc = this.configService.get<string>('BSC_RPC_URL')?.trim();
 
     const fallbackRpc = this.configService
       .get<string>('BSC_RPC_URL_FALLBACK')
+      ?.trim();
+
+    const fallbackRpc2 = this.configService
+      .get<string>('BSC_RPC_URL_FALLBACK_2')
       ?.trim();
 
     if (!primaryRpc) {
@@ -133,15 +137,14 @@ export class BscWatcherService implements OnModuleInit, OnModuleDestroy {
       throw new Error('BSC_RPC_URL_FALLBACK is not configured');
     }
 
-    this.providers = [
-      new ethers.JsonRpcProvider(primaryRpc, 56, {
-        staticNetwork: true,
-      }),
+    const providerUrls = [primaryRpc, fallbackRpc, fallbackRpc2]
+      .filter((url): url is string => Boolean(url));
 
-      new ethers.JsonRpcProvider(fallbackRpc, 56, {
+    this.providers = providerUrls.map((url) =>
+      new ethers.JsonRpcProvider(url, 56, {
         staticNetwork: true,
       }),
-    ];
+    );
 
     // ========================================================
     // USDT
@@ -302,21 +305,10 @@ export class BscWatcherService implements OnModuleInit, OnModuleDestroy {
   // ==========================================================
 
   private async getCurrentBlock(): Promise<number> {
-    const provider = this.getActiveProvider();
-
-    try {
-      return await provider.getBlockNumber();
-    } catch (error) {
-      console.warn(
-        `⚠️ Current block request failed on RPC ${
-          this.activeProviderIndex + 1
-        }. Switching provider.`,
-      );
-
-      this.switchProvider();
-
-      return await this.getActiveProvider().getBlockNumber();
-    }
+    return this.withProviderFailover(
+      (provider) => provider.getBlockNumber(),
+      'getBlockNumber',
+    );
   }
 
   // ==========================================================
@@ -661,13 +653,75 @@ export class BscWatcherService implements OnModuleInit, OnModuleDestroy {
   private async getTransactionReceipt(
     txHash: string,
   ): Promise<ethers.TransactionReceipt | null> {
-    try {
-      return await this.getActiveProvider().getTransactionReceipt(txHash);
-    } catch {
-      this.switchProvider();
+    return this.withProviderFailover(
+      (provider) => provider.getTransactionReceipt(txHash),
+      'getTransactionReceipt',
+    );
+  }
 
-      return await this.getActiveProvider().getTransactionReceipt(txHash);
+  // ==========================================================
+  // PROVIDER FAILOVER
+  // ==========================================================
+  //
+  // Runs an RPC operation across ALL configured providers
+  // (primary → fallback → fallback_2). On RPC-level failure it
+  // rotates to the next provider; non-RPC errors (reverted tx,
+  // not found) propagate immediately.
+  // ==========================================================
+
+  private async withProviderFailover<T>(
+    operation: (provider: ethers.JsonRpcProvider) => Promise<T>,
+    label: string,
+  ): Promise<T> {
+    let lastError: unknown;
+
+    for (let i = 0; i < this.providers.length; i++) {
+      const provider = this.getActiveProvider();
+
+      try {
+        const result = await operation(provider);
+        return result;
+      } catch (error) {
+        lastError = error;
+
+        if (this.isRateLimitError(error) || this.isRpcError(error)) {
+          console.warn(
+            `⚠️ ${label} failed on RPC ${
+              this.activeProviderIndex + 1
+            }: ${this.getErrorMessage(error)}. Switching provider.`,
+          );
+
+          this.switchProvider();
+          continue;
+        }
+
+        throw error;
+      }
     }
+
+    throw lastError;
+  }
+
+  private isRpcError(error: unknown): boolean {
+    const message = this.getErrorMessage(error).toLowerCase();
+
+    return (
+      message.includes('timeout') ||
+      message.includes('econnrefused') ||
+      message.includes('econnreset') ||
+      message.includes('enotfound') ||
+      message.includes('name_not_resolved') ||
+      message.includes('dns') ||
+      message.includes('network error') ||
+      message.includes('429') ||
+      message.includes('502') ||
+      message.includes('503') ||
+      message.includes('504') ||
+      message.includes('socket hang up') ||
+      message.includes('fetch failed') ||
+      message.includes('request timed out') ||
+      message.includes('unexpected eof')
+    );
   }
 
   // ==========================================================
@@ -683,7 +737,12 @@ export class BscWatcherService implements OnModuleInit, OnModuleDestroy {
   // ==========================================================
 
   private switchProvider(): void {
-    this.activeProviderIndex = this.activeProviderIndex === 0 ? 1 : 0;
+    if (this.providers.length <= 1) {
+      return;
+    }
+
+    this.activeProviderIndex =
+      (this.activeProviderIndex + 1) % this.providers.length;
 
     console.log(
       `🔄 Active RPC provider switched to ${this.activeProviderIndex + 1}`,

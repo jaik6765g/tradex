@@ -65,7 +65,10 @@ export const bscMainnetNetwork: WalletNetwork = {
   rpcUrls: {
     default: {
       http: [
-        'https://bsc-dataseed.binance.org',
+        // Frontend uses ONLY the environment-configured BSC Mainnet RPC.
+        // No hardcoded fallback RPC URLs live in frontend code — the
+        // backend owns the RPC fallback chain for verification reads.
+        ...(import.meta.env.VITE_BSC_RPC_URL ? [import.meta.env.VITE_BSC_RPC_URL] : []),
       ],
     },
   },

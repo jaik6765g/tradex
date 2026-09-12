@@ -481,8 +481,15 @@ export class WalletService {
     limit = 20,
     offset = 0,
   ): Promise<Transaction[]> {
-    const res = await apiClient.get<TransactionResponse[]>('/ledger/me', { params: { limit, offset } });
-    return res.data.map(mapLedgerEntry);
+    try {
+      const res = await apiClient.get<TransactionResponse[]>('/ledger/me', { params: { limit, offset } });
+      return res.data.map(mapLedgerEntry);
+    } catch {
+      // Fail gracefully — history must never block the deposit /
+      // wallet UI. Transient API timeouts return an empty list and
+      // the next refresh cycle picks the data up.
+      return [];
+    }
   }
 
   static async getTransactions(

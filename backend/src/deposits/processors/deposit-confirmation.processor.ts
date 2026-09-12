@@ -2,25 +2,20 @@ import { Processor, Process } from '@nestjs/bull';
 import type { Job } from 'bull';
 import { Injectable } from '@nestjs/common';
 import { ethers } from 'ethers';
-import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bull';
 import type { Queue } from 'bull';
 import { DepositService } from '../deposit.service';
 import { DepositStatus } from '../deposit.entity';
+import { BscRpcService } from '../../blockchain/bsc/bsc-rpc.service';
 
 @Processor('deposit-confirmation')
 @Injectable()
 export class DepositConfirmationProcessor {
-  private readonly provider: ethers.JsonRpcProvider;
-
   constructor(
     private depositService: DepositService,
-    private configService: ConfigService,
+    private bscRpcService: BscRpcService,
     @InjectQueue('deposit-confirmation') private confirmationQueue: Queue,
-  ) {
-    const rpcUrl = this.configService.get<string>('BSC_RPC_URL') || '';
-    this.provider = new ethers.JsonRpcProvider(rpcUrl);
-  }
+  ) {}
 
   @Process('confirm-deposit')
   async handleDepositConfirmation(job: Job): Promise<void> {
@@ -51,13 +46,47 @@ export class DepositConfirmationProcessor {
         return;
       }
 
-      const receipt =
-        await this.provider.getTransactionReceipt(transactionHash);
+      // BSC Mainnet chain ID 56 verification
+      const expectedChainId = this.bscRpcService.getExpectedChainId();
+      if (chainId !== expectedChainId) {
+        console.log(
+          `⚠️ Confirmation skipped for ${transactionHash}: expected chain ${expectedChainId}, got ${chainId}`,
+        );
+
+        return;
+      }
+
+      // Resilient RPC: receipt fetch with automatic failover
+      const receipt = await this.bscRpcService.withFailover(
+        (provider) => provider.getTransactionReceipt(transactionHash),
+        { label: `getTransactionReceipt(${transactionHash})` },
+      );
+
       if (!receipt) {
         throw new Error('Transaction receipt not found');
       }
 
-      const currentBlock = await this.provider.getBlockNumber();
+      // Transaction success verification
+      if (receipt.status !== 1) {
+        console.log(
+          `⚠️ Transaction reverted: ${transactionHash}`,
+        );
+
+        await this.depositService.updateDepositStatus(
+          depositId,
+          DepositStatus.FAILED,
+          'Transaction reverted on BSC Mainnet',
+        );
+
+        return;
+      }
+
+      // Resilient RPC: current block with automatic failover
+      const currentBlock = await this.bscRpcService.withFailover(
+        (provider) => provider.getBlockNumber(),
+        { label: 'getBlockNumber()' },
+      );
+
       const confirmations = currentBlock - receipt.blockNumber + 1;
 
       await this.depositService.updateConfirmations(depositId, confirmations);
