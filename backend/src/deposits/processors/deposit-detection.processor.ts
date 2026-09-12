@@ -424,6 +424,19 @@ export class DepositDetectionProcessor {
       // ======================================================
       // CHECK 9 — REGISTERED WALLET
       // ======================================================
+      //
+      // If the sender wallet is not registered YET (e.g. wallet row
+      // is created slightly after the on-chain transfer is detected),
+      // we must NOT permanently discard a valid deposit.
+      //
+      // Instead: log clearly and THROW a retryable error so BullMQ
+      // retries the SAME detect-deposit job (attempts: 5, exponential
+      // backoff — configured at enqueue time in BscWatcherService).
+      //
+      // No deposits row is created, nothing is credited, and no
+      // duplicate job is enqueued — the existing job simply retries
+      // until the wallet becomes available.
+      // ======================================================
 
       const wallet = await this.walletsService.findByAddressAndChainId(
         normalizedFrom,
@@ -431,11 +444,27 @@ export class DepositDetectionProcessor {
       );
 
       if (!wallet) {
+        const attemptsMade = Number(job.attemptsMade ?? 0);
+        const maxAttempts = Number(job.opts?.attempts ?? 5);
+
         console.log(
-          `⚠️ Uncredited deposit ${transactionHash}: unknown wallet ${normalizedFrom} on chain ${chainId}`,
+          `⏳ Wallet not registered yet, retrying deposit detection: ${transactionHash} ` +
+            `(sender=${normalizedFrom}, chain=${chainId}, attempt=${attemptsMade}/${maxAttempts})`,
         );
 
-        return;
+        if (attemptsMade >= maxAttempts) {
+          console.log(
+            `❌ Deposit detection exhausted retries: ${transactionHash} - wallet still not registered`,
+          );
+        }
+
+        // IMPORTANT: do NOT catch-and-return here. Throwing makes
+        // BullMQ retry the identical queued job via its configured
+        // attempts/backoff. The wallet may have been registered by
+        // the time the retry runs.
+        throw new Error(
+          `Wallet not registered yet for deposit ${transactionHash}. Retrying deposit detection.`,
+        );
       }
 
       console.log(`✅ Registered wallet found: ${wallet.id}`);
