@@ -24,11 +24,21 @@ export class ReconcileBotActivationColumns1775000004000
       ALTER TABLE bot_activations
       ADD COLUMN IF NOT EXISTS "principal" numeric(36, 18)
     `);
-    await queryRunner.query(`
-      UPDATE bot_activations
-      SET "principal" = COALESCE("amount", 0)
-      WHERE "principal" IS NULL
-    `);
+
+    // Legacy `amount` may not exist in the current schema — only back-fill
+    // `principal` from it when the column is actually present. Skipping the
+    // back-fill is safe: "principal" keeps its existing values.
+    const botActivationsHasAmount =
+      await queryRunner.hasColumn('bot_activations', 'amount');
+
+    if (botActivationsHasAmount) {
+      await queryRunner.query(`
+        UPDATE bot_activations
+        SET "principal" = COALESCE("amount", 0)
+        WHERE "principal" IS NULL
+      `);
+    }
+
     await queryRunner.query(`
       ALTER TABLE bot_activations
       ALTER COLUMN "principal" SET NOT NULL
@@ -80,11 +90,20 @@ export class ReconcileBotActivationColumns1775000004000
       ALTER TABLE bot_monthly_settlements
       ADD COLUMN IF NOT EXISTS "principal" numeric(36, 18) NOT NULL DEFAULT '0'
     `);
-    await queryRunner.query(`
-      UPDATE bot_monthly_settlements
-      SET "principal" = COALESCE("amount", 0)
-      WHERE "principal" = 0 AND "amount" IS NOT NULL
-    `);
+
+    // Legacy `amount` may not exist in the current schema — only back-fill
+    // `principal` from it when the column is actually present. Skipping the
+    // back-fill is safe: "principal" keeps its existing values (default 0).
+    const botMonthlySettlementsHasAmount =
+      await queryRunner.hasColumn('bot_monthly_settlements', 'amount');
+
+    if (botMonthlySettlementsHasAmount) {
+      await queryRunner.query(`
+        UPDATE bot_monthly_settlements
+        SET "principal" = COALESCE("amount", 0)
+        WHERE "principal" = 0 AND "amount" IS NOT NULL
+      `);
+    }
 
     await queryRunner.query(`
       ALTER TABLE bot_monthly_settlements
