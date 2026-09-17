@@ -30,14 +30,20 @@ import {
 // the backend drawAt timestamp, so tick frequency cannot cause drift.
 const DISPLAY_TICK_MS = 500;
 
-export const useLottoRoundTimer = ({ round, onComplete }) => {
+export const useLottoRoundTimer = ({ round, onComplete, getNow, onSecondTick }) => {
   const roundId = round?.id ?? null;
   const drawAt = round?.drawAt ?? null;
 
+  // Server-synchronized clock (falls back to the local clock). Stored in a ref
+  // so it stays stable across renders while always reading the latest value.
+  const getNowRef = useRef(typeof getNow === 'function' ? getNow : () => Date.now());
+  getNowRef.current = typeof getNow === 'function' ? getNow : () => Date.now();
+  const now = useCallback(() => getNowRef.current(), []);
+
   const [remainingSeconds, setRemainingSeconds] = useState(() =>
-    computeRemainingSeconds(round),
+    computeRemainingSeconds(round, now()),
   );
-  const [phase, setPhase] = useState(() => deriveTimerPhase(round));
+  const [phase, setPhase] = useState(() => deriveTimerPhase(round, now()));
 
   // Latest values for interval/visibility handlers without re-subscribing.
   const roundRef = useRef(round);
@@ -51,10 +57,13 @@ export const useLottoRoundTimer = ({ round, onComplete }) => {
   // transition at a time.
   const completedForRoundRef = useRef(null);
   const transitionInFlightRef = useRef(false);
+  // Tracks the last whole-second we fired onSecondTick for, so 500ms display
+  // ticks never double-invoke the per-second callback (sound/animation sync).
+  const lastSecondTickRef = useRef(null);
 
   const recompute = useCallback(() => {
-    setRemainingSeconds(computeRemainingSeconds(roundRef.current));
-  }, []);
+    setRemainingSeconds(computeRemainingSeconds(roundRef.current, now()));
+  }, [now]);
 
   /**
    * Round completion flow (runs at most once concurrently):
@@ -105,7 +114,7 @@ export const useLottoRoundTimer = ({ round, onComplete }) => {
       return;
     }
 
-    const stillExpired = isRoundExpired(roundRef.current);
+    const stillExpired = isRoundExpired(roundRef.current, now());
     setPhase(
       stillExpired || !refreshedOk
         ? TIMER_PHASE.AWAITING_NEXT
@@ -121,18 +130,27 @@ export const useLottoRoundTimer = ({ round, onComplete }) => {
   // ------------------------------------------------------------------
   useEffect(() => {
     completedForRoundRef.current = null;
+    lastSecondTickRef.current = null;
 
-    const initialPhase = deriveTimerPhase(round);
+    const initialPhase = deriveTimerPhase(round, now());
+    const initialRemaining = computeRemainingSeconds(round, now());
     setPhase(initialPhase);
-    setRemainingSeconds(computeRemainingSeconds(round));
+    setRemainingSeconds(initialRemaining);
 
     if (initialPhase === TIMER_PHASE.IDLE) {
       return undefined;
     }
 
     const intervalId = window.setInterval(() => {
-      const next = computeRemainingSeconds(roundRef.current);
+      const currentRound = roundRef.current;
+      const currentNow = now();
+      const next = computeRemainingSeconds(currentRound, currentNow);
+
       setRemainingSeconds(next);
+      if (onSecondTick && lastSecondTickRef.current !== next) {
+        lastSecondTickRef.current = next;
+        onSecondTick(next);
+      }
       if (next <= 0) {
         void beginTransition();
       }
@@ -140,7 +158,7 @@ export const useLottoRoundTimer = ({ round, onComplete }) => {
 
     return () => window.clearInterval(intervalId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roundId, drawAt, beginTransition]);
+  }, [roundId, drawAt, beginTransition, now]);
 
   // ------------------------------------------------------------------
   // Tab visibility — recalculate immediately from backend timestamps and
@@ -158,7 +176,7 @@ export const useLottoRoundTimer = ({ round, onComplete }) => {
       recompute();
 
       if (
-        isRoundExpired(roundRef.current) ||
+        isRoundExpired(roundRef.current, now()) ||
         phaseRef.current === TIMER_PHASE.AWAITING_NEXT
       ) {
         void beginTransition();
@@ -168,10 +186,22 @@ export const useLottoRoundTimer = ({ round, onComplete }) => {
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () =>
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [beginTransition, recompute]);
+  }, [beginTransition, recompute, now]);
+
+  // Server-synchronized remaining time in ms, derived from the authoritative
+  // period end timestamp. Lets the UI show a smooth, drift-free countdown that
+  // survives refresh / tab-switch / lag and never invents a period.
+  const drawAtMs = (() => {
+    const iso = round?.drawAt ?? null;
+    if (typeof iso !== "string" || !iso.trim()) return null;
+    const ms = new Date(iso).getTime();
+    return Number.isFinite(ms) ? ms : null;
+  })();
+  const serverRemainingMs = drawAtMs == null ? 0 : Math.max(0, drawAtMs - now());
 
   return {
     remainingSeconds,
+    serverRemainingMs,
     phase,
     isExpiring: remainingSeconds > 0 && remainingSeconds <= 5,
   };

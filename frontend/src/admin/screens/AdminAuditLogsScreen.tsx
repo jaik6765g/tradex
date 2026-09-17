@@ -176,11 +176,11 @@ export default function AdminAuditLogsScreen() {
   return (
     <div className="space-y-3">
       {/* Header */}
-      <section className="rounded-[16px] border border-[#E5E7EB] bg-white p-4">
+      <section className="rounded-[16px] border border-[#292B33] bg-[#15161C] p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-[20px] font-black text-[#111827]">Audit Logs</h1>
-            <p className="mt-0.5 text-xs text-[#667085]">
+            <h1 className="text-[20px] font-black text-[#F5F5F7]">Audit Logs</h1>
+            <p className="mt-0.5 text-xs text-[#A1A4AE]">
               Review administrative actions, security events, and system activity.
             </p>
           </div>
@@ -198,13 +198,13 @@ export default function AdminAuditLogsScreen() {
       </section>
 
       {/* Filters */}
-      <section className="rounded-[16px] border border-[#E5E7EB] bg-white p-4">
+      <section className="rounded-[16px] border border-[#292B33] bg-[#15161C] p-4">
         <div className="grid grid-cols-1 gap-3 xl:grid-cols-[1.4fr_0.9fr_0.8fr_0.8fr_0.9fr_0.9fr_auto_auto]">
           <div>
-            <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#667085]">Search</label>
+            <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#A1A4AE]">Search</label>
             <div className="flex items-center gap-2">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#98A2B3]" />
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#70737E]" />
                 <input
                   type="text"
                   value={filters.searchInput}
@@ -215,7 +215,7 @@ export default function AdminAuditLogsScreen() {
                     }
                   }}
                   placeholder="Event ID, action, resource, user, source..."
-                  className="h-10 w-full rounded-[10px] border border-[#D0D5DD] bg-white pl-9 pr-3 text-sm text-[#111827] placeholder:text-[#98A2B3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F5B800]"
+                  className="h-10 w-full rounded-[10px] border border-[#34343E] bg-[#15161C] pl-9 pr-3 text-sm text-[#F5F5F7] placeholder:text-[#70737E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A18]"
                 />
               </div>
               <Button
@@ -232,14 +232,14 @@ export default function AdminAuditLogsScreen() {
           </div>
 
           <div>
-            <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#667085]">Event Type</label>
+            <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#A1A4AE]">Event Type</label>
             <select
               value={filters.action || 'ALL'}
               onChange={(e) => {
                 const value = e.target.value;
                 setFilters((prev) => ({ ...prev, action: value === 'ALL' ? '' : value, offset: 0 }));
               }}
-              className="h-10 w-full rounded-[10px] border border-[#D0D5DD] bg-white px-3 text-sm font-semibold text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F5B800]"
+              className="h-10 w-full rounded-[10px] border border-[#34343E] bg-[#15161C] px-3 text-sm font-semibold text-[#F5F5F7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A18]"
             >
               {actionOptions.map((option) => (
                 <option key={option} value={option}>{option}</option>
@@ -248,11 +248,11 @@ export default function AdminAuditLogsScreen() {
           </div>
 
           <div>
-            <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#667085]">Result</label>
+            <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#A1A4AE]">Result</label>
             <select
               value={filters.result}
               onChange={(e) => setFilters((prev) => ({ ...prev, result: e.target.value }))}
-              className="h-10 w-full rounded-[10px] border border-[#D0D5DD] bg-white px-3 text-sm font-semibold text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F5B800]"
+              className="h-10 w-full rounded-[10px] border border-[#34343E] bg-[#15161C] px-3 text-sm font-semibold text-[#F5F5F7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A18]"
             >
               <option value="ALL">ALL</option>
               <option value="SUCCESS">SUCCESS</option>
@@ -262,42 +262,42 @@ export default function AdminAuditLogsScreen() {
           </div>
 
           <div>
-            <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#667085]">Admin</label>
+            <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#A1A4AE]">Admin</label>
             <input
               type="text"
               value={filters.adminId}
               onChange={(e) => setFilters((prev) => ({ ...prev, adminId: e.target.value, offset: 0 }))}
               placeholder="Admin ID"
-              className="h-10 w-full rounded-[10px] border border-[#D0D5DD] bg-white px-3 text-sm text-[#111827] placeholder:text-[#98A2B3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F5B800]"
+              className="h-10 w-full rounded-[10px] border border-[#34343E] bg-[#15161C] px-3 text-sm text-[#F5F5F7] placeholder:text-[#70737E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A18]"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#667085]">Date From</label>
+            <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#A1A4AE]">Date From</label>
             <input
               type="date"
               value={filters.from}
               onChange={(e) => setFilters((prev) => ({ ...prev, from: e.target.value, offset: 0 }))}
-              className="h-10 w-full rounded-[10px] border border-[#D0D5DD] bg-white px-3 text-sm text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F5B800]"
+              className="h-10 w-full rounded-[10px] border border-[#34343E] bg-[#15161C] px-3 text-sm text-[#F5F5F7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A18]"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#667085]">Date To</label>
+            <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#A1A4AE]">Date To</label>
             <input
               type="date"
               value={filters.to}
               onChange={(e) => setFilters((prev) => ({ ...prev, to: e.target.value, offset: 0 }))}
-              className="h-10 w-full rounded-[10px] border border-[#D0D5DD] bg-white px-3 text-sm text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F5B800]"
+              className="h-10 w-full rounded-[10px] border border-[#34343E] bg-[#15161C] px-3 text-sm text-[#F5F5F7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A18]"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#667085]">Rows</label>
+            <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#A1A4AE]">Rows</label>
             <select
               value={filters.limit}
               onChange={(e) => setFilters((prev) => ({ ...prev, limit: Number(e.target.value), offset: 0 }))}
-              className="h-10 rounded-[10px] border border-[#D0D5DD] bg-white px-3 text-sm font-semibold text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F5B800]"
+              className="h-10 rounded-[10px] border border-[#34343E] bg-[#15161C] px-3 text-sm font-semibold text-[#F5F5F7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A18]"
             >
               {ROW_OPTIONS.map((option) => (
                 <option key={option} value={option}>{option}</option>
@@ -332,7 +332,7 @@ export default function AdminAuditLogsScreen() {
 
       {/* Loading */}
       {loading && !logs.length && (
-        <section className="rounded-[16px] border border-[#E5E7EB] bg-white p-4">
+        <section className="rounded-[16px] border border-[#292B33] bg-[#15161C] p-4">
           <div className="space-y-3">
             {Array.from({ length: 8 }).map((_, index) => (
               <div key={`audit-skeleton-${index}`} className="grid grid-cols-9 gap-2">
@@ -357,11 +357,11 @@ export default function AdminAuditLogsScreen() {
 
       {/* Table */}
       {!loading && !error && (
-        <section className="overflow-hidden rounded-[16px] border border-[#E5E7EB] bg-white">
+        <section className="overflow-hidden rounded-[16px] border border-[#292B33] bg-[#15161C]">
           {filteredLogs.length === 0 ? (
             <div className="p-8 text-center">
-              <p className="text-base font-bold text-[#344054]">No audit logs found</p>
-              <p className="mt-1 text-xs text-[#667085]">Try changing search or filters, then refresh.</p>
+              <p className="text-base font-bold text-[#E4E5E8]">No audit logs found</p>
+              <p className="mt-1 text-xs text-[#A1A4AE]">Try changing search or filters, then refresh.</p>
               <Button
                 variant="secondary"
                 size="sm"
@@ -374,40 +374,40 @@ export default function AdminAuditLogsScreen() {
           ) : (
             <>
               <div className="overflow-x-auto">
-                <table className="min-w-[1250px] w-full divide-y divide-[#EAECF0]">
-                  <thead className="bg-[#F9FAFB]">
+                <table className="min-w-[1250px] w-full divide-y divide-[#202229]">
+                  <thead className="bg-[#15161C]">
                     <tr>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">Time</th>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">Admin</th>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">Action</th>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">Resource</th>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">User</th>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">Result</th>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">Source</th>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">Action</th>
+                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Time</th>
+                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Admin</th>
+                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Action</th>
+                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Resource</th>
+                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">User</th>
+                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Result</th>
+                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Source</th>
+                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#F2F4F7] bg-white">
+                  <tbody className="divide-y divide-[#1B1917] bg-[#15161C]">
                     {filteredLogs.map((log) => {
                       const result = getResultValue(log);
                       return (
-                        <tr key={log.id} className="align-top transition-colors hover:bg-[#F8FAFC]">
-                          <td className="px-3 py-2 text-xs text-[#111827]">{formatDateTime(log.createdAt)}</td>
-                          <td className="px-3 py-2 text-xs text-[#111827] font-mono">{log.adminId}</td>
-                          <td className="px-3 py-2 text-xs text-[#111827] font-semibold">{log.action}</td>
-                          <td className="px-3 py-2 text-xs text-[#111827]">
+                        <tr key={log.id} className="align-top transition-colors hover:bg-[#111217]">
+                          <td className="px-3 py-2 text-xs text-[#F5F5F7]">{formatDateTime(log.createdAt)}</td>
+                          <td className="px-3 py-2 text-xs text-[#F5F5F7] font-mono">{log.adminId}</td>
+                          <td className="px-3 py-2 text-xs text-[#F5F5F7] font-semibold">{log.action}</td>
+                          <td className="px-3 py-2 text-xs text-[#F5F5F7]">
                             <p>{log.targetType}</p>
-                            <p className="mt-1 text-[10px] font-mono text-[#667085]">{log.targetId || '—'}</p>
+                            <p className="mt-1 text-[10px] font-mono text-[#A1A4AE]">{log.targetId || '—'}</p>
                           </td>
-                          <td className="px-3 py-2 text-xs text-[#111827]">
+                          <td className="px-3 py-2 text-xs text-[#F5F5F7]">
                             <p>{extractUser(log)}</p>
-                            <p className="mt-1 text-[10px] font-mono text-[#667085]">{extractWallet(log)}</p>
+                            <p className="mt-1 text-[10px] font-mono text-[#A1A4AE]">{extractWallet(log)}</p>
                           </td>
                           <td className="px-3 py-2 text-xs">
                             <Badge variant={getResultVariant(result)}>{result}</Badge>
                           </td>
-                          <td className="px-3 py-2 text-xs text-[#111827]">{extractSource(log)}</td>
-                          <td className="px-3 py-2 text-xs text-[#111827]">
+                          <td className="px-3 py-2 text-xs text-[#F5F5F7]">{extractSource(log)}</td>
+                          <td className="px-3 py-2 text-xs text-[#F5F5F7]">
                             <Button
                               variant="secondary"
                               size="sm"
@@ -426,10 +426,10 @@ export default function AdminAuditLogsScreen() {
               </div>
 
               {/* Pagination */}
-              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#EAECF0] px-3 py-2.5">
-                <p className="text-xs text-[#667085]">
-                  Showing <span className="font-bold text-[#111827]">{rangeStart}-{rangeEnd}</span> of{' '}
-                  <span className="font-bold text-[#111827]">{total}</span>
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#202229] px-3 py-2.5">
+                <p className="text-xs text-[#A1A4AE]">
+                  Showing <span className="font-bold text-[#F5F5F7]">{rangeStart}-{rangeEnd}</span> of{' '}
+                  <span className="font-bold text-[#F5F5F7]">{total}</span>
                 </p>
                 <div className="flex items-center gap-2">
                   <Button
@@ -441,7 +441,7 @@ export default function AdminAuditLogsScreen() {
                   >
                     Previous
                   </Button>
-                  <span className="text-xs font-semibold text-[#344054]">Page {currentPage} of {totalPages}</span>
+                  <span className="text-xs font-semibold text-[#E4E5E8]">Page {currentPage} of {totalPages}</span>
                   <Button
                     variant="secondary"
                     size="sm"
@@ -461,51 +461,51 @@ export default function AdminAuditLogsScreen() {
       {/* Detail Modal */}
       {selectedLog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#101828]/50 p-4">
-          <div className="w-full max-w-4xl rounded-[16px] border border-[#E5E7EB] bg-white p-4 shadow-xl">
+          <div className="w-full max-w-4xl rounded-[16px] border border-[#292B33] bg-[#15161C] p-4 shadow-xl">
             <div className="mb-3 flex items-center justify-between gap-2">
-              <h2 className="text-lg font-black text-[#111827]">Audit Log Details</h2>
+              <h2 className="text-lg font-black text-[#F5F5F7]">Audit Log Details</h2>
               <Button variant="secondary" size="sm" className="h-8 px-3 text-xs" onClick={() => setSelectedLog(null)}>
                 Close
               </Button>
             </div>
 
-            <div className="grid grid-cols-1 gap-2 text-xs text-[#344054] sm:grid-cols-2">
-              <p><span className="text-[#667085]">Event ID:</span> <span className="font-mono text-[#111827]">{selectedLog.id}</span></p>
-              <p><span className="text-[#667085]">Timestamp:</span> <span className="font-semibold text-[#111827]">{formatDateTime(selectedLog.createdAt)}</span></p>
-              <p><span className="text-[#667085]">Admin ID:</span> <span className="font-mono text-[#111827]">{selectedLog.adminId}</span></p>
-              <p><span className="text-[#667085]">Admin Wallet:</span> <span className="font-mono text-[#111827]">{extractWallet(selectedLog)}</span></p>
-              <p><span className="text-[#667085]">Action:</span> <span className="font-semibold text-[#111827]">{selectedLog.action}</span></p>
-              <p><span className="text-[#667085]">Resource Type:</span> <span className="font-semibold text-[#111827]">{selectedLog.targetType}</span></p>
-              <p><span className="text-[#667085]">Resource ID:</span> <span className="font-mono text-[#111827]">{selectedLog.targetId || '—'}</span></p>
-              <p><span className="text-[#667085]">User:</span> <span className="font-mono text-[#111827]">{extractUser(selectedLog)}</span></p>
-              <p><span className="text-[#667085]">Wallet:</span> <span className="font-mono text-[#111827]">{extractWallet(selectedLog)}</span></p>
-              <p><span className="text-[#667085]">Result:</span> <Badge variant={getResultVariant(getResultValue(selectedLog))}>{getResultValue(selectedLog)}</Badge></p>
-              <p><span className="text-[#667085]">Source:</span> <span className="font-semibold text-[#111827]">{extractSource(selectedLog)}</span></p>
-              <p><span className="text-[#667085]">Request ID:</span> <span className="font-mono text-[#111827]">{extractRequestId(selectedLog)}</span></p>
+            <div className="grid grid-cols-1 gap-2 text-xs text-[#E4E5E8] sm:grid-cols-2">
+              <p><span className="text-[#A1A4AE]">Event ID:</span> <span className="font-mono text-[#F5F5F7]">{selectedLog.id}</span></p>
+              <p><span className="text-[#A1A4AE]">Timestamp:</span> <span className="font-semibold text-[#F5F5F7]">{formatDateTime(selectedLog.createdAt)}</span></p>
+              <p><span className="text-[#A1A4AE]">Admin ID:</span> <span className="font-mono text-[#F5F5F7]">{selectedLog.adminId}</span></p>
+              <p><span className="text-[#A1A4AE]">Admin Wallet:</span> <span className="font-mono text-[#F5F5F7]">{extractWallet(selectedLog)}</span></p>
+              <p><span className="text-[#A1A4AE]">Action:</span> <span className="font-semibold text-[#F5F5F7]">{selectedLog.action}</span></p>
+              <p><span className="text-[#A1A4AE]">Resource Type:</span> <span className="font-semibold text-[#F5F5F7]">{selectedLog.targetType}</span></p>
+              <p><span className="text-[#A1A4AE]">Resource ID:</span> <span className="font-mono text-[#F5F5F7]">{selectedLog.targetId || '—'}</span></p>
+              <p><span className="text-[#A1A4AE]">User:</span> <span className="font-mono text-[#F5F5F7]">{extractUser(selectedLog)}</span></p>
+              <p><span className="text-[#A1A4AE]">Wallet:</span> <span className="font-mono text-[#F5F5F7]">{extractWallet(selectedLog)}</span></p>
+              <p><span className="text-[#A1A4AE]">Result:</span> <Badge variant={getResultVariant(getResultValue(selectedLog))}>{getResultValue(selectedLog)}</Badge></p>
+              <p><span className="text-[#A1A4AE]">Source:</span> <span className="font-semibold text-[#F5F5F7]">{extractSource(selectedLog)}</span></p>
+              <p><span className="text-[#A1A4AE]">Request ID:</span> <span className="font-mono text-[#F5F5F7]">{extractRequestId(selectedLog)}</span></p>
             </div>
 
             <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-3">
-              <div className="rounded-[12px] border border-[#EAECF0] bg-[#F9FAFB] p-3">
-                <p className="text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">Before</p>
-                <pre className="mt-2 max-h-56 overflow-auto whitespace-pre-wrap break-words rounded-[8px] bg-white p-2 text-[11px] text-[#111827]">
+              <div className="rounded-[12px] border border-[#202229] bg-[#15161C] p-3">
+                <p className="text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Before</p>
+                <pre className="mt-2 max-h-56 overflow-auto whitespace-pre-wrap break-words rounded-[8px] bg-[#15161C] p-2 text-[11px] text-[#F5F5F7]">
                   {stringifyJson(selectedLog.oldValue)}
                 </pre>
               </div>
-              <div className="rounded-[12px] border border-[#EAECF0] bg-[#F9FAFB] p-3">
-                <p className="text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">After</p>
-                <pre className="mt-2 max-h-56 overflow-auto whitespace-pre-wrap break-words rounded-[8px] bg-white p-2 text-[11px] text-[#111827]">
+              <div className="rounded-[12px] border border-[#202229] bg-[#15161C] p-3">
+                <p className="text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">After</p>
+                <pre className="mt-2 max-h-56 overflow-auto whitespace-pre-wrap break-words rounded-[8px] bg-[#15161C] p-2 text-[11px] text-[#F5F5F7]">
                   {stringifyJson(selectedLog.newValue)}
                 </pre>
               </div>
-              <div className="rounded-[12px] border border-[#EAECF0] bg-[#F9FAFB] p-3">
-                <p className="text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">Metadata</p>
-                <pre className="mt-2 max-h-56 overflow-auto whitespace-pre-wrap break-words rounded-[8px] bg-white p-2 text-[11px] text-[#111827]">
+              <div className="rounded-[12px] border border-[#202229] bg-[#15161C] p-3">
+                <p className="text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Metadata</p>
+                <pre className="mt-2 max-h-56 overflow-auto whitespace-pre-wrap break-words rounded-[8px] bg-[#15161C] p-2 text-[11px] text-[#F5F5F7]">
                   {stringifyJson(selectedLog.metadata)}
                 </pre>
               </div>
             </div>
 
-            <p className="mt-3 text-[11px] text-[#667085]">Audit records are read-only and cannot be edited or deleted.</p>
+            <p className="mt-3 text-[11px] text-[#A1A4AE]">Audit records are read-only and cannot be edited or deleted.</p>
           </div>
         </div>
       )}

@@ -35,13 +35,11 @@
 // USDT contract validation is done through the Transfer log.
 // ============================================================
 
-import { Processor, Process } from '@nestjs/bull';
+import { Processor, WorkerHost, InjectQueue } from '@nestjs/bullmq';
 
-import { InjectQueue } from '@nestjs/bull';
+import type { Job } from 'bullmq';
 
-import type { Job } from 'bull';
-
-import type { Queue } from 'bull';
+import type { Queue } from 'bullmq';
 
 import { Injectable } from '@nestjs/common';
 
@@ -79,7 +77,7 @@ interface DepositJobData {
 
 @Processor('deposit-detection')
 @Injectable()
-export class DepositDetectionProcessor {
+export class DepositDetectionProcessor extends WorkerHost {
   // ==========================================================
   // CONFIG
   // ==========================================================
@@ -110,6 +108,8 @@ export class DepositDetectionProcessor {
     @InjectQueue('deposit-confirmation')
     private readonly confirmationQueue: Queue,
   ) {
+    super();
+
     // ========================================================
     // BSC RPC / CHAIN / CONTRACT CONFIG
     // ========================================================
@@ -173,8 +173,7 @@ export class DepositDetectionProcessor {
   // DETECT DEPOSIT
   // ==========================================================
 
-  @Process('detect-deposit')
-  async handleDepositDetection(job: Job<DepositJobData>): Promise<void> {
+  async process(job: Job<DepositJobData>): Promise<void> {
     const { chainId, transactionHash, from, to, amount } = job.data;
 
     // ==========================================================

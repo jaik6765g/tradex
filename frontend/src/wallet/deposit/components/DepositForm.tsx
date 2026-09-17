@@ -31,7 +31,7 @@ export function DepositForm({
   return (
     <div className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-[#A1A4AE] mb-1">
           Amount (USDT)
         </label>
         <input
@@ -41,19 +41,19 @@ export function DepositForm({
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           placeholder="0.00"
-          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
+          className="w-full px-4 py-3 border border-[#34343E] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF7A18] focus:border-transparent text-lg"
           disabled={isLoading}
         />
       </div>
 
-      <p className="text-xs text-gray-500">Minimum deposit: {MIN_USDT_DEPOSIT} USDT</p>
+      <p className="text-xs text-[#A1A4AE]">Minimum deposit: {MIN_USDT_DEPOSIT} USDT</p>
 
       {amount && hasValidAmount && (
-        <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
-          <p className="text-sm text-gray-600">You will receive:</p>
-          <p className="text-2xl font-bold text-blue-600">
+        <div className="p-4 bg-gradient-to-r from-[#211810] to-[#211810] rounded-xl border border-[#34261C]">
+          <p className="text-sm text-[#A1A4AE]">You will receive:</p>
+          <p className="text-2xl font-bold text-[#C99752]">
             {tdxAmount || amountNumber * TDX_RATE}{' '}
-            <span className="text-sm font-normal text-gray-500">TDX</span>
+            <span className="text-sm font-normal text-[#A1A4AE]">TDX</span>
           </p>
         </div>
       )}
@@ -61,13 +61,13 @@ export function DepositForm({
       <button
         onClick={onSubmit}
         disabled={!hasValidAmount || amountNumber < MIN_USDT_DEPOSIT || isLoading}
-        className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-xl hover:from-blue-700 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed transition-all duration-200 shadow-md"
+        className="w-full py-3 px-4 bg-gradient-to-r from-[#FF7A18] to-[#E8650F] text-white font-medium rounded-xl hover:from-[#FF8F3D] hover:to-[#D2570E] disabled:from-[#34343E] disabled:to-[#34343E] disabled:cursor-not-allowed transition-all duration-200 shadow-md"
       >
         {isLoading ? '⏳ Processing...' : isSuccess ? '✅ Done!' : 'Deposit USDT'}
       </button>
 
       {isLoading && (
-        <p className="text-xs text-gray-500 text-center">
+        <p className="text-xs text-[#A1A4AE] text-center">
           {status === 'approving' ? 'Approving USDT (one-time)...' : 'Depositing USDT...'}
         </p>
       )}

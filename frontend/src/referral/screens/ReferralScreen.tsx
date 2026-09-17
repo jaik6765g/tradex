@@ -61,8 +61,8 @@ const referralTypes: Record<
     title: 'Game Referral',
     subtitle: 'Earn from Game',
     icon: Gamepad2,
-    color: '#7C3AED',
-    bg: '#F3EAFF',
+    color: '#C99752',
+    bg: '#211810',
     description:
       'Earn referral rewards when your network participates in TradeX games.',
     available: true,
@@ -72,8 +72,8 @@ const referralTypes: Record<
     title: 'Trade Referral',
     subtitle: 'Earn from Trade',
     icon: TrendingUp,
-    color: '#2563EB',
-    bg: '#EAF3FF',
+    color: '#C99752',
+    bg: '#211810',
     description:
       'Earn referral rewards from eligible Pulse Trade activity across your network.',
     available: true,
@@ -83,8 +83,8 @@ const referralTypes: Record<
     title: 'Bot Referral',
     subtitle: 'Earn from Bot',
     icon: Bot,
-    color: '#F59E0B',
-    bg: '#FFF5D8',
+    color: '#FF8F3D',
+    bg: '#2A190D',
     description:
       'Earn referral rewards from eligible automated bot activity.',
     available: true,
@@ -228,7 +228,7 @@ export default function ReferralScreen() {
 
           if (response?.status === 401) {
             message =
-              'Your session has expired. Please reconnect your wallet.';
+              'Your session has expired. Please log in again.';
           } else if (
             response?.data?.message
           ) {
@@ -415,17 +415,17 @@ export default function ReferralScreen() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F8FAFC]">
+      <div className="min-h-screen bg-[#111217]">
         <div className="flex min-h-[60vh] items-center justify-center px-4">
           <div className="flex flex-col items-center">
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#FFF7E0]">
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#2A190D]">
               <RefreshCw
                 size={22}
-                className="animate-spin text-[#F59E0B]"
+                className="animate-spin text-[#FF8F3D]"
               />
             </div>
 
-            <div className="text-sm font-semibold text-[#64748B]">
+            <div className="text-sm font-semibold text-[#A1A4AE]">
               Loading referral data...
             </div>
           </div>
@@ -440,10 +440,10 @@ export default function ReferralScreen() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-[#F8FAFC]">
+      <div className="min-h-screen bg-[#111217]">
         <div className="mx-auto max-w-6xl px-4 py-8">
-          <div className="rounded-[18px] border border-red-200 bg-red-50 p-5">
-            <div className="text-sm font-bold text-red-600">
+          <div className="rounded-[18px] border border-[#4A2323] bg-[#281313] p-5">
+            <div className="text-sm font-bold text-[#F87171]">
               {error}
             </div>
 
@@ -452,7 +452,7 @@ export default function ReferralScreen() {
               onClick={() =>
                 void loadReferral()
               }
-              className="mt-4 inline-flex h-10 items-center gap-2 rounded-lg bg-[#111827] px-5 text-sm font-bold text-white hover:bg-[#1F2937]"
+              className="mt-4 inline-flex h-10 items-center gap-2 rounded-lg bg-[#FF7A18] px-5 text-sm font-bold text-white hover:bg-[#FF8F3D]"
             >
               <RefreshCw size={16} />
               Retry
@@ -469,10 +469,10 @@ export default function ReferralScreen() {
 
   if (!referralData) {
     return (
-      <div className="min-h-screen bg-[#F8FAFC]">
+      <div className="min-h-screen bg-[#111217]">
         <div className="mx-auto max-w-6xl px-4 py-8">
-          <div className="rounded-[18px] border border-[#E5E7EB] bg-white p-6 text-center">
-            <div className="text-sm font-semibold text-[#64748B]">
+          <div className="rounded-[18px] border border-[#292B33] bg-[#15161C] p-6 text-center">
+            <div className="text-sm font-semibold text-[#A1A4AE]">
               No referral data available.
             </div>
 
@@ -481,7 +481,7 @@ export default function ReferralScreen() {
               onClick={() =>
                 void loadReferral()
               }
-              className="mt-4 inline-flex h-10 items-center gap-2 rounded-lg bg-[#FBBF24] px-5 text-sm font-bold text-[#111827]"
+              className="mt-4 inline-flex h-10 items-center gap-2 rounded-lg bg-[#FF7A18] px-5 text-sm font-bold text-[#F5F5F7]"
             >
               <RefreshCw size={16} />
               Refresh
@@ -497,7 +497,7 @@ export default function ReferralScreen() {
   // ==========================================================
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] pb-28">
+    <div className="min-h-screen bg-[#111217] pb-28">
       <main className="mx-auto w-full max-w-[1200px] px-4 py-5">
         <div className="space-y-4">
 
@@ -505,10 +505,10 @@ export default function ReferralScreen() {
               HERO
           ================================================== */}
 
-          <section className="relative min-h-[300px] overflow-hidden rounded-[22px] bg-[#071426]">
-            <div className="absolute -right-16 -top-20 h-[260px] w-[260px] rounded-full bg-[#FBBF24]/[0.08]" />
+          <section className="relative min-h-[300px] overflow-hidden rounded-[22px] bg-[#211810]">
+            <div className="absolute -right-16 -top-20 h-[260px] w-[260px] rounded-full bg-[#FF7A18]/[0.08]" />
 
-            <div className="absolute bottom-[-100px] right-[18%] h-[220px] w-[220px] rounded-full bg-[#FBBF24]/[0.05]" />
+            <div className="absolute bottom-[-100px] right-[18%] h-[220px] w-[220px] rounded-full bg-[#FF7A18]/[0.05]" />
 
             <div className="relative z-10 grid min-h-[300px] grid-cols-1 md:grid-cols-[1.25fr_0.75fr]">
 
@@ -516,24 +516,24 @@ export default function ReferralScreen() {
               <div className="flex flex-col justify-center p-6 md:p-8">
                 <h1 className="text-[30px] font-black leading-tight text-white">
                   Refer{' '}
-                  <span className="text-[#FBBF24]">
+                  <span className="text-[#FF7A18]">
                     &amp; Earn
                   </span>
                 </h1>
 
-                <p className="mt-2 text-sm leading-6 text-[#E5E7EB]">
+                <p className="mt-2 text-sm leading-6 text-[#A1A4AE]">
                   Invite your friends and earn TDX rewards
                 </p>
 
-                <p className="text-sm leading-6 text-[#E5E7EB]">
+                <p className="text-sm leading-6 text-[#A1A4AE]">
                   from eligible TradeX activity.
                 </p>
 
-                <p className="mb-2 mt-5 text-sm font-extrabold text-[#FACC15]">
+                <p className="mb-2 mt-5 text-sm font-extrabold text-[#FF8F3D]">
                   Your Referral Link
                 </p>
 
-                <div className="flex h-[52px] max-w-[520px] overflow-hidden rounded-[13px] border border-[#374151] bg-[#101C2D]">
+                <div className="flex h-[52px] max-w-[520px] overflow-hidden rounded-[13px] border border-[#4F525C] bg-[#211810]">
                   <div className="flex min-w-0 flex-1 items-center px-3">
                     <span className="truncate text-sm text-white">
                       {referralLink ||
@@ -545,7 +545,7 @@ export default function ReferralScreen() {
                     type="button"
                     onClick={copyReferral}
                     disabled={!referralLink}
-                    className="flex w-[52px] shrink-0 items-center justify-center bg-[#FBBF24] text-[#111827] hover:bg-[#FCD34D] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex w-[52px] shrink-0 items-center justify-center bg-[#FF7A18] text-[#F5F5F7] hover:bg-[#FF8F3D] disabled:cursor-not-allowed disabled:opacity-50"
                     title="Copy referral link"
                   >
                     {copied ? (
@@ -557,9 +557,9 @@ export default function ReferralScreen() {
                 </div>
 
                 {referralCode && (
-                  <div className="mt-2 text-xs text-[#9CA3AF]">
+                  <div className="mt-2 text-xs text-[#A1A4AE]">
                     Referral Code:{' '}
-                    <span className="font-bold text-[#FBBF24]">
+                    <span className="font-bold text-[#FF7A18]">
                       {referralCode}
                     </span>
                   </div>
@@ -568,16 +568,16 @@ export default function ReferralScreen() {
 
               {/* RIGHT */}
               <div className="flex flex-col items-center justify-center px-6 pb-7 md:pb-0">
-                <div className="mb-3 flex h-[120px] w-[120px] items-center justify-center rounded-full bg-[#FBBF24]/10">
-                  <div className="flex h-[92px] w-[92px] items-center justify-center rounded-full bg-[#FBBF24]/15">
+                <div className="mb-3 flex h-[120px] w-[120px] items-center justify-center rounded-full bg-[#FF7A18]/10">
+                  <div className="flex h-[92px] w-[92px] items-center justify-center rounded-full bg-[#FF7A18]/15">
                     <Sparkles
                       size={66}
-                      className="text-[#FBBF24]"
+                      className="text-[#FF7A18]"
                     />
                   </div>
                 </div>
 
-                <span className="mb-2 text-[13px] text-[#D1D5DB]">
+                <span className="mb-2 text-[13px] text-[#34343E]">
                   Share via
                 </span>
 
@@ -596,7 +596,7 @@ export default function ReferralScreen() {
                     type="button"
                     onClick={shareReferral}
                     disabled={!referralLink}
-                    className="flex h-10 w-10 items-center justify-center rounded-full bg-[#229ED9] text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex h-10 w-10 items-center justify-center rounded-full bg-[#FF8F3D] text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                     title="Share"
                   >
                     <Send size={20} />
@@ -606,7 +606,7 @@ export default function ReferralScreen() {
                     type="button"
                     onClick={shareReferral}
                     disabled={!referralLink}
-                    className="flex h-10 w-10 items-center justify-center rounded-full bg-[#374151] text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex h-10 w-10 items-center justify-center rounded-full bg-[#4F525C] text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                     title="More sharing options"
                   >
                     <Share2 size={21} />
@@ -620,11 +620,11 @@ export default function ReferralScreen() {
               STATS
           ================================================== */}
 
-          <section className="grid grid-cols-1 overflow-hidden rounded-[18px] border border-[#E5E7EB] bg-white sm:grid-cols-3">
+          <section className="grid grid-cols-1 overflow-hidden rounded-[18px] border border-[#292B33] bg-[#15161C] sm:grid-cols-3">
 
             <StatCard
               icon={<Users size={22} />}
-              iconColor="#7C3AED"
+              iconColor="#C99752"
               title="Total Network"
               value={String(
                 referralData.stats
@@ -634,7 +634,7 @@ export default function ReferralScreen() {
 
             <StatCard
               icon={<Network size={22} />}
-              iconColor="#16A34A"
+              iconColor="#4ADE80"
               title="Total Active"
               value={String(
                 referralData.stats
@@ -645,7 +645,7 @@ export default function ReferralScreen() {
 
             <StatCard
               icon={<Wallet size={22} />}
-              iconColor="#F59E0B"
+              iconColor="#FF8F3D"
               title="Total Earned"
               value={`${formatTDX(
                 referralData.stats
@@ -659,27 +659,27 @@ export default function ReferralScreen() {
               REFERRAL LINK
           ================================================== */}
 
-          <section className="rounded-[18px] border border-[#E5E7EB] bg-white p-4">
+          <section className="rounded-[18px] border border-[#292B33] bg-[#15161C] p-4">
             <div className="mb-3 flex items-start justify-between">
               <div>
-                <h2 className="text-[17px] font-extrabold text-[#111827]">
+                <h2 className="text-[17px] font-extrabold text-[#F5F5F7]">
                   Your Referral Link
                 </h2>
 
-                <p className="mt-1 text-xs text-[#6B7280]">
+                <p className="mt-1 text-xs text-[#70737E]">
                   Share your link and invite new users
                 </p>
               </div>
 
               <Link
                 size={24}
-                className="text-[#F59E0B]"
+                className="text-[#FF8F3D]"
               />
             </div>
 
-            <div className="flex h-12 overflow-hidden rounded-xl border border-[#E5E7EB] bg-[#F9FAFB]">
+            <div className="flex h-12 overflow-hidden rounded-xl border border-[#292B33] bg-[#15161C]">
               <div className="flex min-w-0 flex-1 items-center px-3">
-                <span className="truncate text-sm text-[#374151]">
+                <span className="truncate text-sm text-[#E4E5E8]">
                   {referralLink ||
                     'No referral link available'}
                 </span>
@@ -689,7 +689,7 @@ export default function ReferralScreen() {
                 type="button"
                 onClick={copyReferral}
                 disabled={!referralLink}
-                className="flex w-12 shrink-0 items-center justify-center bg-[#FBBF24] text-[#111827] hover:bg-[#FCD34D] disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex w-12 shrink-0 items-center justify-center bg-[#FF7A18] text-[#F5F5F7] hover:bg-[#FF8F3D] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {copied ? (
                   <Check size={19} />
@@ -703,7 +703,7 @@ export default function ReferralScreen() {
               type="button"
               onClick={shareReferral}
               disabled={!referralLink}
-              className="mt-2.5 flex h-[42px] w-full items-center justify-center gap-2 rounded-[11px] bg-[#FFF7E0] text-sm font-bold text-[#111827] hover:bg-[#FEF0C7] disabled:cursor-not-allowed disabled:opacity-50"
+              className="mt-2.5 flex h-[42px] w-full items-center justify-center gap-2 rounded-[11px] bg-[#2A190D] text-sm font-bold text-[#F5F5F7] hover:bg-[#33220F] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Share2 size={18} />
               Share Referral Link
@@ -714,7 +714,7 @@ export default function ReferralScreen() {
               REFERRAL TYPE TABS
           ================================================== */}
 
-          <section className="overflow-hidden rounded-[18px] border border-[#E5E7EB] bg-white">
+          <section className="overflow-hidden rounded-[18px] border border-[#292B33] bg-[#15161C]">
             <div className="grid grid-cols-1 sm:grid-cols-3">
               {(Object.keys(
                 referralTypes,
@@ -744,7 +744,7 @@ export default function ReferralScreen() {
                       className={`relative flex min-h-[96px] items-center justify-center gap-3 px-4 py-3 transition-all duration-150 ${
                         !item.available
                           ? 'cursor-not-allowed opacity-55'
-                          : 'hover:bg-[#F9FAFB]'
+                          : 'hover:bg-[#15161C]'
                       }`}
                     >
                       {active && (
@@ -785,7 +785,7 @@ export default function ReferralScreen() {
                           className={`text-xs font-extrabold ${
                             active
                               ? ''
-                              : 'text-[#111827]'
+                              : 'text-[#F5F5F7]'
                           }`}
                           style={
                             active
@@ -799,7 +799,7 @@ export default function ReferralScreen() {
                           {item.title}
                         </div>
 
-                        <div className="mt-1 text-[10px] text-[#64748B]">
+                        <div className="mt-1 text-[10px] text-[#A1A4AE]">
                           {item.subtitle}
                         </div>
                       </div>
@@ -816,7 +816,7 @@ export default function ReferralScreen() {
               backend-configured referral distribution)
           ================================================== */}
 
-          <section className="overflow-hidden rounded-[18px] border border-[#E5E7EB] bg-white">
+          <section className="overflow-hidden rounded-[18px] border border-[#292B33] bg-[#15161C]">
             {/* Category header */}
             <div
               className="flex items-center gap-3 px-4 py-4"
@@ -841,12 +841,12 @@ export default function ReferralScreen() {
               </div>
 
               <div className="min-w-0 flex-1">
-                <h2 className="text-base font-extrabold text-[#111827]">
+                <h2 className="text-base font-extrabold text-[#F5F5F7]">
                   {activeConfig.title} — Referral
                   Distribution
                 </h2>
 
-                <p className="mt-1 text-xs leading-5 text-[#64748B]">
+                <p className="mt-1 text-xs leading-5 text-[#A1A4AE]">
                   {activeConfig.description}
                 </p>
               </div>
@@ -858,10 +858,10 @@ export default function ReferralScreen() {
                   {(distribution?.bot ?? []).map((group) => (
                     <div
                       key={group.id}
-                      className="rounded-[14px] border border-[#EAECF0] p-3"
+                      className="rounded-[14px] border border-[#202229] p-3"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-extrabold text-[#111827]">
+                        <span className="text-xs font-extrabold text-[#F5F5F7]">
                           {group.label}
                         </span>
 
@@ -884,13 +884,13 @@ export default function ReferralScreen() {
                         {group.levels.map((item) => (
                           <div
                             key={item.level}
-                            className="rounded-lg bg-[#F8FAFC] px-2 py-1.5 text-center"
+                            className="rounded-lg bg-[#111217] px-2 py-1.5 text-center"
                           >
-                            <div className="text-[10px] text-[#667085]">
+                            <div className="text-[10px] text-[#A1A4AE]">
                               L{item.level}
                             </div>
 
-                            <div className="text-xs font-extrabold text-[#111827]">
+                            <div className="text-xs font-extrabold text-[#F5F5F7]">
                               {formatDistributionPercent(
                                 item.percent,
                               )}
@@ -915,9 +915,9 @@ export default function ReferralScreen() {
                   );
 
                   return (
-                    <div className="rounded-[14px] border border-[#EAECF0] p-3">
+                    <div className="rounded-[14px] border border-[#202229] p-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-extrabold text-[#111827]">
+                        <span className="text-xs font-extrabold text-[#F5F5F7]">
                           {activeConfig.title} — 6
                           Levels
                         </span>
@@ -941,13 +941,13 @@ export default function ReferralScreen() {
                         {levels.map((item) => (
                           <div
                             key={item.level}
-                            className="rounded-lg bg-[#F8FAFC] px-2 py-1.5 text-center"
+                            className="rounded-lg bg-[#111217] px-2 py-1.5 text-center"
                           >
-                            <div className="text-[10px] text-[#667085]">
+                            <div className="text-[10px] text-[#A1A4AE]">
                               L{item.level}
                             </div>
 
-                            <div className="text-xs font-extrabold text-[#111827]">
+                            <div className="text-xs font-extrabold text-[#F5F5F7]">
                               {formatDistributionPercent(
                                 item.percent,
                               )}
@@ -967,19 +967,19 @@ export default function ReferralScreen() {
               REFERRAL STRUCTURE
           ================================================== */}
 
-          <section className="rounded-[18px] border border-[#E5E7EB] bg-white p-4">
+          <section className="rounded-[18px] border border-[#292B33] bg-[#15161C] p-4">
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <h2 className="text-base font-extrabold text-[#111827]">
+                <h2 className="text-base font-extrabold text-[#F5F5F7]">
                   Referral Structure
                 </h2>
 
-                <p className="mt-1 text-xs text-[#64748B]">
+                <p className="mt-1 text-xs text-[#A1A4AE]">
                   Your network earnings by level
                 </p>
               </div>
 
-              <span className="rounded-full bg-[#FFF7E0] px-3 py-1.5 text-xs font-bold text-[#B77900]">
+              <span className="rounded-full bg-[#2A190D] px-3 py-1.5 text-xs font-bold text-[#FDBA74]">
                 6 Levels
               </span>
             </div>
@@ -997,7 +997,7 @@ export default function ReferralScreen() {
                   return (
                     <div
                       key={level.level}
-                      className="overflow-hidden rounded-[14px] border border-[#EAECF0]"
+                      className="overflow-hidden rounded-[14px] border border-[#202229]"
                     >
                       {/* LEVEL HEADER */}
                       <button
@@ -1007,19 +1007,19 @@ export default function ReferralScreen() {
                             level.level,
                           )
                         }
-                        className="flex w-full items-center gap-3 bg-[#FCFCFD] px-4 py-3 text-left hover:bg-[#F9FAFB]"
+                        className="flex w-full items-center gap-3 bg-[#1A1A20] px-4 py-3 text-left hover:bg-[#15161C]"
                       >
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#111827] text-xs font-extrabold text-white">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FF7A18] text-xs font-extrabold text-white">
                           L{level.level}
                         </div>
 
                         <div className="min-w-0 flex-1">
-                          <div className="text-sm font-extrabold text-[#111827]">
+                          <div className="text-sm font-extrabold text-[#F5F5F7]">
                             Level{' '}
                             {level.level}
                           </div>
 
-                          <div className="mt-0.5 text-[11px] text-[#667085]">
+                          <div className="mt-0.5 text-[11px] text-[#A1A4AE]">
                             {
                               level.totalUsers
                             }{' '}
@@ -1031,7 +1031,7 @@ export default function ReferralScreen() {
                           </div>
                         </div>
 
-                        <span className="rounded-full bg-[#FFF7E0] px-2.5 py-1 text-xs font-extrabold text-[#B77900]">
+                        <span className="rounded-full bg-[#2A190D] px-2.5 py-1 text-xs font-extrabold text-[#FDBA74]">
                           {
                             formatDistributionPercent(
                               getActiveTypeLevelPercent(
@@ -1045,23 +1045,23 @@ export default function ReferralScreen() {
                         {expanded ? (
                           <ChevronUp
                             size={18}
-                            className="shrink-0 text-[#667085]"
+                            className="shrink-0 text-[#A1A4AE]"
                           />
                         ) : (
                           <ChevronDown
                             size={18}
-                            className="shrink-0 text-[#667085]"
+                            className="shrink-0 text-[#A1A4AE]"
                           />
                         )}
                       </button>
 
                       {/* USERS */}
                       {expanded && (
-                        <div className="border-t border-[#EAECF0] bg-white">
+                        <div className="border-t border-[#202229] bg-[#15161C]">
                           {level.users
                             .length ===
                           0 ? (
-                            <div className="px-4 py-6 text-center text-xs text-[#98A2B3]">
+                            <div className="px-4 py-6 text-center text-xs text-[#70737E]">
                               No users at this level yet.
                             </div>
                           ) : (
@@ -1071,10 +1071,10 @@ export default function ReferralScreen() {
                                   key={
                                     user.userId
                                   }
-                                  className="flex items-center gap-3 border-b border-[#F2F4F7] px-4 py-3 last:border-b-0"
+                                  className="flex items-center gap-3 border-b border-[#1B1917] px-4 py-3 last:border-b-0"
                                 >
                                   {/* AVATAR */}
-                                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#F3F4F6] text-xs font-extrabold text-[#475467]">
+                                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#1B1917] text-xs font-extrabold text-[#A1A4AE]">
                                     {user.walletAddress
                                       ?.slice(
                                         2,
@@ -1087,7 +1087,7 @@ export default function ReferralScreen() {
                                   {/* USER */}
                                   <div className="min-w-0 flex-1">
                                     <div className="flex items-center gap-2">
-                                      <span className="truncate text-sm font-bold text-[#111827]">
+                                      <span className="truncate text-sm font-bold text-[#F5F5F7]">
                                         {formatWallet(
                                           user.walletAddress,
                                         )}
@@ -1097,12 +1097,12 @@ export default function ReferralScreen() {
                                         className={`h-1.5 w-1.5 shrink-0 rounded-full ${
                                           user.active
                                             ? 'bg-[#22C55E]'
-                                            : 'bg-[#98A2B3]'
+                                            : 'bg-[#A1A4AE]'
                                         }`}
                                       />
                                     </div>
 
-                                    <div className="mt-0.5 text-[10px] text-[#98A2B3]">
+                                    <div className="mt-0.5 text-[10px] text-[#70737E]">
                                       {user.active
                                         ? 'Active'
                                         : 'Inactive'}
@@ -1116,14 +1116,14 @@ export default function ReferralScreen() {
 
                                   {/* AMOUNTS */}
                                   <div className="shrink-0 text-right">
-                                    <div className="text-xs font-bold text-[#111827]">
+                                    <div className="text-xs font-bold text-[#F5F5F7]">
                                       {formatTDX(
                                         user.tradeVolume,
                                       )}{' '}
                                       TDX
                                     </div>
 
-                                    <div className="mt-0.5 text-[10px] font-bold text-[#16A34A]">
+                                    <div className="mt-0.5 text-[10px] font-bold text-[#4ADE80]">
                                       +
                                       {formatTDX(
                                         user.earned,
@@ -1204,7 +1204,7 @@ function StatCard({
     <div
       className={`flex flex-1 items-center justify-center gap-3 px-4 py-5 ${
         divider
-          ? 'border-t border-[#E5E7EB] sm:border-l sm:border-t-0'
+          ? 'border-t border-[#292B33] sm:border-l sm:border-t-0'
           : ''
       }`}
     >
@@ -1219,11 +1219,11 @@ function StatCard({
       </div>
 
       <div>
-        <div className="text-xs text-[#64748B]">
+        <div className="text-xs text-[#A1A4AE]">
           {title}
         </div>
 
-        <div className="mt-1 text-lg font-black text-[#111827]">
+        <div className="mt-1 text-lg font-black text-[#F5F5F7]">
           {value}
         </div>
       </div>
@@ -1247,23 +1247,23 @@ function SummaryCard({
   highlight?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-[16px] border border-[#E5E7EB] bg-white p-4">
+    <div className="flex items-center gap-3 rounded-[16px] border border-[#292B33] bg-[#15161C] p-4">
       <div
         className={`flex h-10 w-10 items-center justify-center rounded-full ${
           highlight
-            ? 'bg-[#FFF7E0] text-[#F59E0B]'
-            : 'bg-[#F3F4F6] text-[#475467]'
+            ? 'bg-[#2A190D] text-[#FF8F3D]'
+            : 'bg-[#1B1917] text-[#A1A4AE]'
         }`}
       >
         {icon}
       </div>
 
       <div>
-        <div className="text-[11px] text-[#667085]">
+        <div className="text-[11px] text-[#A1A4AE]">
           {label}
         </div>
 
-        <div className="mt-1 text-sm font-extrabold text-[#111827]">
+        <div className="mt-1 text-sm font-extrabold text-[#F5F5F7]">
           {value}
         </div>
       </div>

@@ -139,15 +139,15 @@ export default function AdminDashboardScreen() {
   return (
     <div className="space-y-3">
       {/* Header */}
-      <section className="rounded-[16px] border border-[#E5E7EB] bg-white p-4">
+      <section className="rounded-[16px] border border-[#292B33] bg-[#15161C] p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-[20px] font-black text-[#111827]">Dashboard</h1>
-            <p className="mt-0.5 text-xs text-[#667085]">Platform overview and operational status</p>
+            <h1 className="text-[20px] font-black text-[#F5F5F7]">Dashboard</h1>
+            <p className="mt-0.5 text-xs text-[#A1A4AE]">Platform overview and operational status</p>
           </div>
           <button
             onClick={() => void loadMetrics()}
-            className="flex h-9 items-center gap-1.5 rounded-[10px] border border-[#D0D5DD] bg-white px-3 text-xs font-bold text-[#344054] transition-colors hover:bg-[#F9FAFB]"
+            className="flex h-9 items-center gap-1.5 rounded-[10px] border border-[#34343E] bg-[#15161C] px-3 text-xs font-bold text-[#E4E5E8] transition-colors hover:bg-[#15161C]"
           >
             <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
             Refresh
@@ -157,10 +157,10 @@ export default function AdminDashboardScreen() {
 
       {/* Loading State */}
       {isLoading && !metrics && (
-        <section className="rounded-[16px] border border-[#E5E7EB] bg-white p-4">
+        <section className="rounded-[16px] border border-[#292B33] bg-[#15161C] p-4">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={`metric-skeleton-${i}`} className="rounded-[14px] border border-[#EAECF0] bg-white p-4">
+              <div key={`metric-skeleton-${i}`} className="rounded-[14px] border border-[#202229] bg-[#15161C] p-4">
                 <Skeleton className="h-3 w-28" />
                 <Skeleton className="mt-3 h-7 w-24" />
                 <Skeleton className="mt-2 h-3 w-36" />
@@ -183,8 +183,8 @@ export default function AdminDashboardScreen() {
       {!error && metrics && (
         <>
           {/* Platform Metrics */}
-          <section className="rounded-[16px] border border-[#E5E7EB] bg-white p-4">
-            <h2 className="text-xs font-black uppercase tracking-[0.08em] text-[#475467]">Platform</h2>
+          <section className="rounded-[16px] border border-[#292B33] bg-[#15161C] p-4">
+            <h2 className="text-xs font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Platform</h2>
             <div className="mt-3 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {USER_METRIC_KEYS.map((key) => (
                 <AdminMetricCard
@@ -213,8 +213,8 @@ export default function AdminDashboardScreen() {
           </section>
 
           {/* Pulse Trade Metrics */}
-          <section className="rounded-[16px] border border-[#E5E7EB] bg-white p-4">
-            <h2 className="text-xs font-black uppercase tracking-[0.08em] text-[#475467]">Pulse Trade</h2>
+          <section className="rounded-[16px] border border-[#292B33] bg-[#15161C] p-4">
+            <h2 className="text-xs font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Pulse Trade</h2>
             <div className="mt-3 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <AdminMetricCard
                 title="Platform TDX Balance"
@@ -292,8 +292,8 @@ export default function AdminDashboardScreen() {
           </section>
 
           {/* Operations Metrics */}
-          <section className="rounded-[16px] border border-[#E5E7EB] bg-white p-4">
-            <h2 className="text-xs font-black uppercase tracking-[0.08em] text-[#475467]">Operations</h2>
+          <section className="rounded-[16px] border border-[#292B33] bg-[#15161C] p-4">
+            <h2 className="text-xs font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Operations</h2>
             <div className="mt-3 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <AdminMetricCard
                 title="Total Withdrawals"
@@ -430,14 +430,14 @@ export default function AdminDashboardScreen() {
           </section>
 
           {/* Source Info */}
-          <section className="rounded-[16px] border border-[#E5E7EB] bg-white px-4 py-3 text-xs text-[#667085]">
+          <section className="rounded-[16px] border border-[#292B33] bg-[#15161C] px-4 py-3 text-xs text-[#A1A4AE]">
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
               <p>
-                Source: <span className="font-bold text-[#111827]">{metrics.source ?? 'N/A'}</span>
+                Source: <span className="font-bold text-[#F5F5F7]">{metrics.source ?? 'N/A'}</span>
               </p>
               <p>
                 Fetched at:{' '}
-                <span className="font-bold text-[#111827]">
+                <span className="font-bold text-[#F5F5F7]">
                   {metrics.fetchedAt ? new Date(metrics.fetchedAt).toLocaleString() : 'N/A'}
                 </span>
               </p>

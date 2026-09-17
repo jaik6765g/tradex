@@ -86,6 +86,17 @@ export class LottoController {
     return this.lottoService.getRecentResults(query);
   }
 
+  // NOTE: declared BEFORE 'results/:roundId' — otherwise Nest would match
+  // 'pending' against the ParseIntPipe param route and reject it with a 400.
+  @Get('results/pending')
+  @ApiOperation({
+    summary:
+      'Get the pre-computed result awaiting its 00:00 reveal (cutoff window only)',
+  })
+  async getPendingResult(@Query() query: GetLottoResultsDto) {
+    return this.lottoService.getPendingResult(query.category);
+  }
+
   @Get('results/:roundId')
   @ApiOperation({ summary: 'Get lotto result by round id' })
   async getResultByRoundId(@Param('roundId', ParseIntPipe) roundId: number) {

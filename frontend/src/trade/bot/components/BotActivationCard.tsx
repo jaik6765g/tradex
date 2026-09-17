@@ -21,16 +21,16 @@ export default function BotActivationCard({
   return (
     <Card className="p-5">
       <div className="mb-5 flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-[#FFF5D8]">
-          <Power size={19} className="text-[#D99100]" />
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-[#2A190D]">
+          <Power size={19} className="text-[#FF8F3D]" />
         </div>
 
         <div>
-          <h2 className="text-[16px] font-black text-[#101828]">
+          <h2 className="text-[16px] font-black text-[#F5F5F7]">
             Activate Bot
           </h2>
 
-          <p className="mt-1 text-sm font-medium text-[#667085]">
+          <p className="mt-1 text-sm font-medium text-[#A1A4AE]">
             Activation uses funds already available in your Bot Wallet.
           </p>
         </div>
@@ -61,7 +61,7 @@ export default function BotActivationCard({
         </Button>
       </div>
 
-      <p className="mt-3 text-xs font-medium text-[#667085]">
+      <p className="mt-3 text-xs font-medium text-[#A1A4AE]">
         Minimum and maximum activation limits are validated by the backend.
       </p>
     </Card>

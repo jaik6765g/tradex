@@ -42,16 +42,16 @@ function StatCard({
   accent: string;
 }) {
   return (
-    <div className="rounded-[12px] border border-[#EAECF0] bg-[#FCFCFD] p-4">
+    <div className="rounded-[12px] border border-[#202229] bg-[#1A1A20] p-4">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-xs font-bold uppercase tracking-[0.06em] text-[#667085]">
+        <p className="text-xs font-bold uppercase tracking-[0.06em] text-[#A1A4AE]">
           {label}
         </p>
 
         <span className={`rounded-lg p-2 ${accent}`}>{icon}</span>
       </div>
 
-      <p className="mt-3 text-xl font-black text-[#101828]">{value}</p>
+      <p className="mt-3 text-xl font-black text-[#F5F5F7]">{value}</p>
     </div>
   );
 }
@@ -68,21 +68,21 @@ export default function BotReferralEarnings({
 
   return (
     <Card className="overflow-hidden">
-      <div className="border-b border-[#EAECF0] px-5 py-4">
+      <div className="border-b border-[#202229] px-5 py-4">
         <div className="flex items-center gap-2">
-          <Activity size={18} className="text-[#7A5AF8]" />
-          <h2 className="text-[16px] font-black text-[#101828]">
+          <Activity size={18} className="text-[#C99752]" />
+          <h2 className="text-[16px] font-black text-[#F5F5F7]">
             Referral Performance
           </h2>
         </div>
 
-        <p className="mt-1 text-xs font-medium text-[#667085]">
+        <p className="mt-1 text-xs font-medium text-[#A1A4AE]">
           Live summary of your current and previous month referral earnings.
         </p>
       </div>
 
       {errorMessage ? (
-        <div className="border-b border-[#FECDCA] bg-[#FEF3F2] px-5 py-3 text-sm font-semibold text-[#B42318]">
+        <div className="border-b border-[#4A2323] bg-[#281313] px-5 py-3 text-sm font-semibold text-[#F87171]">
           {errorMessage}
         </div>
       ) : null}
@@ -92,7 +92,7 @@ export default function BotReferralEarnings({
           {[0, 1, 2, 3].map((index) => (
             <div
               key={index}
-              className="rounded-[12px] border border-[#EAECF0] p-4"
+              className="rounded-[12px] border border-[#202229] p-4"
             >
               <Skeleton className="h-3 w-28" />
               <Skeleton className="mt-3 h-7 w-24" />
@@ -102,31 +102,31 @@ export default function BotReferralEarnings({
       ) : (
         <div className="grid grid-cols-1 gap-3 px-5 py-5 sm:grid-cols-2">
           <StatCard
-            icon={<Users size={16} className="text-[#7A5AF8]" />}
+            icon={<Users size={16} className="text-[#C99752]" />}
             label="Direct Active"
             value={String(directActive)}
-            accent="bg-[#F4F3FF]"
+            accent="bg-[#F5E9D8]"
           />
 
           <StatCard
             icon={<Users size={16} className="text-[#039855]" />}
             label="Team Active"
             value={String(teamActive)}
-            accent="bg-[#ECFDF3]"
+            accent="bg-[#10251A]"
           />
 
           <StatCard
-            icon={<Wallet size={16} className="text-[#155EEF]" />}
+            icon={<Wallet size={16} className="text-[#FF7A18]" />}
             label="This Month"
             value={`${formatTDX(monthlyEarnings)} TDX`}
-            accent="bg-[#EFF8FF]"
+            accent="bg-[#211810]"
           />
 
           <StatCard
-            icon={<ArrowUpRight size={16} className="text-[#F79009]" />}
+            icon={<ArrowUpRight size={16} className="text-[#FF7A18]" />}
             label="Previous Month"
             value={`${formatTDX(previousMonthEarnings)} TDX`}
-            accent="bg-[#FFFAEB]"
+            accent="bg-[#2A190D]"
           />
         </div>
       )}

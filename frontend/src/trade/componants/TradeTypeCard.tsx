@@ -29,13 +29,13 @@ export default function TradeTypeCard({
       onClick={onPress}
       disabled={isComingSoon}
       className={`
-        group relative w-[160px] h-[200px] shrink-0 bg-white rounded-[22px] 
-        border border-[#E9ECF2] overflow-hidden text-left 
+        group relative w-[160px] h-[200px] shrink-0 bg-[#15161C] rounded-[22px] 
+        border border-[#202229] overflow-hidden text-left 
         shadow-[0_4px_20px_rgba(16,24,40,0.06)] 
         transition-all duration-300
         ${isComingSoon 
           ? 'cursor-not-allowed' 
-          : 'hover:shadow-[0_8px_40px_rgba(16,24,40,0.12)] hover:scale-[1.02] hover:border-[#FBBF24]'
+          : 'hover:shadow-[0_8px_40px_rgba(16,24,40,0.12)] hover:scale-[1.02] hover:border-[#FF7A18]'
         }
       `}
     >
@@ -46,14 +46,14 @@ export default function TradeTypeCard({
           alt={title}
           className="w-full h-full object-contain opacity-100 group-hover:scale-110 transition-transform duration-300"
         />
-        <div className="absolute inset-x-0 bottom-0 h-[60%] bg-gradient-to-t from-white via-white/80 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-[60%] bg-gradient-to-t from-[#202229] via-[#15161C]/80 to-transparent" />
       </div>
 
       {/* ✅ Coming Soon Overlay - Piche ka text dikhega */}
       {isComingSoon && (
         <div className="absolute inset-0 bg-white/40 backdrop-blur-[1px] flex items-center justify-center z-10">
-          <div className="bg-[#111827]/80 backdrop-blur-sm px-5 py-2.5 rounded-full flex items-center gap-2 shadow-lg border border-white/10">
-            <Clock size={16} className="text-[#FBBF24]" />
+          <div className="bg-[#FF7A18]/80 backdrop-blur-sm px-5 py-2.5 rounded-full flex items-center gap-2 shadow-lg border border-white/10">
+            <Clock size={16} className="text-[#FF7A18]" />
             <span className="text-white text-[11px] font-black uppercase tracking-wider">
               Coming Soon
             </span>
@@ -75,11 +75,11 @@ export default function TradeTypeCard({
           {tag}
         </span>
 
-        <div className="text-[#101828] text-[15px] font-black tracking-tight mb-[3px] group-hover:text-[#F59E0B] transition-colors">
+        <div className="text-[#F5F5F7] text-[15px] font-black tracking-tight mb-[3px] group-hover:text-[#FF8F3D] transition-colors">
           {title}
         </div>
 
-        <div className="text-[#667085] text-[11px] leading-[15px] pr-5 line-clamp-2">
+        <div className="text-[#A1A4AE] text-[11px] leading-[15px] pr-5 line-clamp-2">
           {description}
         </div>
       </div>
@@ -87,16 +87,16 @@ export default function TradeTypeCard({
       {/* Premium Arrow (Bottom Right) */}
       <div className={`
         absolute right-[10px] bottom-[10px] w-[30px] h-[30px] rounded-full 
-        border border-[#E4E7EC] bg-white/80 backdrop-blur-sm 
+        border border-[#292B33] bg-[#15161C]/80 backdrop-blur-sm 
         flex items-center justify-center 
         transition-all duration-300
         ${isComingSoon 
           ? 'opacity-40' 
-          : 'group-hover:bg-gradient-to-br group-hover:from-[#FBBF24] group-hover:to-[#F59E0B] group-hover:border-transparent group-hover:scale-110'
+          : 'group-hover:bg-gradient-to-br group-hover:from-[#FF7A18] group-hover:to-[#FF8F3D] group-hover:border-transparent group-hover:scale-110'
         }
       `}>
         <ChevronRight size={16} className={`
-          text-[#172033] 
+          text-[#211810] 
           ${isComingSoon ? 'opacity-40' : 'group-hover:text-white'}
           transition-colors duration-300
         `} strokeWidth={2.5} />

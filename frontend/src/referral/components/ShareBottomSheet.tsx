@@ -51,13 +51,13 @@ export default function ShareBottomSheet({
 
             <ShareOption
               icon="paper-plane"
-              color="#229ED9"
+              color="#FF8F3D"
               title="Telegram"
             />
 
             <ShareOption
               icon="share-social"
-              color="#F59E0B"
+              color="#FF8F3D"
               title="Other"
             />
           </View>
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
   },
 
   sheet: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#15161C',
     borderTopLeftRadius: 25,
     borderTopRightRadius: 25,
     paddingHorizontal: 20,
@@ -127,20 +127,20 @@ const styles = StyleSheet.create({
     width: 42,
     height: 5,
     borderRadius: 3,
-    backgroundColor: '#D1D5DB',
+    backgroundColor: '#34343E',
     alignSelf: 'center',
     marginBottom: 20,
   },
 
   title: {
-    color: '#111827',
+    color: '#A1A4AE',
     fontSize: 20,
     fontWeight: '900',
     textAlign: 'center',
   },
 
   subtitle: {
-    color: '#64748B',
+    color: '#70737E',
     fontSize: 13,
     textAlign: 'center',
     marginTop: 5,
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
   },
 
   optionText: {
-    color: '#374151',
+    color: '#70737E',
     fontSize: 12,
     fontWeight: '700',
     marginTop: 7,
@@ -174,14 +174,14 @@ const styles = StyleSheet.create({
   cancel: {
     height: 48,
     borderRadius: 13,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#1B1917',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 24,
   },
 
   cancelText: {
-    color: '#111827',
+    color: '#A1A4AE',
     fontSize: 14,
     fontWeight: '800',
   },

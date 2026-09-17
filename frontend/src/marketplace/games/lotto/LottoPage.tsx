@@ -12,7 +12,7 @@ export default function LottoPage() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
+    <div className="min-h-screen bg-[#111217]">
       <main className="mx-auto w-full max-w-[1200px] px-4 pb-28 pt-4">
         <div className="space-y-4">
           <LottoGame onBack={() => navigate('/marketplace')} />

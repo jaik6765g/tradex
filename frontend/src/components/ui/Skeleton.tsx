@@ -12,7 +12,7 @@ export default function Skeleton({
   return (
     <div
       className={cx(
-        'animate-pulse rounded-[10px] bg-[#EAECF0]',
+        'animate-pulse rounded-[10px] bg-[#202229]',
         className,
       )}
     />

@@ -5,7 +5,7 @@
   width: 100%;
   margin: 0 auto;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #0a0a15;
+  background: #0B0C10;
   min-height: 100vh;
   color: #ffffff;
   box-sizing: border-box;
@@ -25,19 +25,19 @@
   justify-content: space-between;
   align-items: center;
   padding: 10px 16px;
-  background: #0f0f1a;
+  background: #0B0C10;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .how-to-label {
   font-size: 12px;
-  color: #8888aa;
+  color: #A1A4AE;
   font-weight: 500;
 }
 
 .how-to-timer {
   font-size: 12px;
-  color: #ffd700;
+  color: #F0A500;
   font-weight: 600;
   background: rgba(255, 215, 0, 0.1);
   padding: 2px 12px;
@@ -79,7 +79,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 10px 16px;
-  background: #0f0f1a;
+  background: #0B0C10;
   border-bottom: 1px solid rgba(255, 255, 255, 0.03);
 }
 
@@ -91,7 +91,7 @@
 
 .round-label, .time-label {
   font-size: 10px;
-  color: #666688;
+  color: #70737E;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -117,7 +117,7 @@
   padding: 12px 0 8px 0;
   font-size: 12px;
   font-weight: 600;
-  color: #8888aa;
+  color: #A1A4AE;
   letter-spacing: 2px;
 }
 
@@ -157,7 +157,7 @@
 }
 
 .number-btn.selected {
-  border-color: #ffd700 !important;
+  border-color: #F0A500 !important;
   background: rgba(255, 215, 0, 0.12);
   box-shadow: 0 0 25px rgba(255, 215, 0, 0.15);
   transform: scale(1.05);
@@ -176,13 +176,13 @@
 
 /* Color coding for numbers */
 .number-btn.border-green-500\/50 { border-color: rgba(34, 197, 94, 0.25); }
-.number-btn.border-blue-500\/50 { border-color: rgba(59, 130, 246, 0.25); }
-.number-btn.border-purple-500\/50 { border-color: rgba(139, 92, 246, 0.25); }
+.number-btn.border-blue-500\/50 { border-color: rgba(255, 122, 24, 0.25); }
+.number-btn.border-purple-500\/50 { border-color: rgba(201, 151, 82, 0.25); }
 .number-btn.border-red-500\/50 { border-color: rgba(239, 68, 68, 0.25); }
 
 .number-btn.text-green-400 { color: #4ade80; }
-.number-btn.text-blue-400 { color: #60a5fa; }
-.number-btn.text-purple-400 { color: #a78bfa; }
+.number-btn.text-blue-400 { color: #C99752; }
+.number-btn.text-purple-400 { color: #C99752; }
 .number-btn.text-red-400 { color: #f87171; }
 
 .selected-overlay {
@@ -191,13 +191,13 @@
   right: -4px;
   width: 20px;
   height: 20px;
-  background: linear-gradient(135deg, #22c55e, #16a34a);
+  background: linear-gradient(135deg, #22c55e, #4ADE80);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3);
-  border: 2px solid #0a0a15;
+  border: 2px solid #0B0C10;
 }
 
 .check-mark {
@@ -221,7 +221,7 @@
   padding: 10px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
-  background: #141425;
+  background: #15161C;
   color: #ffffff;
   font-size: 14px;
   font-weight: 600;
@@ -235,11 +235,11 @@
 
 .odd-even-btn:hover:not(:disabled) {
   border-color: rgba(255, 215, 0, 0.3);
-  background: #1a1a35;
+  background: #1B1917;
 }
 
 .odd-even-btn.active {
-  border-color: #ffd700;
+  border-color: #F0A500;
   background: rgba(255, 215, 0, 0.15);
   box-shadow: 0 0 20px rgba(255, 215, 0, 0.1);
 }
@@ -251,7 +251,7 @@
 
 .odd-even-btn .multiplier {
   font-size: 11px;
-  color: #ffd700;
+  color: #F0A500;
   font-weight: 400;
 }
 
@@ -265,7 +265,7 @@
 
 .recent-label {
   font-size: 10px;
-  color: #666688;
+  color: #70737E;
   text-transform: uppercase;
   letter-spacing: 1px;
   display: block;
@@ -287,7 +287,7 @@
   border-radius: 6px;
   font-size: 14px;
   font-weight: 600;
-  background: #141425;
+  background: #15161C;
   color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
@@ -312,7 +312,7 @@
 
 .amount-label {
   font-size: 10px;
-  color: #666688;
+  color: #70737E;
   text-transform: uppercase;
   letter-spacing: 1px;
   display: block;
@@ -329,7 +329,7 @@
   padding: 10px 0;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
-  background: #141425;
+  background: #15161C;
   color: #ffffff;
   font-size: 14px;
   font-weight: 600;
@@ -339,11 +339,11 @@
 
 .amount-btn:hover:not(:disabled) {
   border-color: rgba(255, 215, 0, 0.3);
-  background: #1a1a35;
+  background: #1B1917;
 }
 
 .amount-btn.active {
-  border-color: #ffd700;
+  border-color: #F0A500;
   background: rgba(255, 215, 0, 0.15);
   box-shadow: 0 0 20px rgba(255, 215, 0, 0.1);
 }
@@ -362,8 +362,8 @@
   padding: 14px;
   border: none;
   border-radius: 10px;
-  background: linear-gradient(135deg, #ffd700, #f0a500);
-  color: #0a0a15;
+  background: linear-gradient(135deg, #F0A500, #f0a500);
+  color: #0B0C10;
   font-size: 16px;
   font-weight: 700;
   cursor: pointer;
@@ -402,7 +402,7 @@
 
 .timer-label {
   font-size: 8px;
-  color: #666688;
+  color: #70737E;
   text-transform: uppercase;
   letter-spacing: 0.3px;
 }
@@ -547,7 +547,7 @@
 }
 
 .win-amount-display {
-  color: #ffd700;
+  color: #F0A500;
   font-size: 20px;
   font-weight: 700;
 }

@@ -84,17 +84,17 @@ export function WithdrawModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-[20px] border border-[#E5E7EB] bg-white p-6 shadow-[0_16px_40px_rgba(15,23,42,0.25)]">
+      <div className="w-full max-w-md rounded-[20px] border border-[#292B33] bg-[#15161C] p-6 shadow-[0_16px_40px_rgba(0,0,0,0.25)]">
         {/* Header */}
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h2 className="text-[16px] font-black text-[#111827]">📤 Withdraw</h2>
-            <p className="text-xs text-[#667085]">100 TDX = 1 USDT</p>
+            <h2 className="text-[16px] font-black text-[#F5F5F7]">📤 Withdraw</h2>
+            <p className="text-xs text-[#A1A4AE]">100 TDX = 1 USDT</p>
           </div>
           <button
             onClick={onClose}
             disabled={closeDisabled}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-[10px] border border-[#E4E7EC] text-[#475467] hover:bg-[#F9FAFB] disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-[10px] border border-[#292B33] text-[#A1A4AE] hover:bg-[#15161C] disabled:cursor-not-allowed disabled:opacity-50"
             aria-label="Close modal"
           >
             <X size={16} />

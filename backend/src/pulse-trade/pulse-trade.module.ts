@@ -25,9 +25,11 @@ import { BalanceModule } from '../balances/balance.module';
 import { LedgerModule } from '../ledger/ledger.module';
 import { UsersModule } from '../users/users.module';
 import { PulseTradeAdminService } from './services/pulse-trade-admin.service';
+import { AdminAuthModule } from '../auth/admin-auth.module';
 
 @Module({
   imports: [
+    AdminAuthModule,
     TypeOrmModule.forFeature([Trade, TradeSnapshot, Balance, LedgerEntry]),
     BullModule.registerQueue({
       name: PULSE_SETTLEMENT_QUEUE,

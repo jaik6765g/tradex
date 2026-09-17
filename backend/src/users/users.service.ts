@@ -49,7 +49,9 @@ export interface AdminUserMetricsResponse {
 
 type AdminUserListItem = {
   id: string;
-  walletAddress: string;
+  walletAddress: string | null;
+  mobileNumber: string | null;
+  email: string | null;
   status: string;
   referralCode: string | null;
   referredBy: string | null;
@@ -64,7 +66,7 @@ type AdminUserListItem = {
 
 type AdminReferralListItem = {
   id: string;
-  walletAddress: string;
+  walletAddress: string | null;
   referralCode: string | null;
   referredBy: string | null;
   referrerWalletAddress: string | null;
@@ -75,7 +77,7 @@ type AdminReferralListItem = {
 
 type ReferralDashboardUser = {
   userId: string;
-  walletAddress: string;
+  walletAddress: string | null;
   level: number;
   percentage: string;
   earned: string;
@@ -117,6 +119,142 @@ export class UsersService {
       where: {
         walletAddress: normalizedAddress,
       },
+    });
+  }
+
+  async findByAuthUserId(authUserId: string): Promise<User | null> {
+    return this.userRepository.findOne({ where: { authUserId } });
+  }
+
+  async findByMobileNumber(mobileNumber: string): Promise<User | null> {
+    return this.userRepository.findOne({ where: { mobileNumber } });
+  }
+
+  async findByEmail(email: string): Promise<User | null> {
+    return this.userRepository.findOne({ where: { email } });
+  }
+
+  async createWithMobileReferral(params: {
+    authUserId: string;
+    mobileNumber: string;
+    email: string;
+    role?: string;
+    referralCode?: string;
+  }): Promise<User> {
+    const { authUserId, mobileNumber, email, role, referralCode } = params;
+
+    return this.userRepository.manager.transaction(async (manager) => {
+      const userRepository = manager.getRepository(User);
+
+      const byAuth = await userRepository.findOne({
+        where: { authUserId },
+      });
+      if (byAuth) {
+        throw new BadRequestException('Account is already registered');
+      }
+
+      const byMobile = await userRepository.findOne({
+        where: { mobileNumber },
+      });
+      if (byMobile) {
+        throw new BadRequestException('Mobile number is already registered');
+      }
+
+      const byEmail = await userRepository.findOne({
+        where: { email },
+      });
+      if (byEmail) {
+        throw new BadRequestException('Email is already registered');
+      }
+
+      const normalizedReferralCode =
+        this.normalizeSearch(referralCode)?.toUpperCase();
+      let referrer: User | null = null;
+
+      if (normalizedReferralCode) {
+        referrer = await userRepository.findOne({
+          where: { referralCode: normalizedReferralCode },
+        });
+
+        if (!referrer) {
+          throw new BadRequestException('Invalid referral code');
+        }
+      }
+
+      const ownReferralCode = await this.generateNextReferralCode(manager);
+
+      const created = userRepository.create({
+        walletAddress: null,
+        mobileNumber,
+        email,
+        authUserId,
+        role: role ?? 'user',
+        status: 'active',
+        referralCode: ownReferralCode,
+        referredBy: referrer?.id ?? null,
+      });
+
+      return userRepository.save(created);
+    });
+  }
+
+  async attachMobileAuth(
+    userId: string,
+    authUserId: string,
+    mobileNumber: string,
+    email?: string,
+  ): Promise<User> {
+    return this.userRepository.manager.transaction(async (manager) => {
+      const userRepository = manager.getRepository(User);
+
+      const user = await userRepository.findOne({ where: { id: userId } });
+
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
+      if (user.authUserId && user.authUserId !== authUserId) {
+        throw new BadRequestException(
+          'Account is already linked to a different identity',
+        );
+      }
+
+      const authConflict = await userRepository.findOne({
+        where: { authUserId },
+      });
+      if (authConflict && authConflict.id !== userId) {
+        throw new BadRequestException(
+          'Identity is already linked to another account',
+        );
+      }
+
+      const mobileConflict = await userRepository.findOne({
+        where: { mobileNumber },
+      });
+      if (mobileConflict && mobileConflict.id !== userId) {
+        throw new BadRequestException(
+          'Mobile number is already linked to another account',
+        );
+      }
+
+      if (email) {
+        const emailConflict = await userRepository.findOne({
+          where: { email },
+        });
+        if (emailConflict && emailConflict.id !== userId) {
+          throw new BadRequestException(
+            'Email is already linked to another account',
+          );
+        }
+      }
+
+      user.authUserId = authUserId;
+      user.mobileNumber = mobileNumber;
+      if (email) {
+        user.email = email;
+      }
+
+      return userRepository.save(user);
     });
   }
 
@@ -195,7 +333,7 @@ export class UsersService {
 
     if (search) {
       listQuery.andWhere(
-        '(CAST(user.id AS text) ILIKE :search OR user.walletAddress ILIKE :search)',
+        '(CAST(user.id AS text) ILIKE :search OR user.walletAddress ILIKE :search OR user.mobileNumber ILIKE :search OR user.email ILIKE :search)',
         { search: `%${search}%` },
       );
     }
@@ -239,6 +377,8 @@ export class UsersService {
         return {
           id: user.id,
           walletAddress: user.walletAddress,
+          mobileNumber: user.mobileNumber,
+          email: user.email,
           status: user.status,
           referralCode: user.referralCode,
           referredBy: user.referredBy,
@@ -819,7 +959,9 @@ export class UsersService {
   async getAdminUserDetails(userId: string): Promise<{
     user: {
       id: string;
-      walletAddress: string;
+      walletAddress: string | null;
+      mobileNumber: string | null;
+      email: string | null;
       status: string;
       referralCode: string | null;
       referredBy: string | null;
@@ -899,6 +1041,8 @@ export class UsersService {
       user: {
         id: user.id,
         walletAddress: user.walletAddress,
+        mobileNumber: user.mobileNumber,
+        email: user.email,
         status: user.status,
         referralCode: user.referralCode,
         referredBy: user.referredBy,
@@ -931,7 +1075,7 @@ export class UsersService {
   async getAdminReferralDetails(referralUserId: string): Promise<{
     referral: {
       id: string;
-      walletAddress: string;
+      walletAddress: string | null;
       referralCode: string | null;
       referredBy: string | null;
       referrerWalletAddress: string | null;

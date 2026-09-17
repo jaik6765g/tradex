@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { AdminService } from '../services/admin.service';
-import { AdminLottoService, type AdminLottoDashboard, type AdminLottoSettings } from '../services/adminLotto.service';
+import {
+  AdminLottoService,
+  type AdminLottoDashboard,
+  type AdminLottoSettings,
+} from '../services/adminLotto.service';
 
 type ConfirmState =
   | { kind: 'pause' }
@@ -17,6 +21,7 @@ export function useLottoManager() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<ConfirmState>(null);
   const [busy, setBusy] = useState(false);
 
@@ -29,17 +34,30 @@ export function useLottoManager() {
   const loadSettings = useCallback(async () => { try { setSettings(await AdminLottoService.getSettings()); } catch (e) { setError(AdminService.getErrorMessage(e)); } }, []);
   useEffect(() => { void load(true); void loadSettings(); }, [load, loadSettings]);
 
-  const act = useCallback(async (fn: () => Promise<void>) => { setBusy(true); setActionError(null); try { await fn(); } catch (e) { setActionError(AdminService.getErrorMessage(e)); } finally { setBusy(false); } }, []);
+  const act = useCallback(async (fn: () => Promise<void>) => { setBusy(true); setActionError(null); setNotice(null); try { await fn(); } catch (e) { setActionError(AdminService.getErrorMessage(e)); } finally { setBusy(false); } }, []);
   const pause = useCallback(() => act(async () => { await AdminLottoService.pause(); await load(); setConfirm(null); }), [act, load]);
   const resume = useCallback(() => act(async () => { await AdminLottoService.resume(); await load(); setConfirm(null); }), [act, load]);
   const setMode = useCallback((mode: string) => act(async () => { await AdminLottoService.setResultMode(mode); await load(); await loadSettings(); }), [act, load, loadSettings]);
-  const manualResult = useCallback((r: any, s: string, reason?: string) => act(async () => { await AdminLottoService.setManualResult(r.id, s, reason); await load(); setConfirm(null); }), [act, load]);
+  const setWinStrategy = useCallback((strategy: string) => act(async () => { await AdminLottoService.setWinStrategy(strategy); await load(); await loadSettings(); setNotice(`Win strategy set to ${strategy}.`); }), [act, load, loadSettings]);
+  const manualResult = useCallback((r: any, s: string, reason?: string) => act(async () => {
+    const outcome = await AdminLottoService.setManualResult(r.id, s, reason);
+    await load();
+    setConfirm(null);
+    if (outcome.finalized) {
+      setNotice(`Result ${outcome.result ?? s} finalized for round #${r.roundNumber}. Source: ADMIN.`);
+    } else if (outcome.locked) {
+      setNotice(`Result ${outcome.result ?? s} LOCKED for round #${r.roundNumber} — it will be applied exactly at draw time.`);
+    } else {
+      setNotice(`Round #${r.roundNumber} already has a result (${outcome.result ?? '—'}). Nothing changed.`);
+    }
+  }), [act, load]);
   const addLiquidity = useCallback((a: number, reason?: string) => act(async () => { await AdminLottoService.addLiquidity(a, reason); await load(); await loadSettings(); setConfirm(null); }), [act, load, loadSettings]);
   const removeLiquidity = useCallback((a: number, reason?: string) => act(async () => { await AdminLottoService.removeLiquidity(a, reason); await load(); await loadSettings(); setConfirm(null); }), [act, load, loadSettings]);
 
   return {
-    dashboard, settings, loading, refreshing, error, actionError, confirm, busy,
+    dashboard, settings, loading, refreshing, error, actionError, notice, confirm, busy,
     isPaused: dashboard?.controls?.paused ?? false,
-    load, setConfirm, pause, resume, setMode, manualResult, addLiquidity, removeLiquidity,
+    winStrategy: dashboard?.controls?.winStrategy ?? settings?.game?.winStrategy ?? 'RANDOM',
+    load, setConfirm, pause, resume, setMode, setWinStrategy, manualResult, addLiquidity, removeLiquidity,
   };
 }

@@ -1,22 +1,25 @@
 // src/deposits/deposit.module.ts
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { BullModule } from '@nestjs/bull';
+import { BullModule } from '@nestjs/bullmq';
 import { Deposit } from './deposit.entity';
 import { DepositService } from './deposit.service';
 import { DepositController } from './deposit.controller';
 import { DepositDetectionProcessor } from './processors/deposit-detection.processor';
 import { DepositConfirmationProcessor } from './processors/deposit-confirmation.processor';
 import { DepositCreditProcessor } from './processors/deposit-credit.processor';
+import { EvmDepositConfirmationHandler } from './processors/evm-deposit-confirmation.handler';
 import { BalanceModule } from '../balances/balance.module';
 import { LedgerModule } from '../ledger/ledger.module';
 import { WalletsModule } from '../wallets/wallets.module';
 import { UsersModule } from '../users/users.module';
 import { BlockchainModule } from '../blockchain/blockchain.module';
 import { ConfigModule } from '@nestjs/config';
+import { AdminAuthModule } from '../auth/admin-auth.module';
 
 @Module({
   imports: [
+    AdminAuthModule,
     TypeOrmModule.forFeature([Deposit]),
     BullModule.registerQueue({
       name: 'deposit-detection',
@@ -37,6 +40,7 @@ import { ConfigModule } from '@nestjs/config';
     DepositDetectionProcessor,
     DepositConfirmationProcessor,
     DepositCreditProcessor,
+    EvmDepositConfirmationHandler,
   ],
   exports: [DepositService],
 })

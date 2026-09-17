@@ -24,6 +24,10 @@ export interface AdminLottoCategoryCard {
     result: string | null;
     resultSource: string | null;
     resultGeneratedAt: string | null;
+    // Admin result locked in advance (source=ADMIN, applied at draw time).
+    lockedResult: string | null;
+    lockedResultSource: string | null;
+    lockedAt: string | null;
     settledAt: string | null;
   } | null;
   tickets: number;
@@ -32,7 +36,7 @@ export interface AdminLottoCategoryCard {
 }
 
 export interface AdminLottoDashboard {
-  controls: { paused: boolean; resultMode: string };
+  controls: { paused: boolean; resultMode: string; winStrategy: string };
   categoryCards: AdminLottoCategoryCard[];
   game: { poolBalance: number; reservedLiquidity: number; availableLiquidity: number };
   totals: { totalTickets: number; totalVolume: number; currentOpenRounds: number };
@@ -52,6 +56,10 @@ export interface AdminLottoRound {
   result: string | null;
   resultSource: string | null;
   resultGeneratedAt: string | null;
+  // Admin result locked in advance (source=ADMIN, applied at draw time).
+  lockedResult: string | null;
+  lockedResultSource: string | null;
+  lockedAt: string | null;
   settledAt: string | null;
   refundedAt: string | null;
   failedAt: string | null;
@@ -91,6 +99,8 @@ export interface AdminLottoResultItem {
   category: string | null;
   result: string | null;
   resultSource: string | null;
+  // GENERATED = admin result locked in advance, not applied yet.
+  resultStatus?: string | null;
   adminId: string | null;
   generatedAt: string | null;
   finalizedAt: string | null;
@@ -99,11 +109,60 @@ export interface AdminLottoResultItem {
   settlementStatus: string | null;
 }
 
+export interface AdminLottoExposureOption {
+  option: string;
+  betCount: number;
+  totalStake: number;
+  // Payout owed if this number wins (SUM of netAmount * multiplier).
+  winPotential: number;
+  // House profit/loss for this number: totalStake - winPotential.
+  netExposure: number;
+}
+
+export interface AdminLottoExposureStrategyPick {
+  option: string;
+  strategy: string;
+  winPotential: number;
+  betCount: number;
+}
+
+export interface AdminLottoExposure {
+  periodNumber: string | null;
+  category: string;
+  startTime: number | null;
+  endTime: number | null;
+  serverTime: number;
+  remainingMs: number;
+  status: 'OPEN' | 'CLOSED' | 'UNKNOWN';
+  syncStatus: string;
+  totalStake: number;
+  totalBets: number;
+  maxWinPotential: number;
+  options: AdminLottoExposureOption[];
+  winStrategy: string;
+  winTiers: { highest: string[]; medium: string[]; lowest: string[] };
+  activeRoundId: number | null;
+  activeRoundNumber: string | null;
+  strategyPick: AdminLottoExposureStrategyPick | null;
+  updatedAt: number;
+}
+
+export interface AdminLottoManualResultResponse {
+  finalized: boolean;
+  // true when the round had not drawn yet: the symbol is locked and will be
+  // applied verbatim at draw time.
+  locked: boolean;
+  result: string | null;
+  roundStatus: string;
+  appliedAt: string | null;
+}
+
 export interface AdminLottoSettings {
-  game: { paused: boolean; resultMode: string };
+  game: { paused: boolean; resultMode: string; winStrategy: string };
   categories: { category: string; enabled: boolean; locked: boolean; durationSeconds: number }[];
   rules: { key: string; value: number; unit?: string; locked: boolean; breakdown?: Record<string, number> }[];
   resultModes: string[];
+  winStrategies: string[];
   liquidity: { poolBalance: number; reservedLiquidity: number; availableLiquidity: number };
   updatedAt: string;
 }
@@ -205,8 +264,19 @@ export class AdminLottoService {
     return response.data;
   }
 
-  static async setManualResult(roundId: number, result: string, reason?: string): Promise<{ finalized: boolean; result: string | null }> {
-    const response = await apiClient.post<{ finalized: boolean; result: string | null }>(
+  static async setWinStrategy(winStrategy: string): Promise<{ winStrategy: string }> {
+    const response = await apiClient.post<{ winStrategy: string }>('/admin/lotto/settings/win-strategy', {
+      winStrategy,
+    });
+    return response.data;
+  }
+
+  static async setManualResult(
+    roundId: number,
+    result: string,
+    reason?: string,
+  ): Promise<AdminLottoManualResultResponse> {
+    const response = await apiClient.post<AdminLottoManualResultResponse>(
       `/admin/lotto/rounds/${roundId}/result`,
       { result, reason },
     );
@@ -218,6 +288,13 @@ export class AdminLottoService {
       '/admin/lotto/liquidity/add',
       { amount, reason },
     );
+    return response.data;
+  }
+
+  static async getCurrentExposure(category = 'THIRTY_SEC'): Promise<AdminLottoExposure> {
+    const response = await apiClient.get<AdminLottoExposure>('/admin/lotto/current-exposure', {
+      params: { category },
+    });
     return response.data;
   }
 
@@ -234,6 +311,7 @@ export class AdminLottoService {
     ONE_MIN: '1 MIN',
     THREE_MIN: '3 MIN',
     FIVE_MIN: '5 MIN',
+    TEN_MIN: '10 MIN',
   };
 
   static formatPercent(value: number, fractionDigits = 1): string {

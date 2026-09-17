@@ -453,19 +453,19 @@ export default function BotTradeScreen() {
 
         {/* Error / Success */}
         {actionError && (
-          <div className="rounded-[12px] border border-[#FECDCA] bg-[#FEF3F2] px-4 py-3 text-sm font-bold text-[#B42318]">
+          <div className="rounded-[12px] border border-[#4A2323] bg-[#281313] px-4 py-3 text-sm font-bold text-[#F87171]">
             {actionError}
           </div>
         )}
 
         {success && (
-          <div className="rounded-[12px] border border-[#ABEFC6] bg-[#ECFDF3] px-4 py-3 text-sm font-bold text-[#067647]">
+          <div className="rounded-[12px] border border-[#1E4A32] bg-[#10251A] px-4 py-3 text-sm font-bold text-[#4ADE80]">
             {success}
           </div>
         )}
 
         {loadError && (
-          <div className="rounded-[12px] border border-[#FECDCA] bg-[#FEF3F2] px-4 py-3 text-sm font-bold text-[#B42318]">
+          <div className="rounded-[12px] border border-[#4A2323] bg-[#281313] px-4 py-3 text-sm font-bold text-[#F87171]">
             {loadError}
           </div>
         )}
@@ -474,8 +474,8 @@ export default function BotTradeScreen() {
         {!account && isAccountMissing && (
           <Card className="p-6">
             <div className="max-w-[600px]">
-              <h2 className="text-lg font-black text-[#101828]">Create Bot Account</h2>
-              <p className="mt-2 text-sm font-medium text-[#667085]">
+              <h2 className="text-lg font-black text-[#F5F5F7]">Create Bot Account</h2>
+              <p className="mt-2 text-sm font-medium text-[#A1A4AE]">
                 Your Bot Account and permanent Bot ID will be created here.
               </p>
               <Button className="mt-5" loading={creating} onClick={handleCreateBot}>

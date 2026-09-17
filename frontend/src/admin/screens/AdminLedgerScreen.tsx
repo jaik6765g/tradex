@@ -86,26 +86,26 @@ function LedgerFilters({
   onReset: () => void;
 }) {
   return (
-    <section className="rounded-[16px] border border-[#E5E7EB] bg-white p-3">
+    <section className="rounded-[16px] border border-[#292B33] bg-[#15161C] p-3">
       <form
         className="grid grid-cols-1 gap-2 md:grid-cols-[minmax(0,1fr)_180px_140px_auto]"
         onSubmit={(e) => { e.preventDefault(); onSearchSubmit(); }}
       >
         <div className="relative">
-          <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#98A2B3]" />
+          <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#70737E]" />
           <input
             type="text"
             placeholder="Search by user, reference, description, or wallet"
             value={searchInput}
             onChange={(e) => onSearchInputChange(e.target.value)}
-            className="w-full rounded-[10px] border border-[#D0D5DD] bg-white pl-9 pr-3 py-2 text-sm text-[#111827] placeholder:text-[#98A2B3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F5B800]"
+            className="w-full rounded-[10px] border border-[#34343E] bg-[#15161C] pl-9 pr-3 py-2 text-sm text-[#F5F5F7] placeholder:text-[#70737E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A18]"
           />
         </div>
 
         <select
           value={type}
           onChange={(e) => onTypeChange(e.target.value as AdminLedgerFilterType)}
-          className="rounded-[10px] border border-[#D0D5DD] bg-white px-3 py-2 text-sm font-semibold text-[#111827] outline-none focus-visible:ring-2 focus-visible:ring-[#F5B800]"
+          className="rounded-[10px] border border-[#34343E] bg-[#15161C] px-3 py-2 text-sm font-semibold text-[#F5F5F7] outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A18]"
         >
           {LEDGER_TYPE_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>{option.label}</option>
@@ -115,7 +115,7 @@ function LedgerFilters({
         <select
           value={limit}
           onChange={(e) => onLimitChange(Number(e.target.value))}
-          className="rounded-[10px] border border-[#D0D5DD] bg-white px-3 py-2 text-sm font-semibold text-[#111827] outline-none focus-visible:ring-2 focus-visible:ring-[#F5B800]"
+          className="rounded-[10px] border border-[#34343E] bg-[#15161C] px-3 py-2 text-sm font-semibold text-[#F5F5F7] outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A18]"
         >
           {PAGE_SIZE_OPTIONS.map((size) => (
             <option key={size} value={size}>{size} / page</option>
@@ -133,29 +133,29 @@ function LedgerFilters({
 
 function LedgerTableRow({ entry }: { entry: AdminLedgerEntry }) {
   return (
-    <tr className="align-top transition-colors hover:bg-[#F8FAFC]">
-      <td className="px-3 py-2 text-xs text-[#111827]">
+    <tr className="align-top transition-colors hover:bg-[#111217]">
+      <td className="px-3 py-2 text-xs text-[#F5F5F7]">
         <p className="font-mono font-bold">{entry.id.slice(0, 10)}...</p>
-        <p className="mt-1 text-[10px] text-[#667085]">User: {entry.userId.slice(0, 10)}...</p>
+        <p className="mt-1 text-[10px] text-[#A1A4AE]">User: {entry.userId.slice(0, 10)}...</p>
       </td>
       <td className="px-3 py-2 text-xs">
         <Badge variant={getLedgerTypeBadgeVariant(entry.type)}>{formatLedgerType(entry.type)}</Badge>
       </td>
-      <td className="px-3 py-2 text-xs text-[#111827] font-bold">{formatTokenAmount(entry.amount)}</td>
-      <td className="px-3 py-2 text-xs text-[#111827]">
+      <td className="px-3 py-2 text-xs text-[#F5F5F7] font-bold">{formatTokenAmount(entry.amount)}</td>
+      <td className="px-3 py-2 text-xs text-[#F5F5F7]">
         <div className="space-y-0.5">
-          <p><span className="text-[#667085]">Before:</span> <span className="font-semibold">{formatTokenAmount(entry.balanceBefore)}</span></p>
-          <p><span className="text-[#667085]">After:</span> <span className="font-semibold">{formatTokenAmount(entry.balanceAfter)}</span></p>
+          <p><span className="text-[#A1A4AE]">Before:</span> <span className="font-semibold">{formatTokenAmount(entry.balanceBefore)}</span></p>
+          <p><span className="text-[#A1A4AE]">After:</span> <span className="font-semibold">{formatTokenAmount(entry.balanceAfter)}</span></p>
         </div>
       </td>
-      <td className="px-3 py-2 text-xs text-[#111827]">
+      <td className="px-3 py-2 text-xs text-[#F5F5F7]">
         <div className="space-y-0.5">
           <p className="font-mono">{entry.referenceId || '—'}</p>
-          <p className="text-[10px] text-[#667085]">{entry.referenceType || '—'}</p>
+          <p className="text-[10px] text-[#A1A4AE]">{entry.referenceType || '—'}</p>
         </div>
       </td>
-      <td className="px-3 py-2 text-xs text-[#111827]">{entry.description || '—'}</td>
-      <td className="px-3 py-2 text-xs text-[#111827] cursor-help">{formatRelativeTime(entry.createdAt)}</td>
+      <td className="px-3 py-2 text-xs text-[#F5F5F7]">{entry.description || '—'}</td>
+      <td className="px-3 py-2 text-xs text-[#F5F5F7] cursor-help">{formatRelativeTime(entry.createdAt)}</td>
     </tr>
   );
 }
@@ -219,11 +219,11 @@ export default function AdminLedgerScreen() {
 
   return (
     <div className="space-y-3">
-      <section className="rounded-[16px] border border-[#E5E7EB] bg-white p-4">
+      <section className="rounded-[16px] border border-[#292B33] bg-[#15161C] p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-[20px] font-black text-[#111827]">Ledger</h1>
-            <p className="mt-0.5 text-xs text-[#667085]">Review immutable balance movements across deposits, withdrawals, games, and trades</p>
+            <h1 className="text-[20px] font-black text-[#F5F5F7]">Ledger</h1>
+            <p className="mt-0.5 text-xs text-[#A1A4AE]">Review immutable balance movements across deposits, withdrawals, games, and trades</p>
           </div>
           <Button variant="secondary" size="sm" className="h-9 px-3 text-xs" loading={refreshing} onClick={() => void loadLedger({ withLoader: false })}>
             <RefreshCw size={14} className="mr-1.5" /> Refresh
@@ -243,7 +243,7 @@ export default function AdminLedgerScreen() {
       />
 
       {loading && !entries.length && (
-        <section className="rounded-[16px] border border-[#E5E7EB] bg-white p-4">
+        <section className="rounded-[16px] border border-[#292B33] bg-[#15161C] p-4">
           <div className="space-y-3">
             {Array.from({ length: 6 }).map((_, i) => (
               <div key={`ledger-skeleton-${i}`} className="grid grid-cols-7 gap-2">
@@ -261,28 +261,28 @@ export default function AdminLedgerScreen() {
       )}
 
       {!loading && !error && (
-        <section className="overflow-hidden rounded-[16px] border border-[#E5E7EB] bg-white">
+        <section className="overflow-hidden rounded-[16px] border border-[#292B33] bg-[#15161C]">
           {entries.length === 0 ? (
             <div className="p-8 text-center">
-              <p className="text-base font-bold text-[#344054]">No ledger entries found</p>
-              <p className="mt-1 text-xs text-[#667085]">Try changing type, search text, or pagination options.</p>
+              <p className="text-base font-bold text-[#E4E5E8]">No ledger entries found</p>
+              <p className="mt-1 text-xs text-[#A1A4AE]">Try changing type, search text, or pagination options.</p>
             </div>
           ) : (
             <>
               <div className="overflow-x-auto">
-                <table className="min-w-[1160px] w-full divide-y divide-[#EAECF0]">
-                  <thead className="bg-[#F9FAFB]">
+                <table className="min-w-[1160px] w-full divide-y divide-[#202229]">
+                  <thead className="bg-[#15161C]">
                     <tr>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">Entry / User</th>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">Type</th>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">Amount</th>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">Balance</th>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">Reference</th>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">Description</th>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">Created</th>
+                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Entry / User</th>
+                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Type</th>
+                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Amount</th>
+                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Balance</th>
+                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Reference</th>
+                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Description</th>
+                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Created</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#F2F4F7] bg-white">
+                  <tbody className="divide-y divide-[#1B1917] bg-[#15161C]">
                     {entries.map((entry) => (
                       <LedgerTableRow key={entry.id} entry={entry} />
                     ))}
@@ -290,16 +290,16 @@ export default function AdminLedgerScreen() {
                 </table>
               </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#EAECF0] px-3 py-2.5">
-                <p className="text-xs text-[#667085]">
-                  Showing <span className="font-bold text-[#111827]">{rangeStart}-{rangeEnd}</span> of{' '}
-                  <span className="font-bold text-[#111827]">{total}</span>
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#202229] px-3 py-2.5">
+                <p className="text-xs text-[#A1A4AE]">
+                  Showing <span className="font-bold text-[#F5F5F7]">{rangeStart}-{rangeEnd}</span> of{' '}
+                  <span className="font-bold text-[#F5F5F7]">{total}</span>
                 </p>
                 <div className="flex items-center gap-2">
                   <Button variant="secondary" size="sm" className="h-8 px-2.5 text-xs" disabled={!canGoPrev} onClick={() => setOffset(Math.max(0, offset - limit))}>
                     Previous
                   </Button>
-                  <span className="text-xs font-semibold text-[#344054]">Page {currentPage} of {totalPages}</span>
+                  <span className="text-xs font-semibold text-[#E4E5E8]">Page {currentPage} of {totalPages}</span>
                   <Button variant="secondary" size="sm" className="h-8 px-2.5 text-xs" disabled={!canGoNext} onClick={() => setOffset(offset + limit)}>
                     Next
                   </Button>

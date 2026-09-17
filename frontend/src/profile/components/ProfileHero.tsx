@@ -6,11 +6,9 @@ import {
   Check,
   Calendar,
 } from 'lucide-react';
-import { useAccount } from 'wagmi';
 import { useWalletContext } from '../../wallet/context/WalletContext';
 
 export default function ProfileHero() {
-  const { isConnected } = useAccount();
   const { authUser } = useWalletContext();
   const [copied, setCopied] = useState(false);
 
@@ -33,33 +31,18 @@ export default function ProfileHero() {
   };
 
   // ============================================================
-  // NOT CONNECTED
-  // ============================================================
-
-  if (!isConnected) {
-    return (
-      <div className="w-full rounded-2xl bg-white border border-gray-100 shadow-sm p-5 text-center">
-        <div className="w-16 h-16 mx-auto rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center mb-3">
-          <CircleUserRound size={32} className="text-gray-400" />
-        </div>
-        <h3 className="text-sm font-bold text-gray-800">Connect Wallet</h3>
-        <p className="text-xs text-gray-500 mt-1">Please connect your wallet to view profile</p>
-      </div>
-    );
-  }
-
-  // ============================================================
-  // CONNECTED
+  // PROFILE CARD — always rendered (mobile login account, no
+  // wallet connection required)
   // ============================================================
 
   return (
-    <div className="w-full rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden">
+    <div className="w-full rounded-2xl bg-[#15161C] border border-[#292B33] shadow-sm overflow-hidden">
       {/* Profile Header */}
       <div className="p-4 flex items-center gap-4">
         {/* Avatar */}
         <div className="relative shrink-0">
-          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 border-2 border-blue-200 flex items-center justify-center">
-            <CircleUserRound size={28} className="text-blue-600" />
+          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#211810] to-[#211810] border-2 border-[#34261C] flex items-center justify-center">
+            <CircleUserRound size={28} className="text-[#C99752]" />
           </div>
           <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
         </div>
@@ -67,9 +50,9 @@ export default function ProfileHero() {
         {/* User Info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <h2 className="text-base font-bold text-gray-900">TradeX User</h2>
+            <h2 className="text-base font-bold text-[#F5F5F7]">TradeX User</h2>
             <BadgeCheck size={14} className="text-green-500 shrink-0" />
-            <span className="text-[10px] font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full border border-green-200">
+            <span className="text-[10px] font-medium text-[#4ADE80] bg-[#10251A] px-2 py-0.5 rounded-full border border-[#123A24]">
               Verified
             </span>
           </div>
@@ -83,13 +66,13 @@ export default function ProfileHero() {
                 className="
                   text-[10px]
                   font-bold
-                  text-purple-700
-                  bg-purple-50
+                  text-[#C99752]
+                  bg-[#211810]
                   px-2
                   py-0.5
                   rounded-full
                   border
-                  border-purple-200
+                  border-[#34261C]
                   flex
                   items-center
                   gap-1
@@ -97,14 +80,14 @@ export default function ProfileHero() {
               >
                 UID: {referralCode}
                 {copied ? (
-                  <Check size={10} className="text-green-600" />
+                  <Check size={10} className="text-[#4ADE80]" />
                 ) : (
                   <Copy size={10} />
                 )}
               </button>
             )}
-            <span className="flex items-center gap-1 text-[10px] text-gray-400">
-              <Calendar size={10} className="text-gray-400" />
+            <span className="flex items-center gap-1 text-[10px] text-[#70737E]">
+              <Calendar size={10} className="text-[#70737E]" />
               {memberSince}
             </span>
           </div>

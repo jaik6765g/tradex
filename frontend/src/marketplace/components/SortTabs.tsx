@@ -21,15 +21,15 @@ export default function SortTabs() {
           <div
             className={`text-sm ${
               active === tab
-                ? 'font-bold text-[#111827]'
-                : 'font-medium text-[#9CA3AF]'
+                ? 'font-bold text-[#F5F5F7]'
+                : 'font-medium text-[#A1A4AE]'
             }`}
           >
             {tab}
           </div>
 
           {active === tab && (
-            <div className="w-6 h-0.5 bg-[#FBBF24] mt-1.5 rounded-full" />
+            <div className="w-6 h-0.5 bg-[#FF7A18] mt-1.5 rounded-full" />
           )}
         </button>
       ))}

@@ -1,20 +1,20 @@
 // Shared presentation helpers for the Admin Lotto Game Manager.
 export const RESULT_SYMBOLS = ['0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'];
-export const CATEGORIES = ['THIRTY_SEC', 'ONE_MIN', 'THREE_MIN', 'FIVE_MIN'];
+export const CATEGORIES = ['THIRTY_SEC', 'ONE_MIN', 'THREE_MIN', 'FIVE_MIN', 'TEN_MIN'];
 
 const STATUS_TONES: Record<string, string> = {
-  OPEN: 'bg-[#ECFDF3] text-[#067647]',
-  CUTOFF: 'bg-[#FFFAEB] text-[#B54708]',
-  DRAWING: 'bg-[#EEF4FF] text-[#3538CD]',
-  RESULTED: 'bg-[#F2F4F7] text-[#344054]',
-  SETTLED: 'bg-[#F2F4F7] text-[#344054]',
-  FAILED: 'bg-[#FEF3F2] text-[#B42318]',
-  CANCELLED: 'bg-[#FEF3F2] text-[#B42318]',
-  REFUNDED: 'bg-[#FFF6ED] text-[#C4320A]',
+  OPEN: 'bg-[#10251A] text-[#4ADE80]',
+  CUTOFF: 'bg-[#2A190D] text-[#FF8F3D]',
+  DRAWING: 'bg-[#0F1C30] text-[#818CF8]',
+  RESULTED: 'bg-[#1B1917] text-[#E4E5E8]',
+  SETTLED: 'bg-[#1B1917] text-[#E4E5E8]',
+  FAILED: 'bg-[#281313] text-[#F87171]',
+  CANCELLED: 'bg-[#281313] text-[#F87171]',
+  REFUNDED: 'bg-[#2A1608] text-[#FDBA74]',
 };
 
 export const statusTone = (status: string): string =>
-  STATUS_TONES[status] ?? 'bg-[#F2F4F7] text-[#344054] border-[#D0D5DD]';
+  STATUS_TONES[status] ?? 'bg-[#1B1917] text-[#E4E5E8] border-[#34343E]';
 
 export const formatTdx = (value: unknown, fractionDigits = 2): string =>
   Number(value ?? 0).toLocaleString('en-IN', {

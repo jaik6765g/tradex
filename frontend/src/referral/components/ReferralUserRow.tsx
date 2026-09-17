@@ -41,8 +41,8 @@ export default function ReferralUserRow({
               styles.status,
               {
                 backgroundColor: active
-                  ? '#DCFCE7'
-                  : '#F3F4F6',
+                  ? '#10251A'
+                  : '#1B1917',
               },
             ]}
           >
@@ -51,8 +51,8 @@ export default function ReferralUserRow({
                 styles.dot,
                 {
                   backgroundColor: active
-                    ? '#16A34A'
-                    : '#9CA3AF',
+                    ? '#4ADE80'
+                    : '#A1A4AE',
                 },
               ]}
             />
@@ -63,7 +63,7 @@ export default function ReferralUserRow({
                 {
                   color: active
                     ? '#15803D'
-                    : '#6B7280',
+                    : '#70737E',
                 },
               ]}
             >
@@ -105,9 +105,9 @@ const styles = StyleSheet.create({
   container: {
     minHeight: 68,
     borderRadius: 14,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#111217',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#292B33',
     paddingHorizontal: 10,
     paddingVertical: 9,
     flexDirection: 'row',
@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: '#0F1B2D',
+    backgroundColor: '#211810',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 9,
@@ -137,13 +137,13 @@ const styles = StyleSheet.create({
   },
 
   userId: {
-    color: '#111827',
+    color: '#A1A4AE',
     fontSize: 12,
     fontWeight: '800',
   },
 
   userLabel: {
-    color: '#94A3B8',
+    color: '#A1A4AE',
     fontSize: 9,
     marginTop: 2,
   },
@@ -174,13 +174,13 @@ const styles = StyleSheet.create({
   },
 
   percent: {
-    color: '#2563EB',
+    color: '#C99752',
     fontSize: 13,
     fontWeight: '900',
   },
 
   percentLabel: {
-    color: '#94A3B8',
+    color: '#A1A4AE',
     fontSize: 8,
     marginTop: 1,
   },
@@ -191,13 +191,13 @@ const styles = StyleSheet.create({
   },
 
   earned: {
-    color: '#16A34A',
+    color: '#4ADE80',
     fontSize: 13,
     fontWeight: '900',
   },
 
   tdx: {
-    color: '#64748B',
+    color: '#70737E',
     fontSize: 8,
     marginTop: 1,
   },

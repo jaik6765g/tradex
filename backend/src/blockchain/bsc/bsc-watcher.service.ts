@@ -4,9 +4,9 @@ import { ConfigService } from '@nestjs/config';
 
 import { ethers } from 'ethers';
 
-import { InjectQueue } from '@nestjs/bull';
+import { InjectQueue } from '@nestjs/bullmq';
 
-import type { Queue } from 'bull';
+import type { Queue } from 'bullmq';
 
 // ============================================================
 // TRADEX BSC DEPOSIT WATCHER

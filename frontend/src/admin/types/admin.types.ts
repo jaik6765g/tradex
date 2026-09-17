@@ -279,7 +279,9 @@ export interface AdminUserBalance {
 
 export interface AdminUser {
   id: string;
-  walletAddress: string;
+  walletAddress: string | null;
+  mobileNumber: string | null;
+  email: string | null;
   status: AdminUserStatus;
   referralCode: string | null;
   referredBy: string | null;

@@ -61,33 +61,33 @@ export const toRoundStatusTone = (status) => {
   const normalized = normalizeRoundStatus(status);
 
   const toneMap = {
-    OPEN: 'bg-[#ECFDF3] text-[#067647] border-[#ABEFC6]',
-    CUTOFF: 'bg-[#FFFAEB] text-[#B54708] border-[#FEDF89]',
-    DRAWING: 'bg-[#EEF4FF] text-[#3538CD] border-[#C7D7FE]',
-    RESULTED: 'bg-[#F2F4F7] text-[#344054] border-[#D0D5DD]',
-    SETTLED: 'bg-[#F2F4F7] text-[#344054] border-[#D0D5DD]',
-    FAILED: 'bg-[#FEF3F2] text-[#B42318] border-[#FECDCA]',
-    CANCELLED: 'bg-[#FEF3F2] text-[#B42318] border-[#FECDCA]',
-    REFUNDED: 'bg-[#FFF6ED] text-[#C4320A] border-[#FDDCAB]',
+    OPEN: 'bg-[#0C2417] text-[#4ADE80] border-[#1E4A32]',
+    CUTOFF: 'bg-[#291A0B] text-[#FB923C] border-[#3A2410]',
+    DRAWING: 'bg-[#0F1C30] text-[#818CF8] border-[#26315C]',
+    RESULTED: 'bg-[#1C1C24] text-[#C5C6D0] border-[#34343E]',
+    SETTLED: 'bg-[#1C1C24] text-[#C5C6D0] border-[#34343E]',
+    FAILED: 'bg-[#2A1515] text-[#F87171] border-[#4A2323]',
+    CANCELLED: 'bg-[#2A1515] text-[#F87171] border-[#4A2323]',
+    REFUNDED: 'bg-[#2A1608] text-[#FDBA74] border-[#3A2410]',
   };
 
-  return toneMap[normalized] ?? 'bg-[#F2F4F7] text-[#344054] border-[#D0D5DD]';
+  return toneMap[normalized] ?? 'bg-[#1C1C24] text-[#C5C6D0] border-[#34343E]';
 };
 
 export const toTicketStatusTone = (status) => {
   const normalized = normalizeTicketStatus(status);
 
   const toneMap = {
-    ACTIVE: 'bg-[#EEF4FF] text-[#3538CD] border-[#C7D7FE]',
-    CUTOFF: 'bg-[#FFFAEB] text-[#B54708] border-[#FEDF89]',
-    WIN: 'bg-[#ECFDF3] text-[#067647] border-[#ABEFC6]',
-    LOSS: 'bg-[#FEF3F2] text-[#B42318] border-[#FECDCA]',
-    SETTLED: 'bg-[#F2F4F7] text-[#344054] border-[#D0D5DD]',
-    REFUNDED: 'bg-[#FFF6ED] text-[#C4320A] border-[#FDDCAB]',
-    CANCELLED: 'bg-[#FEF3F2] text-[#B42318] border-[#FECDCA]',
+    ACTIVE: 'bg-[#0F1C30] text-[#818CF8] border-[#26315C]',
+    CUTOFF: 'bg-[#291A0B] text-[#FB923C] border-[#3A2410]',
+    WIN: 'bg-[#0C2417] text-[#4ADE80] border-[#1E4A32]',
+    LOSS: 'bg-[#2A1515] text-[#F87171] border-[#4A2323]',
+    SETTLED: 'bg-[#1C1C24] text-[#C5C6D0] border-[#34343E]',
+    REFUNDED: 'bg-[#2A1608] text-[#FDBA74] border-[#3A2410]',
+    CANCELLED: 'bg-[#2A1515] text-[#F87171] border-[#4A2323]',
   };
 
-  return toneMap[normalized] ?? 'bg-[#F2F4F7] text-[#344054] border-[#D0D5DD]';
+  return toneMap[normalized] ?? 'bg-[#1C1C24] text-[#C5C6D0] border-[#34343E]';
 };
 
 export const formatRemainingSeconds = (seconds) => {

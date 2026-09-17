@@ -33,11 +33,11 @@ const buildPagination = ({ meta, loading, onGoToPage }) => {
   for (let p = 1; p <= lastPage; p += 1) pages.push(p);
 
   const navClass =
-    'inline-flex h-7 items-center justify-center gap-0.5 rounded-lg border border-[#E5E7EB] bg-white px-2 text-[10px] font-bold text-[#475467] transition-colors hover:bg-[#F9FAFB] disabled:cursor-not-allowed disabled:opacity-40';
+    'inline-flex h-7 items-center justify-center gap-0.5 rounded-lg border border-[#26262E] bg-[#16161C] px-2 text-[10px] font-bold text-[#B9BAC6] transition-colors hover:bg-[#16161C] disabled:cursor-not-allowed disabled:opacity-40';
   const idleClass =
-    'min-w-7 h-7 rounded-lg border border-[#E5E7EB] bg-white text-[10px] font-black text-[#667085] transition-colors hover:bg-[#F9FAFB]';
+    'min-w-7 h-7 rounded-lg border border-[#26262E] bg-[#16161C] text-[10px] font-black text-[#9A9BA8] transition-colors hover:bg-[#16161C]';
   const activeClass =
-    'min-w-7 h-7 rounded-lg bg-gradient-to-b from-[#FBBF24] to-[#F59E0B] text-[10px] font-black text-white shadow-sm';
+    'min-w-7 h-7 rounded-lg bg-gradient-to-b from-[#F97316] to-[#FB923C] text-[10px] font-black text-white shadow-sm';
 
   return (
     <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5">
@@ -107,13 +107,13 @@ const LottoHistoryTabs = ({
     <section className="lotto-card lotto-card--pad lotto-rise lotto-rise--d4">
       {/* Header + Tabs */}
       <div className="flex items-center justify-between gap-2">
-        <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-wider text-[#111827]">
+        <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-wider text-[#F5F5F7]">
           <History size={15} strokeWidth={2.4} className="text-[#7C3AED]" />
           History
         </h3>
 
         {/* Tab pills */}
-        <div className="inline-flex rounded-xl border border-[#E5E7EB] bg-white p-0.5 shadow-sm">
+        <div className="inline-flex rounded-xl border border-[#26262E] bg-[#16161C] p-0.5 shadow-sm">
           {TABS.map((tab) => {
             const isActive = activeTab === tab.id;
             return (
@@ -126,8 +126,8 @@ const LottoHistoryTabs = ({
                   transition-all duration-150
                   ${
                     isActive
-                      ? 'bg-gradient-to-b from-[#FFD54D] to-[#F59E0B] text-[#7C2D12] shadow-sm'
-                      : 'text-[#667085] hover:text-[#111827]'
+                      ? 'bg-gradient-to-b from-[#FB923C] to-[#FB923C] text-[#7C2D12] shadow-sm'
+                      : 'text-[#9A9BA8] hover:text-[#F5F5F7]'
                   }
                 `}
               >

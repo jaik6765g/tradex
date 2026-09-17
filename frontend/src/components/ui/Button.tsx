@@ -20,15 +20,15 @@ type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    'bg-[#111827] text-white border border-[#111827] hover:bg-[#1F2937] active:bg-[#0F172A]',
+    'bg-[#FF7A18] text-white border border-[#FF7A18] hover:bg-[#FF8F3D] active:bg-[#EA580C]',
   secondary:
-    'bg-white text-[#111827] border border-[#D0D5DD] hover:bg-[#F9FAFB] active:bg-[#F2F4F7]',
+    'bg-[#15161C] text-[#F5F5F7] border border-[#34343E] hover:bg-[#15161C] active:bg-[#1B1917]',
   danger:
-    'bg-[#DC2626] text-white border border-[#DC2626] hover:bg-[#B91C1C] active:bg-[#991B1B]',
+    'bg-[#DC2626] text-white border border-[#DC2626] hover:bg-[#F87171] active:bg-[#991B1B]',
   warning:
-    'bg-[#F5B800] text-[#111827] border border-[#F5B800] hover:bg-[#FCD34D] active:bg-[#EAAA08]',
+    'bg-[#FF7A18] text-[#F5F5F7] border border-[#FF7A18] hover:bg-[#FF8F3D] active:bg-[#EA580C]',
   ghost:
-    'bg-transparent text-[#111827] border border-transparent hover:bg-[#F2F4F7] active:bg-[#EAECF0]',
+    'bg-transparent text-[#F5F5F7] border border-transparent hover:bg-[#1B1917] active:bg-[#202229]',
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
@@ -53,7 +53,7 @@ export default function Button({
     <button
       type={type}
       className={cx(
-        'inline-flex items-center justify-center gap-2 rounded-[10px] font-extrabold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F5B800] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+        'inline-flex items-center justify-center gap-2 rounded-[10px] font-extrabold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A18] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
         sizeClasses[size],
         variantClasses[variant],
         className,

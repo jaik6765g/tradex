@@ -14,7 +14,7 @@ export default function Card({
   return (
     <div
       className={cx(
-        'rounded-[18px] border border-[#E5E7EB] bg-white shadow-[0_2px_8px_rgba(16,24,40,0.04)]',
+        'rounded-[18px] border border-[#292B33] bg-[#15161C] shadow-[0_2px_8px_rgba(16,24,40,0.04)]',
         className,
       )}
       {...props}

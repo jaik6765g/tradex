@@ -40,28 +40,28 @@ export default function CategoryTabs({
             <div
               className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 ${
                 isActive
-                  ? 'bg-[#FEF3C7] scale-110 shadow-md shadow-amber-200/50'
-                  : 'bg-[#F3F4F6] hover:bg-[#E5E7EB]'
+                  ? 'bg-[#2A190D] border border-[#8F4817] scale-110 shadow-[0_2px_10px_rgba(255,122,24,0.18)]'
+                  : 'bg-[#1B1917] border border-transparent hover:bg-[#292B33]'
               }`}
             >
               <Icon
                 size={24}
-                color={isActive ? '#FBBF24' : '#1E293B'}
+                color={isActive ? '#FF7A18' : '#70737E'}
               />
             </div>
 
             <span
               className={`text-[11px] transition-colors ${
                 isActive
-                  ? 'text-[#111827] font-bold'
-                  : 'text-[#6B7280] font-medium'
+                  ? 'text-[#F5F5F7] font-bold'
+                  : 'text-[#70737E] font-medium'
               }`}
             >
               {label}
             </span>
 
             {isActive && (
-              <span className="w-5 h-0.5 bg-[#FBBF24] rounded-full mt-0.5" />
+              <span className="w-5 h-0.5 bg-[#FF7A18] rounded-full mt-0.5" />
             )}
           </button>
         );

@@ -10,10 +10,13 @@ import { LedgerModule } from '../ledger/ledger.module';
 import { BlockchainModule } from '../blockchain/blockchain.module';
 import { WalletsModule } from '../wallets/wallets.module';
 import { UsersModule } from '../users/users.module';
+import { AdminAuthModule } from '../auth/admin-auth.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Withdrawal, AdminSetting]),
+
+    AdminAuthModule,
 
     LedgerModule,
 

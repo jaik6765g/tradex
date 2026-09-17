@@ -75,10 +75,10 @@ export function TransactionStatusView({
         : 'Something went wrong. Please try again.');
 
   const iconClass = isProcessing
-    ? 'bg-amber-50 text-amber-500'
+    ? 'bg-[#2A190D] text-amber-500'
     : isSuccess
-      ? 'bg-green-50 text-green-600'
-      : 'bg-red-50 text-red-500';
+      ? 'bg-[#10251A] text-[#4ADE80]'
+      : 'bg-[#281313] text-red-500';
 
   const icon = isProcessing ? (
     <Loader2 size={28} className="animate-spin" />
@@ -96,25 +96,25 @@ export function TransactionStatusView({
       </div>
 
       {/* Title */}
-      <h3 className="mt-3 text-[15px] font-black text-[#111827]">
+      <h3 className="mt-3 text-[15px] font-black text-[#F5F5F7]">
         {resolvedTitle}
       </h3>
 
       {/* Description */}
-      <p className="mt-1 text-xs leading-5 text-[#475467]">
+      <p className="mt-1 text-xs leading-5 text-[#A1A4AE]">
         {resolvedDescription}
       </p>
 
       {/* Amount / Token */}
       {amountLabel && (
-        <p className="mt-3 text-lg font-black text-[#111827]">
+        <p className="mt-3 text-lg font-black text-[#F5F5F7]">
           {amountLabel}
         </p>
       )}
 
       {/* Transaction status / hash */}
       {txHash && (
-        <p className="mt-2 break-all rounded-lg bg-[#F8FAFC] px-2 py-1.5 font-mono text-[10px] text-[#667085]">
+        <p className="mt-2 break-all rounded-lg bg-[#111217] px-2 py-1.5 font-mono text-[10px] text-[#A1A4AE]">
           Tx: {txHash}
         </p>
       )}
@@ -125,7 +125,7 @@ export function TransactionStatusView({
           type="button"
           onClick={onClose}
           disabled={closeDisabled}
-          className="mt-4 inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-[#E4E7EC] bg-white text-[11px] font-extrabold text-[#344054] hover:bg-[#F9FAFB] disabled:cursor-not-allowed disabled:opacity-50"
+          className="mt-4 inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-[#292B33] bg-[#15161C] text-[11px] font-extrabold text-[#E4E5E8] hover:bg-[#15161C] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isSuccess ? (closeLabel || 'Done') : (closeLabel || 'Close')}
         </button>
@@ -147,7 +147,7 @@ export function TransactionStatusPopup({ open, ...viewProps }: TransactionStatus
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-sm rounded-[20px] border border-[#E5E7EB] bg-white p-6 shadow-[0_16px_40px_rgba(15,23,42,0.25)]">
+      <div className="w-full max-w-sm rounded-[20px] border border-[#292B33] bg-[#15161C] p-6 shadow-[0_16px_40px_rgba(0,0,0,0.25)]">
         <TransactionStatusView {...viewProps} />
       </div>
     </div>

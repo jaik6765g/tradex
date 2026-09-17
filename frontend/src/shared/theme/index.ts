@@ -1,17 +1,47 @@
 export const colors = {
-  background: '#FFFFFF',
-  surface: '#FFFFFF',
-  card: '#FFFFFF',
-  primary: '#111827',
-  gold: '#F5B800',
-  text: '#111827',
-  textSecondary: '#667085',
-  muted: '#98A2B3',
-  border: '#E7E9EE',
+  // ---------------------------------------------------------------
+  // TradeX colour system — Premium dark gray + warm brown + orange
+  // ---------------------------------------------------------------
+  // Base surfaces (70–75% of the UI)
+  background: '#0B0C10',
+  backgroundSecondary: '#111217',
+  surface: '#111217',
+  card: '#15161C',
+  cardElevated: '#1B1917',
+  brownSurface: '#211810',
+  brownBorder: '#34261C',
+
+  // Borders
+  border: '#292B33',
+  borderSubtle: '#202229',
+
+  // Text
+  text: '#F5F5F7',
+  textPrimary: '#E4E5E8',
+  textSecondary: '#A1A4AE',
+  muted: '#70737E',
+  disabled: '#4F525C',
+
+  // Brand — TradeX orange (5–8% of the UI)
+  primary: '#FF7A18',
+  primaryHover: '#FF8F3D',
+  primarySoft: '#2A190D',
+  primaryBorder: '#8F4817',
+
+  // Warm brown / gold accents (3–5% of the UI)
+  gold: '#C99752',
+  goldSoft: '#3A281C',
+  brown: '#6B4528',
+  darkBrown: '#2A1C13',
+
+  // Status — ONLY for status information
   success: '#22C55E',
-  warning: '#F5B800',
+  successBg: '#10251A',
   danger: '#EF4444',
-  banner: '#07111F',
+  dangerBg: '#281313',
+  warning: '#F59E0B',
+
+  banner: '#111217',
 };
 
 export const spacing = {

@@ -15,7 +15,9 @@ import { Badge, Button, ErrorState, Skeleton } from '../../components/ui';
 interface UserDetailData {
   user: {
     id: string;
-    walletAddress: string;
+    walletAddress: string | null;
+    mobileNumber: string | null;
+    email: string | null;
     status: string;
     referralCode: string | null;
     referredBy: string | null;
@@ -82,7 +84,7 @@ function formatRelativeTime(value?: string | null): string {
   return formatDateTime(value);
 }
 
-function formatAddress(address: string): string {
+function formatAddress(address?: string | null): string {
   if (!address) return '—';
   if (address.length <= 10) return address;
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -139,26 +141,26 @@ function UsersFilters({
   onReset: () => void;
 }) {
   return (
-    <section className="rounded-[16px] border border-[#E5E7EB] bg-white p-3">
+    <section className="rounded-[16px] border border-[#292B33] bg-[#15161C] p-3">
       <form
         className="grid grid-cols-1 gap-2 md:grid-cols-[minmax(0,1fr)_180px_140px_auto]"
         onSubmit={(e) => { e.preventDefault(); onSearchSubmit(); }}
       >
         <div className="relative">
-          <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#98A2B3]" />
+          <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#70737E]" />
           <input
             type="text"
-            placeholder="Search by user ID, wallet, or referral"
+            placeholder="Search by user ID, wallet, mobile, email, or referral"
             value={searchInput}
             onChange={(e) => onSearchInputChange(e.target.value)}
-            className="w-full rounded-[10px] border border-[#D0D5DD] bg-white pl-9 pr-3 py-2 text-sm text-[#111827] placeholder:text-[#98A2B3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F5B800]"
+            className="w-full rounded-[10px] border border-[#34343E] bg-[#15161C] pl-9 pr-3 py-2 text-sm text-[#F5F5F7] placeholder:text-[#70737E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A18]"
           />
         </div>
 
         <select
           value={status}
           onChange={(e) => onStatusChange(e.target.value as AdminUserFilterStatus)}
-          className="rounded-[10px] border border-[#D0D5DD] bg-white px-3 py-2 text-sm font-semibold text-[#111827] outline-none focus-visible:ring-2 focus-visible:ring-[#F5B800]"
+          className="rounded-[10px] border border-[#34343E] bg-[#15161C] px-3 py-2 text-sm font-semibold text-[#F5F5F7] outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A18]"
         >
           {USER_STATUS_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>{option.label}</option>
@@ -168,7 +170,7 @@ function UsersFilters({
         <select
           value={limit}
           onChange={(e) => onLimitChange(Number(e.target.value))}
-          className="rounded-[10px] border border-[#D0D5DD] bg-white px-3 py-2 text-sm font-semibold text-[#111827] outline-none focus-visible:ring-2 focus-visible:ring-[#F5B800]"
+          className="rounded-[10px] border border-[#34343E] bg-[#15161C] px-3 py-2 text-sm font-semibold text-[#F5F5F7] outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A18]"
         >
           {PAGE_SIZE_OPTIONS.map((size) => (
             <option key={size} value={size}>{size} / page</option>
@@ -196,37 +198,45 @@ function UserTableRow({
   onView: (user: AdminUser) => void;
 }) {
   return (
-    <tr className="align-top transition-colors hover:bg-[#F8FAFC]">
-      <td className="px-3 py-2 text-xs text-[#111827] font-mono font-bold">
+    <tr className="align-top transition-colors hover:bg-[#111217]">
+      <td className="px-3 py-2 text-xs text-[#F5F5F7] font-mono font-bold">
         {user.id.slice(0, 10)}...
       </td>
-      <td className="px-3 py-2 text-xs text-[#111827] font-mono">
+      <td className="px-3 py-2 text-xs text-[#F5F5F7] font-mono">
         {formatAddress(user.walletAddress)}
+      </td>
+      <td className="px-3 py-2 text-xs text-[#F5F5F7]">
+        <div className="space-y-0.5">
+          <p className="font-semibold">{user.mobileNumber || '—'}</p>
+          <p className="max-w-[180px] truncate text-[10px] text-[#A1A4AE]" title={user.email || ''}>
+            {user.email || '—'}
+          </p>
+        </div>
       </td>
       <td className="px-3 py-2 text-xs">
         <Badge variant={getUserStatusBadgeVariant(user.status)}>
           {formatUserStatus(user.status)}
         </Badge>
       </td>
-      <td className="px-3 py-2 text-xs text-[#111827]">
+      <td className="px-3 py-2 text-xs text-[#F5F5F7]">
         <div className="space-y-0.5">
           <p className="font-semibold">{user.referralCode || '—'}</p>
-          <p className="text-[10px] text-[#667085]">Referrer: {user.referredBy || '—'}</p>
+          <p className="text-[10px] text-[#A1A4AE]">Referrer: {user.referredBy || '—'}</p>
         </div>
       </td>
-      <td className="px-3 py-2 text-xs text-[#111827]">
+      <td className="px-3 py-2 text-xs text-[#F5F5F7]">
         {user.balance ? (
           <div className="space-y-0.5">
-            <p><span className="text-[#667085]">Available:</span> <span className="font-semibold">{formatBalance(user.balance.availableBalance)}</span></p>
-            <p><span className="text-[#667085]">Locked:</span> <span className="font-semibold">{formatBalance(user.balance.lockedBalance)}</span></p>
-            <p><span className="text-[#667085]">Total:</span> <span className="font-bold">{formatBalance(user.balance.totalBalance)}</span></p>
+            <p><span className="text-[#A1A4AE]">Available:</span> <span className="font-semibold">{formatBalance(user.balance.availableBalance)}</span></p>
+            <p><span className="text-[#A1A4AE]">Locked:</span> <span className="font-semibold">{formatBalance(user.balance.lockedBalance)}</span></p>
+            <p><span className="text-[#A1A4AE]">Total:</span> <span className="font-bold">{formatBalance(user.balance.totalBalance)}</span></p>
           </div>
-        ) : <span className="text-[#98A2B3]">—</span>}
+        ) : <span className="text-[#70737E]">—</span>}
       </td>
-      <td className="px-3 py-2 text-xs text-[#111827]">
+      <td className="px-3 py-2 text-xs text-[#F5F5F7]">
         <span className="cursor-help">{formatRelativeTime(user.createdAt)}</span>
       </td>
-      <td className="px-3 py-2 text-xs text-[#111827]">
+      <td className="px-3 py-2 text-xs text-[#F5F5F7]">
         <Button
           variant="secondary"
           size="sm"
@@ -319,9 +329,9 @@ function BonusDistributionSection({
   };
 
   return (
-    <div className="mt-4 rounded-xl border border-[#EAECF0] bg-[#F9FAFB] p-4">
+    <div className="mt-4 rounded-xl border border-[#202229] bg-[#15161C] p-4">
       <div className="flex items-center justify-between">
-        <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#667085]">
+        <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#A1A4AE]">
           Bonus Distribution
         </p>
         <Button
@@ -336,12 +346,12 @@ function BonusDistributionSection({
       </div>
 
       {error && (
-        <p className="mt-2 rounded-lg bg-red-50 px-2 py-1.5 text-[11px] font-semibold text-red-600">
+        <p className="mt-2 rounded-lg bg-[#281313] px-2 py-1.5 text-[11px] font-semibold text-[#F87171]">
           {error}
         </p>
       )}
       {success && (
-        <p className="mt-2 rounded-lg bg-green-50 px-2 py-1.5 text-[11px] font-semibold text-green-700">
+        <p className="mt-2 rounded-lg bg-[#10251A] px-2 py-1.5 text-[11px] font-semibold text-[#6EE7B7]">
           ✓ {success}
         </p>
       )}
@@ -349,7 +359,7 @@ function BonusDistributionSection({
       {showForm && (
         <div className="mt-3 space-y-2">
           <div>
-            <label className="text-[10px] font-bold text-[#344054]">
+            <label className="text-[10px] font-bold text-[#E4E5E8]">
               Amount (TDX, max {ADMIN_BONUS_MAX.toLocaleString()})
             </label>
             <input
@@ -360,11 +370,11 @@ function BonusDistributionSection({
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="e.g. 100"
-              className="mt-1 w-full rounded-lg border border-[#D0D5DD] bg-white px-2 py-1.5 text-xs text-[#111827] outline-none focus:border-[#7F56D9]"
+              className="mt-1 w-full rounded-lg border border-[#34343E] bg-[#15161C] px-2 py-1.5 text-xs text-[#F5F5F7] outline-none focus:border-[#7F56D9]"
             />
           </div>
           <div>
-            <label className="text-[10px] font-bold text-[#344054]">
+            <label className="text-[10px] font-bold text-[#E4E5E8]">
               Reason / Description (required)
             </label>
             <textarea
@@ -373,9 +383,9 @@ function BonusDistributionSection({
               placeholder="Why is this bonus being granted?"
               rows={2}
               maxLength={500}
-              className="mt-1 w-full resize-none rounded-lg border border-[#D0D5DD] bg-white px-2 py-1.5 text-xs text-[#111827] outline-none focus:border-[#7F56D9]"
+              className="mt-1 w-full resize-none rounded-lg border border-[#34343E] bg-[#15161C] px-2 py-1.5 text-xs text-[#F5F5F7] outline-none focus:border-[#7F56D9]"
             />
-            <p className="mt-0.5 text-right text-[10px] text-[#98A2B3]">
+            <p className="mt-0.5 text-right text-[10px] text-[#70737E]">
               {description.trim().length}/500
             </p>
           </div>
@@ -391,11 +401,11 @@ function BonusDistributionSection({
               Distribute Bonus
             </Button>
           ) : (
-            <div className="rounded-lg border border-[#FEF0C7] bg-[#FFFAEB] p-2">
-              <p className="text-[11px] font-bold text-[#344054]">
+            <div className="rounded-lg border border-[#33220F] bg-[#2A190D] p-2">
+              <p className="text-[11px] font-bold text-[#E4E5E8]">
                 Confirm: distribute {formatTokenAmount(amount || '0')} TDX to this user?
               </p>
-              <p className="mt-0.5 text-[10px] text-[#667085]">
+              <p className="mt-0.5 text-[10px] text-[#A1A4AE]">
                 Reason: {description.trim() || '—'}
               </p>
               <div className="mt-2 flex gap-2">
@@ -425,7 +435,7 @@ function BonusDistributionSection({
 
       {/* Bonus history with reasons */}
       <div className="mt-3">
-        <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#667085]">
+        <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#A1A4AE]">
           Recent Bonuses
         </p>
         {historyLoading ? (
@@ -434,7 +444,7 @@ function BonusDistributionSection({
             <Skeleton className="h-4 w-3/4" />
           </div>
         ) : history.length === 0 ? (
-          <p className="mt-1.5 text-[11px] text-[#98A2B3]">
+          <p className="mt-1.5 text-[11px] text-[#70737E]">
             No bonuses distributed to this user yet.
           </p>
         ) : (
@@ -442,18 +452,18 @@ function BonusDistributionSection({
             {history.map((item) => (
               <li
                 key={item.id}
-                className="flex items-start justify-between gap-2 rounded-lg bg-white px-2 py-1.5 border border-[#EAECF0]"
+                className="flex items-start justify-between gap-2 rounded-lg bg-[#15161C] px-2 py-1.5 border border-[#202229]"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="whitespace-normal break-words text-[11px] font-semibold text-[#111827]">
+                  <p className="whitespace-normal break-words text-[11px] font-semibold text-[#F5F5F7]">
                     {item.description}
                   </p>
-                  <p className="text-[10px] text-[#667085]">
+                  <p className="text-[10px] text-[#A1A4AE]">
                     {formatRelativeTime(item.createdAt)}
                     {item.adminEmail ? ` · by ${item.adminEmail}` : ''}
                   </p>
                 </div>
-                <span className="shrink-0 text-[11px] font-bold text-green-600">
+                <span className="shrink-0 text-[11px] font-bold text-[#4ADE80]">
                   +{formatTokenAmount(item.amount)}
                 </span>
               </li>
@@ -498,10 +508,10 @@ function UserDetailModal({
   if (loading) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#101828]/50 p-4">
-        <div className="w-full max-w-4xl rounded-[16px] border border-[#E5E7EB] bg-white p-6 shadow-xl">
+        <div className="w-full max-w-4xl rounded-[16px] border border-[#292B33] bg-[#15161C] p-6 shadow-xl">
           <div className="space-y-3">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="h-4 bg-[#EAECF0] rounded animate-pulse w-full" />
+              <div key={i} className="h-4 bg-[#202229] rounded animate-pulse w-full" />
             ))}
           </div>
         </div>
@@ -512,9 +522,9 @@ function UserDetailModal({
   if (error || !data) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#101828]/50 p-4">
-        <div className="w-full max-w-md rounded-[16px] border border-red-200 bg-red-50 p-6 shadow-xl text-center">
-          <p className="font-bold text-red-600">Error loading user details</p>
-          <p className="mt-2 text-sm text-[#667085]">{error || 'Unknown error'}</p>
+        <div className="w-full max-w-md rounded-[16px] border border-[#4A2323] bg-[#281313] p-6 shadow-xl text-center">
+          <p className="font-bold text-[#F87171]">Error loading user details</p>
+          <p className="mt-2 text-sm text-[#A1A4AE]">{error || 'Unknown error'}</p>
           <Button variant="secondary" size="sm" className="mt-4" onClick={onClose}>
             Close
           </Button>
@@ -527,60 +537,68 @@ function UserDetailModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#101828]/50 p-4 overflow-y-auto">
-      <div className="w-full max-w-4xl rounded-[16px] border border-[#E5E7EB] bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
+      <div className="w-full max-w-4xl rounded-[16px] border border-[#292B33] bg-[#15161C] p-6 shadow-xl max-h-[90vh] overflow-y-auto">
         <div className="mb-4 flex items-center justify-between gap-2">
-          <h2 className="text-xl font-black text-[#111827]">User Details</h2>
+          <h2 className="text-xl font-black text-[#F5F5F7]">User Details</h2>
           <Button variant="secondary" size="sm" className="h-8 px-3 text-xs" onClick={onClose}>
             <X size={14} className="mr-1" /> Close
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 gap-3 text-xs text-[#344054] sm:grid-cols-2">
-          <div className="rounded-xl border border-[#EAECF0] bg-[#F9FAFB] p-3">
-            <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#667085]">User ID</p>
-            <p className="mt-0.5 font-mono font-semibold text-[#111827]">{user.id}</p>
+        <div className="grid grid-cols-1 gap-3 text-xs text-[#E4E5E8] sm:grid-cols-2">
+          <div className="rounded-xl border border-[#202229] bg-[#15161C] p-3">
+            <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#A1A4AE]">User ID</p>
+            <p className="mt-0.5 font-mono font-semibold text-[#F5F5F7]">{user.id}</p>
           </div>
-          <div className="rounded-xl border border-[#EAECF0] bg-[#F9FAFB] p-3">
-            <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#667085]">Wallet Address</p>
-            <p className="mt-0.5 font-mono font-semibold text-[#111827]">{user.walletAddress}</p>
+          <div className="rounded-xl border border-[#202229] bg-[#15161C] p-3">
+            <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#A1A4AE]">Wallet Address</p>
+            <p className="mt-0.5 font-mono font-semibold text-[#F5F5F7]">{user.walletAddress || '—'}</p>
           </div>
-          <div className="rounded-xl border border-[#EAECF0] bg-[#F9FAFB] p-3">
-            <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#667085]">Status</p>
+          <div className="rounded-xl border border-[#202229] bg-[#15161C] p-3">
+            <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#A1A4AE]">Mobile Number</p>
+            <p className="mt-0.5 font-semibold text-[#F5F5F7]">{user.mobileNumber || '—'}</p>
+          </div>
+          <div className="rounded-xl border border-[#202229] bg-[#15161C] p-3">
+            <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#A1A4AE]">Email</p>
+            <p className="mt-0.5 font-semibold break-all text-[#F5F5F7]">{user.email || '—'}</p>
+          </div>
+          <div className="rounded-xl border border-[#202229] bg-[#15161C] p-3">
+            <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#A1A4AE]">Status</p>
             <div className="mt-0.5">
               <Badge variant={getUserStatusBadgeVariant(user.status)}>
                 {formatUserStatus(user.status)}
               </Badge>
             </div>
           </div>
-          <div className="rounded-xl border border-[#EAECF0] bg-[#F9FAFB] p-3">
-            <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#667085]">Created At</p>
-            <p className="mt-0.5 font-semibold text-[#111827]">{formatDateTime(user.createdAt)}</p>
+          <div className="rounded-xl border border-[#202229] bg-[#15161C] p-3">
+            <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#A1A4AE]">Created At</p>
+            <p className="mt-0.5 font-semibold text-[#F5F5F7]">{formatDateTime(user.createdAt)}</p>
           </div>
-          <div className="rounded-xl border border-[#EAECF0] bg-[#F9FAFB] p-3">
-            <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#667085]">Referral Code</p>
-            <p className="mt-0.5 font-bold text-[#111827]">{user.referralCode || '—'}</p>
+          <div className="rounded-xl border border-[#202229] bg-[#15161C] p-3">
+            <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#A1A4AE]">Referral Code</p>
+            <p className="mt-0.5 font-bold text-[#F5F5F7]">{user.referralCode || '—'}</p>
           </div>
-          <div className="rounded-xl border border-[#EAECF0] bg-[#F9FAFB] p-3">
-            <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#667085]">Referred By</p>
-            <p className="mt-0.5 font-mono text-[#111827]">{user.referredBy ? formatAddress(user.referredBy) : '—'}</p>
+          <div className="rounded-xl border border-[#202229] bg-[#15161C] p-3">
+            <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#A1A4AE]">Referred By</p>
+            <p className="mt-0.5 font-mono text-[#F5F5F7]">{user.referredBy ? formatAddress(user.referredBy) : '—'}</p>
           </div>
         </div>
 
         {balance && (
           <div className="mt-4">
-            <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#667085]">TDX Balance</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#A1A4AE]">TDX Balance</p>
             <div className="mt-2 flex gap-2">
-              <div className="rounded-lg bg-white p-2 text-center border border-[#EAECF0] flex-1">
-                <p className="text-[#667085]">Available</p>
-                <p className="text-base font-bold text-green-600">{formatBalance(balance.availableBalance)} TDX</p>
+              <div className="rounded-lg bg-[#15161C] p-2 text-center border border-[#202229] flex-1">
+                <p className="text-[#A1A4AE]">Available</p>
+                <p className="text-base font-bold text-[#4ADE80]">{formatBalance(balance.availableBalance)} TDX</p>
               </div>
-              <div className="rounded-lg bg-white p-2 text-center border border-[#EAECF0] flex-1">
-                <p className="text-[#667085]">Locked</p>
-                <p className="text-base font-bold text-yellow-600">{formatBalance(balance.lockedBalance)} TDX</p>
+              <div className="rounded-lg bg-[#15161C] p-2 text-center border border-[#202229] flex-1">
+                <p className="text-[#A1A4AE]">Locked</p>
+                <p className="text-base font-bold text-[#F59E0B]">{formatBalance(balance.lockedBalance)} TDX</p>
               </div>
-              <div className="rounded-lg bg-white p-2 text-center border border-[#EAECF0] flex-1">
-                <p className="text-[#667085]">Total</p>
-                <p className="text-base font-bold text-[#111827]">{formatBalance(balance.totalBalance)} TDX</p>
+              <div className="rounded-lg bg-[#15161C] p-2 text-center border border-[#202229] flex-1">
+                <p className="text-[#A1A4AE]">Total</p>
+                <p className="text-base font-bold text-[#F5F5F7]">{formatBalance(balance.totalBalance)} TDX</p>
               </div>
             </div>
           </div>
@@ -591,64 +609,64 @@ function UserDetailModal({
           onDistributed={() => setReloadKey((k) => k + 1)}
         />
 
-        <div className="mt-4 rounded-xl border border-[#EAECF0] bg-[#F9FAFB] p-4">
-          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#667085]">Financial Summary</p>
+        <div className="mt-4 rounded-xl border border-[#202229] bg-[#15161C] p-4">
+          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#A1A4AE]">Financial Summary</p>
           <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <div className="rounded-lg bg-white p-2 text-center border border-[#EAECF0]">
-              <div className="flex items-center justify-center gap-1 text-green-600">
+            <div className="rounded-lg bg-[#15161C] p-2 text-center border border-[#202229]">
+              <div className="flex items-center justify-center gap-1 text-[#4ADE80]">
                 <TrendingDown size={14} />
-                <p className="text-[#667085] text-[10px]">Deposits</p>
+                <p className="text-[#A1A4AE] text-[10px]">Deposits</p>
               </div>
-              <p className="text-base font-bold text-[#111827]">{formatBalance(stats.deposits)} TDX</p>
+              <p className="text-base font-bold text-[#F5F5F7]">{formatBalance(stats.deposits)} TDX</p>
             </div>
-            <div className="rounded-lg bg-white p-2 text-center border border-[#EAECF0]">
-              <div className="flex items-center justify-center gap-1 text-red-600">
+            <div className="rounded-lg bg-[#15161C] p-2 text-center border border-[#202229]">
+              <div className="flex items-center justify-center gap-1 text-[#F87171]">
                 <TrendingUp size={14} />
-                <p className="text-[#667085] text-[10px]">Withdrawals</p>
+                <p className="text-[#A1A4AE] text-[10px]">Withdrawals</p>
               </div>
-              <p className="text-base font-bold text-[#111827]">{formatBalance(stats.withdrawals)} TDX</p>
+              <p className="text-base font-bold text-[#F5F5F7]">{formatBalance(stats.withdrawals)} TDX</p>
             </div>
-            <div className="rounded-lg bg-white p-2 text-center border border-[#EAECF0]">
-              <div className="flex items-center justify-center gap-1 text-blue-600">
+            <div className="rounded-lg bg-[#15161C] p-2 text-center border border-[#202229]">
+              <div className="flex items-center justify-center gap-1 text-[#60A5FA]">
                 <Wallet size={14} />
-                <p className="text-[#667085] text-[10px]">Net Flow</p>
+                <p className="text-[#A1A4AE] text-[10px]">Net Flow</p>
               </div>
-              <p className={`text-base font-bold ${parseFloat(stats.deposits) - parseFloat(stats.withdrawals) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              <p className={`text-base font-bold ${parseFloat(stats.deposits) - parseFloat(stats.withdrawals) >= 0 ? 'text-[#4ADE80]' : 'text-[#F87171]'}`}>
                 {(parseFloat(stats.deposits) - parseFloat(stats.withdrawals)).toFixed(2)} TDX
               </p>
             </div>
-            <div className="rounded-lg bg-white p-2 text-center border border-[#EAECF0]">
-              <div className="flex items-center justify-center gap-1 text-purple-600">
+            <div className="rounded-lg bg-[#15161C] p-2 text-center border border-[#202229]">
+              <div className="flex items-center justify-center gap-1 text-[#A78BFA]">
                 <History size={14} />
-                <p className="text-[#667085] text-[10px]">Total Trades</p>
+                <p className="text-[#A1A4AE] text-[10px]">Total Trades</p>
               </div>
-              <p className="text-base font-bold text-[#111827]">{stats.totalTrades}</p>
+              <p className="text-base font-bold text-[#F5F5F7]">{stats.totalTrades}</p>
             </div>
           </div>
         </div>
 
-        <div className="mt-4 rounded-xl border border-[#EAECF0] bg-[#F9FAFB] p-4">
-          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#667085]">Trade Statistics</p>
+        <div className="mt-4 rounded-xl border border-[#202229] bg-[#15161C] p-4">
+          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#A1A4AE]">Trade Statistics</p>
           <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 text-xs">
-            <div className="rounded-lg bg-white p-2 text-center border border-[#EAECF0]">
-              <p className="text-[#667085]">Total Volume</p>
-              <p className="text-base font-bold text-[#111827]">{formatBalance(stats.totalTradeVolume)} TDX</p>
+            <div className="rounded-lg bg-[#15161C] p-2 text-center border border-[#202229]">
+              <p className="text-[#A1A4AE]">Total Volume</p>
+              <p className="text-base font-bold text-[#F5F5F7]">{formatBalance(stats.totalTradeVolume)} TDX</p>
             </div>
-            <div className="rounded-lg bg-white p-2 text-center border border-[#EAECF0]">
-              <p className="text-[#667085]">Total Profit</p>
-              <p className="text-base font-bold text-green-600">{formatBalance(stats.totalProfit)} TDX</p>
+            <div className="rounded-lg bg-[#15161C] p-2 text-center border border-[#202229]">
+              <p className="text-[#A1A4AE]">Total Profit</p>
+              <p className="text-base font-bold text-[#4ADE80]">{formatBalance(stats.totalProfit)} TDX</p>
             </div>
-            <div className="rounded-lg bg-white p-2 text-center border border-[#EAECF0]">
-              <p className="text-[#667085]">Total Loss</p>
-              <p className="text-base font-bold text-red-600">{formatBalance(stats.totalLoss)} TDX</p>
+            <div className="rounded-lg bg-[#15161C] p-2 text-center border border-[#202229]">
+              <p className="text-[#A1A4AE]">Total Loss</p>
+              <p className="text-base font-bold text-[#F87171]">{formatBalance(stats.totalLoss)} TDX</p>
             </div>
           </div>
         </div>
 
         {user.referrerWalletAddress && (
-          <div className="mt-4 rounded-xl border border-[#EAECF0] bg-[#F9FAFB] p-4">
-            <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#667085]">Referrer</p>
-            <p className="mt-1 font-mono text-[#111827]">{user.referrerWalletAddress}</p>
+          <div className="mt-4 rounded-xl border border-[#202229] bg-[#15161C] p-4">
+            <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#A1A4AE]">Referrer</p>
+            <p className="mt-1 font-mono text-[#F5F5F7]">{user.referrerWalletAddress}</p>
           </div>
         )}
       </div>
@@ -727,11 +745,11 @@ export default function AdminUsersScreen() {
   return (
     <div className="space-y-3">
       {/* Header */}
-      <section className="rounded-[16px] border border-[#E5E7EB] bg-white p-4">
+      <section className="rounded-[16px] border border-[#292B33] bg-[#15161C] p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-[20px] font-black text-[#111827]">Users</h1>
-            <p className="mt-0.5 text-xs text-[#667085]">Manage platform users and account status</p>
+            <h1 className="text-[20px] font-black text-[#F5F5F7]">Users</h1>
+            <p className="mt-0.5 text-xs text-[#A1A4AE]">Manage platform users and account status</p>
           </div>
           <Button
             variant="secondary"
@@ -760,7 +778,7 @@ export default function AdminUsersScreen() {
 
       {/* Loading */}
       {loading && !users.length && (
-        <section className="rounded-[16px] border border-[#E5E7EB] bg-white p-4">
+        <section className="rounded-[16px] border border-[#292B33] bg-[#15161C] p-4">
           <div className="space-y-3">
             {Array.from({ length: 6 }).map((_, i) => (
               <div key={`user-skeleton-${i}`} className="grid grid-cols-7 gap-2">
@@ -780,28 +798,29 @@ export default function AdminUsersScreen() {
 
       {/* Table */}
       {!loading && !error && (
-        <section className="overflow-hidden rounded-[16px] border border-[#E5E7EB] bg-white">
+        <section className="overflow-hidden rounded-[16px] border border-[#292B33] bg-[#15161C]">
           {users.length === 0 ? (
             <div className="p-8 text-center">
-              <p className="text-base font-bold text-[#344054]">No users found</p>
-              <p className="mt-1 text-xs text-[#667085]">Try changing status, search text, or pagination options.</p>
+              <p className="text-base font-bold text-[#E4E5E8]">No users found</p>
+              <p className="mt-1 text-xs text-[#A1A4AE]">Try changing status, search text, or pagination options.</p>
             </div>
           ) : (
             <>
               <div className="overflow-x-auto">
-                <table className="min-w-[980px] w-full divide-y divide-[#EAECF0]">
-                  <thead className="bg-[#F9FAFB]">
+                <table className="min-w-[980px] w-full divide-y divide-[#202229]">
+                  <thead className="bg-[#15161C]">
                     <tr>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">ID</th>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">Wallet</th>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">Status</th>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">Referral</th>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">Balance</th>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">Created</th>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">Action</th>
+                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">ID</th>
+                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Wallet</th>
+                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Mobile / Email</th>
+                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Status</th>
+                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Referral</th>
+                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Balance</th>
+                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Created</th>
+                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#F2F4F7] bg-white">
+                  <tbody className="divide-y divide-[#1B1917] bg-[#15161C]">
                     {users.map((user) => (
                       <UserTableRow 
                         key={user.id} 
@@ -814,16 +833,16 @@ export default function AdminUsersScreen() {
               </div>
 
               {/* Pagination */}
-              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#EAECF0] px-3 py-2.5">
-                <p className="text-xs text-[#667085]">
-                  Showing <span className="font-bold text-[#111827]">{rangeStart}-{rangeEnd}</span> of{' '}
-                  <span className="font-bold text-[#111827]">{total}</span>
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#202229] px-3 py-2.5">
+                <p className="text-xs text-[#A1A4AE]">
+                  Showing <span className="font-bold text-[#F5F5F7]">{rangeStart}-{rangeEnd}</span> of{' '}
+                  <span className="font-bold text-[#F5F5F7]">{total}</span>
                 </p>
                 <div className="flex items-center gap-2">
                   <Button variant="secondary" size="sm" className="h-8 px-2.5 text-xs" disabled={!canGoPrev} onClick={() => setOffset(Math.max(0, offset - limit))}>
                     Previous
                   </Button>
-                  <span className="text-xs font-semibold text-[#344054]">Page {currentPage} of {totalPages}</span>
+                  <span className="text-xs font-semibold text-[#E4E5E8]">Page {currentPage} of {totalPages}</span>
                   <Button variant="secondary" size="sm" className="h-8 px-2.5 text-xs" disabled={!canGoNext} onClick={() => setOffset(offset + limit)}>
                     Next
                   </Button>

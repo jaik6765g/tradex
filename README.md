@@ -68,6 +68,31 @@ Required variables (backend): DB credentials, Redis URL, `JWT_SECRET`, blockchai
 
 Unit tests were intentionally **not committed** to keep the repo lean for marketplace deployment. Re-add test files before enabled CI runs.
 
+## 🎰 Lotto — Result Modes & Win Strategy
+
+Controlled from **Admin → Lotto Game Manager** (`/admin/lotto/*`, every change audited).
+
+**Result mode** (`LOTTO_RESULT_MODE`)
+
+| Mode | Behaviour |
+|---|---|
+| `SERVER_RANDOM` | The backend draws at `drawAt`, honouring the active win strategy. |
+| `ADMIN_RESULT` | An admin decides. The result can be **locked in advance** (while the round is still `OPEN`/`CUTOFF`) or set after the draw. A locked symbol is applied verbatim at draw time and can never be overwritten by a server draw. If nothing is locked, the engine waits one extra period and then falls back to a server draw so a round is never left stuck in `DRAWING`. |
+| `VERIFIED_RANDOM` | Strict uniform random draw — **never** steered by the win strategy. |
+
+**Win strategy** (`LOTTO_WIN_STRATEGY`, applies to server draws)
+
+Win potential of a number = total payout owed if it wins = `SUM(netAmount × multiplier)` of every unsettled ticket that selected it.
+
+| Strategy | Draw |
+|---|---|
+| `RANDOM` *(default)* | Uniform random draw — no steering. |
+| `HIGH` | The number with the **highest** win potential wins. |
+| `MEDIUM` | The number closest to the mid-point of the lowest…highest win-potential range wins. |
+| `LOW` | The number with the **lowest** win potential wins. |
+
+If no number carries any stake, every strategy falls back to a uniform random draw. The Admin **Lotto Live Exposure** screen shows the per-number win potential, the H/M/L bands and the exact number the engine will draw for the active round.
+
 ## 📄 License
 
 Proprietary — © TradeX. All rights reserved.

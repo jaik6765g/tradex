@@ -67,7 +67,7 @@ export const symbolHexColor = (symbol) => {
   const tones = {
     green: '#34d399',
     red: '#fb7185',
-    yellow: '#fbbf24',
+    yellow: '#F97316',
     cyan: '#22d3ee',
     neutral: '#94a3b8',
   };
@@ -260,7 +260,7 @@ export const isGroupFullySelected = (numbers, selectedNumbers) => {
 export const GROUP_TONE = {
   GREEN:  '#22C55E',
   RED:    '#EF4444',
-  YELLOW: '#F59E0B',
+  YELLOW: '#FB923C',
   BLUE:   '#06B6D4',
 };
 

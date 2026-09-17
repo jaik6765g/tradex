@@ -39,36 +39,36 @@ export function WithdrawForm({
   return (
     <div className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Amount (TDX)</label>
+        <label className="block text-sm font-medium text-[#A1A4AE] mb-1">Amount (TDX)</label>
         <input
           type="number"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           placeholder="0.00"
-          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-lg"
+          className="w-full px-4 py-3 border border-[#34343E] rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-lg"
           disabled={isLoading}
         />
-        <p className="mt-1 text-xs text-gray-500">Available: {maxBalance} TDX</p>
+        <p className="mt-1 text-xs text-[#A1A4AE]">Available: {maxBalance} TDX</p>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Destination Wallet Address</label>
+        <label className="block text-sm font-medium text-[#A1A4AE] mb-1">Destination Wallet Address</label>
         <input
           type="text"
           value={address}
           onChange={(e) => setAddress(e.target.value.trim())}
           placeholder="0x..."
-          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
+          className="w-full px-4 py-3 border border-[#34343E] rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
           disabled={isLoading}
         />
       </div>
 
       {numericAmount > 0 && (
-        <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-100">
-          <p className="text-sm text-gray-600">You will receive:</p>
-          <p className="text-2xl font-bold text-green-600">
+        <div className="p-4 bg-gradient-to-r from-[#10251A] to-emerald-50 rounded-xl border border-[#123A24]">
+          <p className="text-sm text-[#A1A4AE]">You will receive:</p>
+          <p className="text-2xl font-bold text-[#4ADE80]">
             {usdtAmount || numericAmount / 100}{' '}
-            <span className="text-sm font-normal text-gray-500">USDT</span>
+            <span className="text-sm font-normal text-[#A1A4AE]">USDT</span>
           </p>
         </div>
       )}
@@ -76,7 +76,7 @@ export function WithdrawForm({
       <button
         onClick={onSubmit}
         disabled={isAmountInvalid || isAddressInvalid || isLoading}
-        className="w-full py-3 px-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-medium rounded-xl hover:from-green-700 hover:to-emerald-700 disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed transition-all duration-200 shadow-md"
+        className="w-full py-3 px-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-medium rounded-xl hover:from-green-700 hover:to-emerald-700 disabled:from-[#34343E] disabled:to-[#34343E] disabled:cursor-not-allowed transition-all duration-200 shadow-md"
       >
         {isLoading ? '⏳ Processing...' : isSuccess ? '✅ Submitted!' : 'Request Withdrawal'}
       </button>

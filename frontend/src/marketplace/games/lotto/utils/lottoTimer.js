@@ -9,7 +9,7 @@ import { normalizeRoundStatus } from './lottoState.js';
 
 // ---------------------------------------------------------------------------
 // Category duration map (backend contract: THIRTY_SEC | ONE_MIN | THREE_MIN |
-// FIVE_MIN). NOTE: backend has no 2-minute category.
+// FIVE_MIN | TEN_MIN). NOTE: backend has no 2-minute category.
 // ---------------------------------------------------------------------------
 
 /**
@@ -21,6 +21,7 @@ export const CATEGORY_DURATION_SECONDS = {
   ONE_MIN: 60,
   THREE_MIN: 180,
   FIVE_MIN: 300,
+  TEN_MIN: 600,
 };
 
 // ---------------------------------------------------------------------------
@@ -234,4 +235,46 @@ export const isNewRound = (previousRound, nextRound) => {
   const previousId = previousRound?.id ?? null;
   const nextId = nextRound?.id ?? null;
   return previousId !== null && nextId !== null && previousId !== nextId;
+};
+
+// ---------------------------------------------------------------------------
+// Cutoff / pre-reveal window
+// ---------------------------------------------------------------------------
+
+/**
+ * Length of the pre-reveal window in seconds. Mirrors the backend's
+ * LOTTO_TICKET_CUTOFF_SECONDS: in this window betting is closed AND the result
+ * for the round is already pre-computed server-side, so the client may cache it
+ * and reveal it at drawAt with no API call.
+ */
+export const RESULT_PRE_REVEAL_SECONDS = 5;
+
+/**
+ * True while the round sits in its cutoff window: `[cutoffAt, drawAt)`.
+ *
+ * Prefers the round's OWN backend `cutoffAt` (the authoritative boundary the
+ * server uses to reject tickets) and falls back to the last
+ * RESULT_PRE_REVEAL_SECONDS before drawAt when the field is missing.
+ *
+ * @param {object|null} round
+ * @param {number} nowMs — server-synchronized now (epoch ms)
+ * @returns {boolean}
+ */
+export const isInCutoffWindow = (round, nowMs) => {
+  const drawAtMs = toEpochMs(round?.drawAt);
+  if (drawAtMs === null) {
+    return false;
+  }
+
+  const now = Number.isFinite(nowMs) ? nowMs : Date.now();
+  if (now >= drawAtMs) {
+    return false;
+  }
+
+  const cutoffAtMs = toEpochMs(round?.cutoffAt);
+  if (cutoffAtMs !== null) {
+    return now >= cutoffAtMs;
+  }
+
+  return drawAtMs - now <= RESULT_PRE_REVEAL_SECONDS * 1000;
 };

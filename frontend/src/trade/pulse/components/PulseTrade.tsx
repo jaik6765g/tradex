@@ -150,7 +150,7 @@ function getResultClass(
   const result = normalizeResult(value);
 
   if (result === 'PROFIT') {
-    return 'text-[#16A34A]';
+    return 'text-[#4ADE80]';
   }
 
   if (result === 'LOSS') {
@@ -158,10 +158,10 @@ function getResultClass(
   }
 
   if (result === 'DRAW') {
-    return 'text-[#D97706]';
+    return 'text-[#FF7A18]';
   }
 
-  return 'text-[#667085]';
+  return 'text-[#A1A4AE]';
 }
 
 // ============================================================
@@ -298,7 +298,7 @@ export function PulseTrade() {
   };
 
   return (
-      <div className="min-h-screen bg-[#F8FAFC] px-2 py-2 sm:px-4 sm:py-4">
+      <div className="min-h-screen bg-[#111217] px-2 py-2 sm:px-4 sm:py-4">
 
         {/* Win/Loss settlement popup */}
         <WinLossPopup
@@ -327,21 +327,21 @@ export function PulseTrade() {
             PLACE TRADE CARD (COMPACT)
         ================================================== */}
 
-          <div className="overflow-hidden rounded-2xl border border-[#E9ECF2] bg-white shadow-[0_4px_20px_rgba(16,24,40,0.04)]">
+          <div className="overflow-hidden rounded-2xl border border-[#202229] bg-[#15161C] shadow-[0_4px_20px_rgba(16,24,40,0.04)]">
 
             {/* HEADER */}
 
-            <div className="border-b border-[#EAECF0] px-4 py-2.5 sm:px-5">
+            <div className="border-b border-[#202229] px-4 py-2.5 sm:px-5">
 
               <div className="flex items-center justify-between gap-3">
 
                 <div>
 
-                  <h3 className="text-sm font-bold text-[#101828] sm:text-base">
+                  <h3 className="text-sm font-bold text-[#F5F5F7] sm:text-base">
                     Place Trade
                   </h3>
 
-                  <p className="mt-0.5 text-[10px] text-[#667085] sm:text-xs">
+                  <p className="mt-0.5 text-[10px] text-[#A1A4AE] sm:text-xs">
                     Select amount, duration and direction
                   </p>
 
@@ -349,13 +349,13 @@ export function PulseTrade() {
 
                 {/* SMALL BALANCE */}
 
-                <div className="shrink-0 rounded-lg border border-[#EAECF0] bg-[#F9FAFB] px-2.5 py-1.5 text-right">
+                <div className="shrink-0 rounded-lg border border-[#202229] bg-[#15161C] px-2.5 py-1.5 text-right">
 
-                  <p className="text-[9px] uppercase tracking-wide text-[#667085]">
+                  <p className="text-[9px] uppercase tracking-wide text-[#A1A4AE]">
                     Balance
                   </p>
 
-                  <p className="text-sm font-bold text-[#101828] sm:text-base">
+                  <p className="text-sm font-bold text-[#F5F5F7] sm:text-base">
                     {formatAmount(walletAvailable, 2)}{' '}
                     TDX
                   </p>
@@ -374,7 +374,7 @@ export function PulseTrade() {
 
               <div className="mb-4">
 
-                <label className="text-xs text-[#667085]">
+                <label className="text-xs text-[#A1A4AE]">
                   Amount (TDX)
                 </label>
 
@@ -387,7 +387,7 @@ export function PulseTrade() {
                     onChange={(e) => setAmountInput(e.target.value)}
                     disabled={placingTrade}
                     placeholder="Enter amount"
-                    className="mt-1 h-11 w-full rounded-xl border border-[#D0D5DD] bg-white px-3 text-sm text-[#101828] outline-none focus:border-[#F5B800] focus:ring-2 focus:ring-[#F5B800]/20"
+                    className="mt-1 h-11 w-full rounded-xl border border-[#34343E] bg-[#15161C] px-3 text-sm text-[#F5F5F7] outline-none focus:border-[#FF7A18] focus:ring-2 focus:ring-[#FF7A18]/20"
                 />
 
                 {/* QUICK AMOUNTS */}
@@ -400,8 +400,8 @@ export function PulseTrade() {
                           disabled={placingTrade}
                           className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${
                               amountInput === String(amount)
-                                  ? 'bg-[#F5B800] text-[#101828] shadow-[0_2px_6px_rgba(245,184,0,0.3)]'
-                                  : 'bg-[#F2F4F7] text-[#667085] hover:bg-[#EAECF0] hover:text-[#101828]'
+                                  ? 'bg-[#FF7A18] text-[#F5F5F7] shadow-[0_2px_6px_rgba(255,122,24,0.3)]'
+                                  : 'bg-[#1B1917] text-[#A1A4AE] hover:bg-[#202229] hover:text-[#F5F5F7]'
                           }`}
                       >
                         {amount}
@@ -415,7 +415,7 @@ export function PulseTrade() {
 
               <div className="mb-4">
 
-                <p className="mb-1 text-xs text-[#667085]">
+                <p className="mb-1 text-xs text-[#A1A4AE]">
                   Direction
                 </p>
 
@@ -427,8 +427,8 @@ export function PulseTrade() {
                       disabled={isSubmitDisabled}
                       className={`h-12 rounded-xl text-sm font-bold transition-all ${
                           selectedDirection === 'LONG'
-                              ? 'bg-[#16A34A] text-white shadow-[0_4px_15px_rgba(22,163,74,0.4)] ring-2 ring-[#16A34A]/30'
-                              : 'bg-[#16A34A]/10 text-[#16A34A] border border-[#16A34A]/40 hover:bg-[#16A34A]/20'
+                              ? 'bg-[#4ADE80] text-white shadow-[0_4px_15px_rgba(22,163,74,0.4)] ring-2 ring-[#4ADE80]/30'
+                              : 'bg-[#4ADE80]/10 text-[#4ADE80] border border-[#4ADE80]/40 hover:bg-[#4ADE80]/20'
                       }`}
                   >
                     ▲ LONG
@@ -455,7 +455,7 @@ export function PulseTrade() {
 
               <div className="mb-4">
 
-                <p className="mb-1 text-xs text-[#667085]">
+                <p className="mb-1 text-xs text-[#A1A4AE]">
                   Duration
                 </p>
 
@@ -469,8 +469,8 @@ export function PulseTrade() {
                           disabled={placingTrade}
                           className={`h-10 rounded-lg text-xs font-semibold transition-all ${
                               selectedDuration === duration
-                                  ? 'bg-[#F5B800] text-[#101828] shadow-[0_2px_8px_rgba(245,184,0,0.3)]'
-                                  : 'bg-[#F2F4F7] text-[#667085] hover:bg-[#EAECF0] hover:text-[#101828]'
+                                  ? 'bg-[#FF7A18] text-[#F5F5F7] shadow-[0_2px_8px_rgba(255,122,24,0.3)]'
+                                  : 'bg-[#1B1917] text-[#A1A4AE] hover:bg-[#202229] hover:text-[#F5F5F7]'
                           }`}
                       >
                         {duration}
@@ -483,7 +483,7 @@ export function PulseTrade() {
 
               {/* WALLET / RISK */}
 
-              <div className="mb-3 flex items-center justify-between gap-2 text-[11px] text-[#667085]">
+              <div className="mb-3 flex items-center justify-between gap-2 text-[11px] text-[#A1A4AE]">
 
               <span>
                 Wallet: {formatAmount(walletAvailable, 2)} TDX
@@ -503,10 +503,10 @@ export function PulseTrade() {
                   <div
                       className={`mt-2 rounded-lg px-3 py-2 text-xs font-semibold ${
                           message.type === 'error'
-                              ? 'bg-red-50 text-[#DC2626]'
+                              ? 'bg-[#281313] text-[#DC2626]'
                               : message.type === 'success'
-                                  ? 'bg-green-50 text-[#16A34A]'
-                                  : 'bg-[#F2F4F7] text-[#667085]'
+                                  ? 'bg-[#10251A] text-[#4ADE80]'
+                                  : 'bg-[#1B1917] text-[#A1A4AE]'
                       }`}
                   >
                     {message.text}
@@ -521,25 +521,25 @@ export function PulseTrade() {
             TRADE HISTORY
         ================================================== */}
 
-          <div className="overflow-hidden rounded-2xl border border-[#E9ECF2] bg-white shadow-[0_4px_20px_rgba(16,24,40,0.04)]">
+          <div className="overflow-hidden rounded-2xl border border-[#202229] bg-[#15161C] shadow-[0_4px_20px_rgba(16,24,40,0.04)]">
 
             {/* HISTORY HEADER */}
 
-            <div className="flex items-center justify-between border-b border-[#EAECF0] px-4 py-3 sm:px-5">
+            <div className="flex items-center justify-between border-b border-[#202229] px-4 py-3 sm:px-5">
 
               <div>
 
-                <h3 className="text-sm font-bold text-[#101828] sm:text-base">
+                <h3 className="text-sm font-bold text-[#F5F5F7] sm:text-base">
                   Trade History
                 </h3>
 
-                <p className="mt-0.5 text-[10px] text-[#667085] sm:text-xs">
+                <p className="mt-0.5 text-[10px] text-[#A1A4AE] sm:text-xs">
                   Recently settled Pulse trades
                 </p>
 
               </div>
 
-              <span className="text-xs text-[#667085]">
+              <span className="text-xs text-[#A1A4AE]">
               {normalizedHistory.length}
             </span>
 
@@ -548,7 +548,7 @@ export function PulseTrade() {
             {/* EMPTY */}
 
             {normalizedHistory.length === 0 ? (
-                <div className="px-4 py-10 text-center text-xs text-[#98A2B3]">
+                <div className="px-4 py-10 text-center text-xs text-[#70737E]">
                   No trade history yet.
                 </div>
             ) : (
@@ -556,9 +556,9 @@ export function PulseTrade() {
 
                   <table className="w-full min-w-[900px] text-xs">
 
-                    <thead className="bg-[#F9FAFB]">
+                    <thead className="bg-[#15161C]">
 
-                    <tr className="text-[#667085]">
+                    <tr className="text-[#A1A4AE]">
 
                       <th className="px-3 py-3 text-left">
                         Pair
@@ -611,12 +611,12 @@ export function PulseTrade() {
                       return (
                           <tr
                               key={trade.id}
-                              className="border-t border-[#F2F4F7] transition-colors hover:bg-[#F9FAFB]"
+                              className="border-t border-[#1B1917] transition-colors hover:bg-[#15161C]"
                           >
 
                             {/* PAIR */}
 
-                            <td className="whitespace-nowrap px-3 py-4 font-semibold text-[#101828]">
+                            <td className="whitespace-nowrap px-3 py-4 font-semibold text-[#F5F5F7]">
                               {trade.symbol}
                             </td>
 
@@ -627,7 +627,7 @@ export function PulseTrade() {
                           <span
                               className={
                                 trade.direction === 'LONG'
-                                    ? 'font-bold text-[#16A34A]'
+                                    ? 'font-bold text-[#4ADE80]'
                                     : 'font-bold text-[#DC2626]'
                               }
                           >
@@ -638,19 +638,19 @@ export function PulseTrade() {
 
                             {/* AMOUNT */}
 
-                            <td className="whitespace-nowrap px-3 py-4 text-right font-mono text-[#101828]">
+                            <td className="whitespace-nowrap px-3 py-4 text-right font-mono text-[#F5F5F7]">
                               {formatAmount(amount, 2)} TDX
                             </td>
 
                             {/* ENTRY */}
 
-                            <td className="whitespace-nowrap px-3 py-4 text-right font-mono text-[#101828]">
+                            <td className="whitespace-nowrap px-3 py-4 text-right font-mono text-[#F5F5F7]">
                               {formatPrice(trade.entryPrice)}
                             </td>
 
                             {/* EXIT */}
 
-                            <td className="whitespace-nowrap px-3 py-4 text-right font-mono text-[#101828]">
+                            <td className="whitespace-nowrap px-3 py-4 text-right font-mono text-[#F5F5F7]">
                               {formatPrice(exitPrice)}
                             </td>
 
@@ -668,13 +668,13 @@ export function PulseTrade() {
 
                             {/* PAYOUT */}
 
-                            <td className="whitespace-nowrap px-3 py-4 text-right font-mono text-[#101828]">
+                            <td className="whitespace-nowrap px-3 py-4 text-right font-mono text-[#F5F5F7]">
                               {formatAmount(trade.payout, 2)} TDX
                             </td>
 
                             {/* TIME */}
 
-                            <td className="whitespace-nowrap px-3 py-4 text-[#667085]">
+                            <td className="whitespace-nowrap px-3 py-4 text-[#A1A4AE]">
                               {formatTradeTime(tradeTime)}
                             </td>
 

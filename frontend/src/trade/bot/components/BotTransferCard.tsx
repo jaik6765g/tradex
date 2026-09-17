@@ -23,27 +23,27 @@ export default function BotTransferCard({
   onTransfer,
 }: Props) {
   return (
-    <Card className="p-5 shadow-sm border border-[#E5E7EB] rounded-[20px]">
+    <Card className="p-5 shadow-sm border border-[#292B33] rounded-[20px]">
       <div className="mb-5 flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-[#EFF8FF]">
-          <ArrowDownToLine size={19} className="text-[#175CD3]" />
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-[#211810]">
+          <ArrowDownToLine size={19} className="text-[#C99752]" />
         </div>
 
         <div>
-          <h2 className="text-[16px] font-black text-[#101828]">
+          <h2 className="text-[16px] font-black text-[#F5F5F7]">
             Add Funds to Bot Wallet
           </h2>
 
-          <p className="mt-1 text-sm font-medium text-[#667085]">
+          <p className="mt-1 text-sm font-medium text-[#A1A4AE]">
             Transfer TDX from your Main Balance into the Bot Wallet.
           </p>
         </div>
       </div>
 
       {error && (
-        <div className="mb-3 flex items-start gap-2 rounded-lg border border-[#FECACA] bg-[#FEF2F2] p-2.5">
-          <AlertCircle size={15} className="mt-0.5 shrink-0 text-[#B42318]" />
-          <p className="text-xs font-medium text-[#B42318]">{error}</p>
+        <div className="mb-3 flex items-start gap-2 rounded-lg border border-[#4A2323] bg-[#281313] p-2.5">
+          <AlertCircle size={15} className="mt-0.5 shrink-0 text-[#F87171]" />
+          <p className="text-xs font-medium text-[#F87171]">{error}</p>
         </div>
       )}
 
@@ -57,7 +57,7 @@ export default function BotTransferCard({
             inputMode="decimal"
             min="0"
           />
-          <p className="mt-1.5 text-[10px] font-medium text-[#667085]">
+          <p className="mt-1.5 text-[10px] font-medium text-[#A1A4AE]">
             Minimum transfer: 1 TDX
           </p>
         </div>
@@ -68,7 +68,7 @@ export default function BotTransferCard({
           disabled={!amount.trim() || parseFloat(amount) <= 0}
           onClick={onTransfer}
           size="md"
-          className="sm:min-w-[120px] bg-[#FBBF24] hover:bg-[#F59E0B] text-[#0D1B2A]"
+          className="sm:min-w-[120px] bg-[#FF7A18] hover:bg-[#FF8F3D] text-[#211810]"
         >
           Transfer
         </Button>

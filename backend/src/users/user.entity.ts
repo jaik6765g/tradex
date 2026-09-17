@@ -26,8 +26,55 @@ export class User {
   @Column({
     type: 'varchar',
     length: 42,
+    nullable: true,
   })
-  walletAddress: string;
+  walletAddress: string | null;
+
+  // ============================================================
+  // MOBILE NUMBER (E.164) — primary login identity
+  // ============================================================
+
+  @Index('IDX_users_mobileNumber_unique', { unique: true })
+  @Column({
+    type: 'varchar',
+    length: 32,
+    nullable: true,
+  })
+  mobileNumber: string | null;
+
+  // ============================================================
+  // EMAIL ADDRESS — internal identity for Supabase email/password
+  // ============================================================
+
+  @Index('IDX_users_email_unique', { unique: true })
+  @Column({
+    type: 'varchar',
+    length: 320,
+    nullable: true,
+  })
+  email: string | null;
+
+  // ============================================================
+  // SUPABASE AUTH USER ID
+  // ============================================================
+
+  @Index('IDX_users_authUserId_unique', { unique: true })
+  @Column({
+    type: 'uuid',
+    nullable: true,
+  })
+  authUserId: string | null;
+
+  // ============================================================
+  // APPLICATION ROLE
+  // ============================================================
+
+  @Column({
+    type: 'varchar',
+    length: 20,
+    default: 'user',
+  })
+  role: string;
 
   // ============================================================
   // USER'S OWN REFERRAL CODE

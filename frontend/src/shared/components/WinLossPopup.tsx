@@ -45,25 +45,25 @@ const OUTCOME_STYLES: Record<
   win: {
     accent: 'bg-[#22C55E]',
     border: 'border-[#86EFAC]',
-    iconBg: 'bg-[#DCFCE7]',
-    iconColor: 'text-[#16A34A]',
-    amountColor: 'text-[#16A34A]',
+    iconBg: 'bg-[#10251A]',
+    iconColor: 'text-[#4ADE80]',
+    amountColor: 'text-[#4ADE80]',
     Icon: Trophy,
   },
   loss: {
     accent: 'bg-[#EF4444]',
-    border: 'border-[#FECACA]',
-    iconBg: 'bg-[#FEF2F2]',
+    border: 'border-[#4A2323]',
+    iconBg: 'bg-[#281313]',
     iconColor: 'text-[#DC2626]',
     amountColor: 'text-[#DC2626]',
     Icon: TrendingDown,
   },
   draw: {
-    accent: 'bg-[#F59E0B]',
-    border: 'border-[#FDE68A]',
-    iconBg: 'bg-[#FFFBEB]',
-    iconColor: 'text-[#D97706]',
-    amountColor: 'text-[#D97706]',
+    accent: 'bg-[#FF8F3D]',
+    border: 'border-[#3A281C]',
+    iconBg: 'bg-[#2A190D]',
+    iconColor: 'text-[#FF7A18]',
+    amountColor: 'text-[#FF7A18]',
     Icon: Minus,
   },
 };
@@ -81,9 +81,16 @@ const OUTCOME_LABEL: Record<WinLossPopupData['outcome'], string> = {
 export default function WinLossPopup({
   value,
   onClose,
+  embedded = false,
 }: {
   value: WinLossPopupData | null;
   onClose: () => void;
+  /**
+   * When true the modal is positioned `absolute` so it is confined to the
+   * nearest `position: relative` parent (e.g. the Lotto Pick Number panel).
+   * Default false keeps the original full-viewport `fixed` modal (Pulse).
+   */
+  embedded?: boolean;
 }) {
   // Always call hooks unconditionally.
   useEffect(() => {
@@ -109,8 +116,8 @@ export default function WinLossPopup({
 
   return (
     <div
-      className="
-        fixed
+      className={`
+        ${embedded ? 'absolute' : 'fixed'}
         inset-0
         z-[95]
         flex
@@ -119,7 +126,7 @@ export default function WinLossPopup({
         bg-black/60
         backdrop-blur-sm
         animate-[winlossFadeIn_0.2s_ease-out]
-      "
+      `}
       role="dialog"
       aria-modal="true"
       aria-label={`${OUTCOME_LABEL[value.outcome]} result`}
@@ -138,7 +145,7 @@ export default function WinLossPopup({
           rounded-[24px]
           border
           ${style.border}
-          bg-[#0B1220]
+          bg-[#1B1917]
           shadow-[0_24px_80px_rgba(0,0,0,0.55)]
           animate-[winlossPopIn_0.25s_ease-out]
         `}
@@ -289,7 +296,7 @@ export default function WinLossPopup({
               font-bold
               text-white/80
               transition
-              hover:bg-white/10
+              hover:bg-[#20202A]/10
               hover:text-white
             "
           >

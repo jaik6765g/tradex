@@ -35,7 +35,7 @@ const LottoTicket = ({ ticket, onDismiss }) => {
               type="button"
               onClick={onDismiss}
               aria-label="Dismiss ticket receipt"
-              className="rounded-md px-1 text-[10px] font-bold text-[#5f6c9e] transition-colors hover:text-[#111827]"
+              className="rounded-md px-1 text-[10px] font-bold text-[#5f6c9e] transition-colors hover:text-[#F5F5F7]"
             >
               ✕
             </button>
@@ -56,10 +56,10 @@ const LottoTicket = ({ ticket, onDismiss }) => {
           )}
         </div>
         <div className="shrink-0 text-right">
-          <p className="text-[10px] font-bold text-[#667085]">
+          <p className="text-[10px] font-bold text-[#9A9BA8]">
             {ticket.roundNumber || '—'}
           </p>
-          <p className="text-xs font-black text-[#0F172A]">
+          <p className="text-xs font-black text-[#F5F5F7]">
             {formatTdx(ticket.amount)} TDX
           </p>
         </div>

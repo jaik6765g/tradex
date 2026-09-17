@@ -2,15 +2,23 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
+
+import { parseRedisUrl } from './redis/redis-connection';
+import { RedisModule } from './redis/redis.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
 // Entities
 import { User } from './users/user.entity';
 import { Wallet } from './wallets/wallet.entity';
-import { AuthNonce } from './auth/auth-nonce.entity';
 import { Balance } from './balances/balance.entity';
 import { Deposit } from './deposits/deposit.entity';
+import { DepositOrder } from './deposit-gateway/orders/deposit-order.entity';
+import { DepositAddress } from './deposit-gateway/addresses/deposit-address.entity';
+import { GatewayWatcherState } from './deposit-gateway/watchers/gateway-watcher-state.entity';
+import { DepositSweep } from './deposit-gateway/sweeps/deposit-sweep.entity';
+import { BscGasBatch } from './deposit-gateway/admin-bsc-gas/entities/bsc-gas-batch.entity';
+import { BscGasTransfer } from './deposit-gateway/admin-bsc-gas/entities/bsc-gas-transfer.entity';
 import { LedgerEntry } from './ledger/ledger.entity';
 import { Withdrawal } from './withdrawals/entities/withdrawal.entity';
 import { Trade } from './pulse-trade/entities/trade.entity';
@@ -39,6 +47,8 @@ import { BotSetting } from './bot/entities/bot-setting.entity';
 
 // Modules
 import { AuthModule } from './auth/auth.module';
+import { AdminAuthModule } from './auth/admin-auth.module';
+import { SupabaseModule } from './supabase/supabase.module';
 import { UsersModule } from './users/users.module';
 import { WalletsModule } from './wallets/wallets.module';
 import { BalanceModule } from './balances/balance.module';
@@ -48,7 +58,10 @@ import { BlockchainModule } from './blockchain/blockchain.module';
 import { WithdrawalsModule } from './withdrawals/withdrawals.module';
 import { AdminModule } from './admin/admin.module';
 import { LottoModule } from './modules/lotto/lotto.module';
+import { PeriodSyncModule } from './modules/period-sync/period-sync.module';
+import { WingoPeriod } from './modules/period-sync/wingo-period.entity';
 import { BotModule } from './bot/bot.module';
+import { DepositGatewayModule } from './deposit-gateway/gateway.module';
 
 @Module({
   controllers: [AppController],
@@ -70,9 +83,14 @@ import { BotModule } from './bot/bot.module';
         entities: [
           User,
           Wallet,
-          AuthNonce,
           Balance,
           Deposit,
+          DepositOrder,
+          DepositAddress,
+          GatewayWatcherState,
+          DepositSweep,
+          BscGasBatch,
+          BscGasTransfer,
           LedgerEntry,
           Withdrawal,
           Trade,
@@ -93,6 +111,9 @@ import { BotModule } from './bot/bot.module';
           BotWallet,
           BotWalletTransaction,
           BotActivation,
+          SystemSetting,
+          WingoPeriod,
+          // Bot System
           BotMonthlySettlement,
           BotSetting,
         ],
@@ -115,27 +136,39 @@ import { BotModule } from './bot/bot.module';
           throw new Error('REDIS_URL is not configured');
         }
 
-        // @nestjs/bullmq: QueueOptions.connection must be a
-        // ConnectionOptions object; RedisOptions.url accepts the
-        // Render-style REDIS_URL string. Queue producers and
-        // processors in this app all share this single connection.
+        // BullMQ (ioredis) does not accept a `url` key inside the connection
+        // options object, so REDIS_URL is parsed into the fields ioredis
+        // expects. Queue producers, processors and the app-level Redis client
+        // (RedisModule) all share this connection configuration. (The cast
+        // preserves the original `Record<string, unknown>` typing BullMQ's
+        // ConnectionOptions expects in this bullmq version.)
         return {
-          connection: { url: redisUrl },
+          connection: parseRedisUrl(redisUrl) as unknown as Record<
+            string,
+            unknown
+          >,
         };
       },
     }),
+    RedisModule,
+    SupabaseModule,
     AuthModule,
+    AdminAuthModule,
     UsersModule,
     WalletsModule,
     BalanceModule,
     DepositModule,
     LedgerModule,
     AdminModule,
+    LottoModule,
+    PeriodSyncModule,
+    BotModule,
     BlockchainModule,
     WithdrawalsModule,
     PulseTradeModule,
     LottoModule,
     BotModule, // ✅ BotModule is already imported here
+    DepositGatewayModule,
   ],
 })
 export class AppModule {}

@@ -14,6 +14,7 @@ import {
   QueryRunner,
   In,
   LessThanOrEqual,
+  MoreThan,
   EntityManager,
   FindOptionsWhere,
 } from 'typeorm';
@@ -46,6 +47,18 @@ import {
 import { User } from '../../users/user.entity';
 import { LedgerEntry, LedgerType } from '../../ledger/ledger.entity';
 import { Balance } from '../../balances/balance.entity';
+import { PeriodSyncService } from '../period-sync/period-sync.service';
+import { formatWingoPeriodNumber } from '../period-sync/wingo-period-number';
+import {
+  LOTTO_WIN_STRATEGY_SETTING_KEY,
+  LottoWinStrategyService,
+} from './services/lotto-win-strategy.service';
+import {
+  WIN_STRATEGY_VALUES,
+  WinStrategy,
+  isWinStrategy,
+  normalizeWinStrategy,
+} from './utils/lotto-win-strategy.util';
 
 const ACTIVE_ROUND_SETTLEMENT_STATUSES: RoundStatus[] = [RoundStatus.RESULTED];
 
@@ -104,6 +117,7 @@ const ALL_LOTTO_CATEGORIES: Category[] = [
   Category.ONE_MIN,
   Category.THREE_MIN,
   Category.FIVE_MIN,
+  Category.TEN_MIN,
 ];
 
 const CATEGORY_DURATION_SECONDS: Record<Category, number> = {
@@ -111,9 +125,28 @@ const CATEGORY_DURATION_SECONDS: Record<Category, number> = {
   [Category.ONE_MIN]: 60,
   [Category.THREE_MIN]: 180,
   [Category.FIVE_MIN]: 300,
+  [Category.TEN_MIN]: 600,
 };
 
-const LOTTO_TICKET_CUTOFF_SECONDS = 10;
+// The result is PRE-COMPUTED at the cutoff and revealed at drawAt, so clients
+// may cache it during exactly this window ([cutoffAt, drawAt]) — see
+// getPendingResult(). That is what makes the 00:00 reveal instantaneous: the
+// value is already in the browser, so no API round-trip happens at 0.
+const RESULT_PRE_REVEAL_SECONDS = 5;
+
+// Betting closes this many seconds before the draw. ONE shared cutoff boundary
+// for the backend (ticket rejection + result pre-computation) and the frontend
+// (Buy Card close), so the countdown and the reveal can never disagree about
+// when the round stopped accepting tickets. Kept equal to the pre-reveal window
+// because "betting closed" is exactly the condition that makes an early value
+// unexploitable.
+const LOTTO_TICKET_CUTOFF_SECONDS = RESULT_PRE_REVEAL_SECONDS;
+
+// In ADMIN_RESULT mode the engine waits this many extra periods for an admin to
+// set/lock the result before falling back to a server draw. One extra period is
+// enough for a live decision yet guarantees a round can never be stuck in
+// DRAWING forever (which would leave tickets reserved and unsettleable).
+const ADMIN_RESULT_FALLBACK_GRACE_PERIODS = 1;
 
 const INITIAL_PERIOD_NUMBER = 6;
 
@@ -148,6 +181,10 @@ export interface AdminCategoryCard {
     result: string | null;
     resultSource: string | null;
     resultGeneratedAt: string | null;
+    // Admin result locked in advance (source=ADMIN, not finalized yet).
+    lockedResult: string | null;
+    lockedResultSource: string | null;
+    lockedAt: string | null;
     settledAt: string | null;
   } | null;
   tickets: number;
@@ -166,6 +203,10 @@ export interface AdminRoundSummary {
   result: string | null;
   resultSource: string | null;
   resultGeneratedAt: string | null;
+  // Admin result locked in advance (source=ADMIN, not finalized yet).
+  lockedResult: string | null;
+  lockedResultSource: string | null;
+  lockedAt: string | null;
   settledAt: string | null;
   refundedAt: string | null;
   failedAt: string | null;
@@ -187,6 +228,7 @@ interface TicketListQuery {
 export interface LottoRuntimeControls {
   paused: boolean;
   resultMode: string;
+  winStrategy: WinStrategy;
 }
 
 interface RoundSettlementResult {
@@ -218,15 +260,24 @@ export class LottoService {
     @InjectRepository(User)
     private userRepo: Repository<User>,
     @InjectRepository(LedgerEntry)
-    private ledgerRepo: Repository<LedgerEntry>,
+    private readonly ledgerRepo: Repository<LedgerEntry>,
     @InjectRepository(AdminAuditLog)
     private readonly adminAuditLogRepo: Repository<AdminAuditLog>,
+    private readonly periodSyncService: PeriodSyncService,
+    private readonly winStrategyService: LottoWinStrategyService,
     private dataSource: DataSource,
     private readonly configService: ConfigService,
   ) {}
 
   async getActiveRound(category?: Category) {
     const controls = await this.getLottoRuntimeControls();
+
+    // NOTE: `winStrategy` is deliberately NOT part of the public payload — it is
+    // an internal draw-engine control and must never be exposed to players.
+    const publicControls = {
+      paused: controls.paused,
+      resultMode: controls.resultMode,
+    };
 
     const where: FindOptionsWhere<LottoRound> = {
       status: RoundStatus.OPEN,
@@ -248,8 +299,18 @@ export class LottoService {
     });
 
     return {
-      controls,
+      controls: publicControls,
       round: round ? this.toRoundView(round) : null,
+      // Synchronized server time so the frontend can compute an offset and
+      // remain correct even if the user's local clock is wrong (req 9, 10).
+      serverNow: new Date().toISOString(),
+      // Authoritative WinGo period state for the SELECTED category (THIRTY_SEC →
+      // WinGo_30S, ONE_MIN → WinGo_1M, THREE_MIN → WinGo_3M, FIVE_MIN →
+      // WinGo_5M). Falls back to the 30-second snapshot when no category is
+      // supplied so the legacy contract is unchanged.
+      wingoPeriod: category
+        ? this.periodSyncService.getSnapshotForCategory(category)
+        : this.periodSyncService.getSnapshot(),
     };
   }
 
@@ -280,12 +341,63 @@ export class LottoService {
   }
 
   /**
-   * Creates the next OPEN round for a category when none exists. Period
-   * numbers are sequential per category and start at 000006 (frozen rules).
+   * Creates the next OPEN round for a category when none exists.
+   *
+   * Reference-backed categories (THIRTY_SEC / ONE_MIN / THREE_MIN / FIVE_MIN)
+   * are special: their period number and timing come exclusively from the
+   * authoritative TPPLAY reference (via PeriodSyncService). We NEVER generate
+   * the number or the start/end timestamps for those. If the reference has not
+   * been reconciled yet, we simply return false — no fabrication
+   * (requirement 6, 7, 15, 33).
+   *
+   * TEN_MIN has no reference and keeps the legacy independent generator.
    */
   private async ensureActiveRoundForCategory(
     category: Category,
   ): Promise<boolean> {
+    // Any category backed by an authoritative external reference (THIRTY_SEC,
+    // ONE_MIN, THREE_MIN, FIVE_MIN) uses the EXACT SAME synced-round path: the
+    // period number + start/end boundary always come from the reference, never
+    // from a locally generated sequence. Categories without a reference
+    // (TEN_MIN) keep the legacy independent generator.
+    if (this.periodSyncService.hasReferenceForCategory(category)) {
+      return this.ensureSyncedRound(category);
+    }
+    return this.ensureGeneratedRound(category);
+  }
+
+  /**
+   * Authoritative round creation for a reference-backed category (30S / 1M /
+   * 3M / 5M). Uses the synced periodNumber + startTime/endTime for THAT
+   * category. If the reference says a period other than our current OPEN round,
+   * we reconcile. Never fabricates a period.
+   */
+  private async ensureSyncedRound(category: Category): Promise<boolean> {
+    const snapshot = this.periodSyncService.getSnapshotForCategory(category);
+
+    // No authoritative data yet — never fabricate a period.
+    if (!snapshot) {
+      return false;
+    }
+
+    // Invariant: the reference period number must be reproducible from its own
+    // END boundary for THIS category. A mismatch means the category→game
+    // mapping or the encoding drifted, so the number would be foreign to the
+    // category (exactly how the legacy cross-category rows happened). Warn
+    // loudly instead of silently persisting a wrong period number.
+    const derivedPeriodNumber = formatWingoPeriodNumber(
+      category,
+      snapshot.endTime,
+    );
+    if (
+      derivedPeriodNumber &&
+      derivedPeriodNumber !== snapshot.periodNumber
+    ) {
+      this.logger.warn(
+        `[Lotto:${category}] reference period ${snapshot.periodNumber} does not match its own encoding ${derivedPeriodNumber} (endTime=${snapshot.endTime}).`,
+      );
+    }
+
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -294,10 +406,109 @@ export class LottoService {
       const existing = await queryRunner.manager
         .createQueryBuilder(LottoRound, 'round')
         .setLock('pessimistic_write')
-        .where(
-          'round.category = :category AND round.status = :status',
-          { category, status: RoundStatus.OPEN },
-        )
+        .where('round.category = :category AND round.status = :status', {
+          category,
+          status: RoundStatus.OPEN,
+        })
+        .orderBy('round.id', 'DESC')
+        .getOne();
+
+      if (existing && existing.roundNumber === snapshot.periodNumber) {
+        // Already synchronized to the authoritative current period.
+        await queryRunner.commitTransaction();
+        return false;
+      }
+
+      // Recovery path: a row for the authoritative current period may already
+      // exist in a non-OPEN state (e.g. closed by a lifecycle pass that ran
+      // against a briefly stale/behind reference payload). While the reference
+      // still reports this period as live (now < endTime), restore it to OPEN
+      // with the authoritative timestamps instead of attempting a duplicate
+      // INSERT. Never fabricate — the period always comes from the reference.
+      const samePeriodRow = await queryRunner.manager
+        .createQueryBuilder(LottoRound, 'round')
+        .setLock('pessimistic_write')
+        .where('round.category = :category AND round.roundNumber = :roundNumber', {
+          category,
+          roundNumber: snapshot.periodNumber,
+        })
+        .getOne();
+
+      const nowMs = Date.now();
+      if (samePeriodRow && nowMs < snapshot.endTime) {
+        samePeriodRow.status = RoundStatus.OPEN;
+        samePeriodRow.startAt = new Date(snapshot.startTime);
+        samePeriodRow.drawAt = new Date(snapshot.endTime);
+        samePeriodRow.cutoffAt = new Date(
+          snapshot.endTime - LOTTO_TICKET_CUTOFF_SECONDS * 1000,
+        );
+        await queryRunner.manager.save(samePeriodRow);
+        await queryRunner.commitTransaction();
+        return true;
+      }
+
+      // The reference has already moved past this period — do not insert.
+      if (samePeriodRow) {
+        await queryRunner.commitTransaction();
+        return false;
+      }
+
+      // If there is an OPEN round for a DIFFERENT (stale) period, close it so
+      // the new authoritative period can become active. The lifecycle advance
+      // will finalize it on the next tick.
+      if (existing) {
+        existing.status = RoundStatus.DRAWING;
+        await queryRunner.manager.save(existing);
+      }
+
+      const startAt = new Date(snapshot.startTime);
+      const drawAt = new Date(snapshot.endTime);
+      const cutoffAt = new Date(
+        drawAt.getTime() - LOTTO_TICKET_CUTOFF_SECONDS * 1000,
+      );
+
+      const round = queryRunner.manager.create(LottoRound, {
+        roundNumber: snapshot.periodNumber,
+        category,
+        status: RoundStatus.OPEN,
+        startAt,
+        cutoffAt,
+        drawAt,
+      });
+
+      await queryRunner.manager.save(round);
+      await queryRunner.commitTransaction();
+      return true;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+
+      if (this.isRoundNumberUniqueViolation(error)) {
+        return false;
+      }
+
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  /**
+   * Legacy independent round generation for non-THIRTY_SEC categories.
+   * Period numbers are sequential per category and start at 000006.
+   */
+  private async ensureGeneratedRound(category: Category): Promise<boolean> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const existing = await queryRunner.manager
+        .createQueryBuilder(LottoRound, 'round')
+        .setLock('pessimistic_write')
+        .where('round.category = :category AND round.status = :status', {
+          category,
+          status: RoundStatus.OPEN,
+        })
         .orderBy('round.id', 'DESC')
         .getOne();
 
@@ -333,7 +544,6 @@ export class LottoService {
     } catch (error) {
       await queryRunner.rollbackTransaction();
 
-      // Another ticker created the same period concurrently — treat as no-op.
       if (this.isRoundNumberUniqueViolation(error)) {
         return false;
       }
@@ -407,8 +617,33 @@ export class LottoService {
 
     const controls = await this.getLottoRuntimeControls();
 
-    if (controls.resultMode === 'ADMIN_RESULT') {
-      return 0;
+    // ------------------------------------------------------------------
+    // PRE-COMPUTATION PASS (runs BEFORE the draw pass below).
+    //
+    // As soon as a round reaches its cutoff — i.e. the last
+    // RESULT_PRE_REVEAL_SECONDS of the period, when tickets are already
+    // rejected — the result value is drawn and stored once
+    // (status=GENERATED). Nothing at drawAt can then change it, and the
+    // public endpoints publish it the moment server time crosses drawAt
+    // (see getRecentResults / getPendingResult) instead of waiting for the
+    // next engine tick. That is what removes the previous 2-3s delay.
+    // ------------------------------------------------------------------
+    const precomputableRounds = await this.roundRepo.find({
+      where: {
+        status: In([RoundStatus.CUTOFF, RoundStatus.DRAWING]),
+        cutoffAt: LessThanOrEqual(now),
+        drawAt: MoreThan(now),
+      },
+      take: 50,
+      order: { drawAt: 'ASC', id: 'ASC' },
+    });
+
+    for (const round of precomputableRounds) {
+      if (round.resultId) {
+        continue;
+      }
+
+      await this.precomputeResultForRound(round.id);
     }
 
     const dueRounds = await this.roundRepo.find({
@@ -431,6 +666,38 @@ export class LottoService {
         continue;
       }
 
+      // 1. An admin pre-locked result is honoured EXACTLY as locked: the admin
+      //    may lock a symbol while the period is still open (source=ADMIN,
+      //    status=GENERATED) and the engine promotes it to the final result at
+      //    draw time. No racing, no override, no second draw.
+      const lockedResult = await this.findLockedAdminResult(round.id);
+
+      if (lockedResult && lockedResult.adminId) {
+        const outcome = await this.finalizeRoundResult(
+          round.id,
+          lockedResult.result,
+          'ADMIN',
+          lockedResult.adminId,
+          { reason: 'Pre-locked admin result applied at draw time' },
+        );
+
+        if (outcome.finalized) {
+          resulted += 1;
+        }
+        continue;
+      }
+
+      // 2. ADMIN_RESULT mode: wait one extra period for the admin before the
+      //    engine falls back to a server draw, so a round can never be stuck in
+      //    DRAWING (which would leave every ticket reserved and unsettleable).
+      if (
+        controls.resultMode === 'ADMIN_RESULT' &&
+        now.getTime() <
+          round.drawAt.getTime() + this.resolveAdminResultGraceMs(round.category)
+      ) {
+        continue;
+      }
+
       const outcome = await this.finalizeRoundResult(
         round.id,
         null,
@@ -444,6 +711,240 @@ export class LottoService {
     }
 
     return resulted;
+  }
+
+  /**
+   * ATOMIC CUTOFF TRANSITION — closes betting and generates the result.
+   *
+   * This is the ONLY place where a final result row may be created for a
+   * round, and it runs strictly AFTER the betting cutoff:
+   *
+   *   1. Lock the round row (pessimistic_write) — serializes concurrent
+   *      engine ticks / on-demand callers so exactly one of them proceeds.
+   *   2. Re-read server time INSIDE the transaction.
+   *   3. HARD GUARD: if now < cutoffAt → betting still open → return null
+   *      without touching anything (no close, no draw, no persist).
+   *   4. Otherwise flip OPEN → CUTOFF first (betting closed from this instant;
+   *      purchaseTicket requires OPEN so no new bet can slip in afterwards).
+   *   5. Only then draw + persist the GENERATED result row (idempotent —
+   *      an existing row is returned as-is; unique index is the backstop).
+   *
+   * A request arriving before the cutoff can therefore never trigger result
+   * generation, and two concurrent workers can never produce two results:
+   * the loser either sees the cutoff guard fail (too early) or finds the
+   * winner's row (idempotent replay).
+   */
+  private async precomputeResultForRound(roundId: number): Promise<{
+    id: number;
+    result: string;
+    source: ResultSource;
+    generatedAt: Date | null;
+  } | null> {
+    return this.dataSource.transaction(async (manager) => {
+      const txRoundRepo = manager.getRepository(LottoRound);
+      const txResultRepo = manager.getRepository(LottoResult);
+
+      const round = await txRoundRepo.findOne({
+        where: { id: roundId },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (!round) {
+        return null;
+      }
+
+      // Already finalized → published through the normal (finalize) path.
+      if (round.resultId) {
+        return null;
+      }
+
+      // HARD CUTOFF GUARD — re-checked with server time INSIDE the
+      // transaction, AFTER acquiring the round row lock. If betting is still
+      // open (now < cutoffAt) this call must not close betting, draw, lock,
+      // or persist anything: the round stays in its normal betting state and
+      // the caller gets null (rejected/skipped, never a result).
+      if (round.cutoffAt.getTime() > Date.now()) {
+        return null;
+      }
+
+      // ATOMIC BETTING CLOSE — flip OPEN → CUTOFF *before* any draw, in the
+      // same transaction. purchaseTicket() accepts only OPEN rounds, so from
+      // this instant no new bet can be accepted for this round; the result
+      // drawn below therefore always sees the final, complete ticket set.
+      // CUTOFF/DRAWING rounds are already closed — fall through to the draw.
+      // Terminal non-settlable rounds can never be drawn.
+      if (round.status === RoundStatus.OPEN) {
+        round.status = RoundStatus.CUTOFF;
+        await txRoundRepo.save(round);
+      }
+
+      if (this.isTerminalNonSettlableRoundStatus(round.status)) {
+        return null;
+      }
+
+      const existing = await txResultRepo.findOne({
+        where: { roundId: round.id },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (existing && existing.status === ResultStatus.FINALIZED) {
+        return null;
+      }
+
+      if (existing) {
+        const preparedValue = this.normalizeResultValue(existing.result);
+
+        if (preparedValue && VALID_RESULT_VALUES.has(preparedValue)) {
+          return {
+            id: existing.id,
+            result: preparedValue,
+            source: existing.source,
+            generatedAt: existing.generatedAt ?? null,
+          };
+        }
+        // Foreign/invalid leftover row — replace it with a proper server draw.
+      }
+
+      const value = await this.generateServerResult(manager, round.id);
+
+      const row = existing ?? txResultRepo.create({ roundId: round.id });
+      row.result = value;
+      row.source = ResultSource.SERVER;
+      row.adminId = null;
+      row.status = ResultStatus.GENERATED;
+      // Publication instant — the prepared value becomes official here.
+      row.finalizedAt = round.drawAt;
+
+      const saved = await txResultRepo.save(row);
+
+      return {
+        id: saved.id,
+        result: value,
+        source: saved.source,
+        generatedAt: saved.generatedAt ?? null,
+      };
+    });
+  }
+
+  /**
+   * Pending-round metadata for the cutoff window — NEVER discloses the result.
+   *
+   * Before the official reveal (server time < drawAt) this endpoint returns
+   * only safe metadata (round id/number, status, cutoffAt, drawAt/revealAt,
+   * serverNow). The actual result value is NEVER included, for ANY source
+   * (SERVER or ADMIN), and this method NEVER triggers result generation:
+   * generation happens exclusively in the engine's cutoff transition
+   * (precomputeResultForRound), never from a read path.
+   *
+   * After the reveal the value is served by getRecentResults /
+   * getResultByRoundId (both gated on server time crossing drawAt).
+   */
+  async getPendingResult(category?: Category) {
+    const now = new Date();
+
+    const where: FindOptionsWhere<LottoRound> = {
+      cutoffAt: LessThanOrEqual(now),
+      drawAt: MoreThan(now),
+      status: In([RoundStatus.OPEN, RoundStatus.CUTOFF, RoundStatus.DRAWING]),
+    };
+
+    if (category) {
+      where.category = category;
+    }
+
+    const round = await this.roundRepo.findOne({
+      where,
+      order: { drawAt: 'ASC', id: 'ASC' },
+    });
+
+    if (!round) {
+      return {
+        serverNow: new Date().toISOString(),
+        pendingResult: null,
+      };
+    }
+
+    const prepared = await this.precomputeResultForRound(round.id);
+
+    // The result value is NEVER disclosed before the official reveal, for any
+    // source. `prepared` existing only tells us the cutoff transition ran
+    // (betting safely closed); the value itself stays server-side until
+    // drawAt. Clients flip to the value via the post-draw result endpoints.
+    if (!prepared) {
+      return {
+        serverNow: new Date().toISOString(),
+        pendingResult: null,
+      };
+    }
+
+    return {
+      // Authoritative server time (ISO) — the client keeps its clock offset in
+      // sync with this on every call, so the countdown and the 00:00 reveal are
+      // driven by server time only.
+      serverNow: new Date().toISOString(),
+      pendingResult: {
+        roundId: round.id,
+        roundNumber: round.roundNumber,
+        category: round.category,
+        status: round.status,
+        cutoffAt: round.cutoffAt.toISOString(),
+        // Earliest instant the value may be shown to the player.
+        revealAt: round.drawAt.toISOString(),
+        drawAt: round.drawAt.toISOString(),
+      },
+    };
+  }
+
+  /** Extra time (ms) the engine waits for an admin result before auto-drawing. */
+  private resolveAdminResultGraceMs(category: Category): number {
+    return (
+      CATEGORY_DURATION_SECONDS[category] *
+      ADMIN_RESULT_FALLBACK_GRACE_PERIODS *
+      1000
+    );
+  }
+
+  /**
+   * Returns the admin-locked (not yet finalized) result of a round, if any.
+   * A locked row is a lotto_results row with status=GENERATED, source=ADMIN.
+   */
+  private async findLockedAdminResult(
+    roundId: number,
+    manager?: EntityManager,
+  ): Promise<{
+    id: number;
+    result: string;
+    adminId: string | null;
+    generatedAt: Date | null;
+  } | null> {
+    const resultRepo = manager
+      ? manager.getRepository(LottoResult)
+      : this.resultRepo;
+
+    const locked = await resultRepo.findOne({
+      where: {
+        roundId,
+        status: ResultStatus.GENERATED,
+        source: ResultSource.ADMIN,
+      },
+      select: { id: true, result: true, adminId: true, generatedAt: true },
+    });
+
+    if (!locked) {
+      return null;
+    }
+
+    const normalized = this.normalizeResultValue(locked.result);
+    if (!normalized || !VALID_RESULT_VALUES.has(normalized)) {
+      return null;
+    }
+
+    return {
+      id: locked.id,
+      result: normalized,
+      adminId: locked.adminId ?? null,
+      generatedAt: locked.generatedAt ?? null,
+    };
   }
 
   private isRoundNumberUniqueViolation(error: unknown): boolean {
@@ -470,7 +971,11 @@ export class LottoService {
     result: string | null,
     source: 'SERVER' | 'ADMIN',
     adminId?: string | null,
-    context: { ipAddress?: string | null; userAgent?: string | null } = {},
+    context: {
+      ipAddress?: string | null;
+      userAgent?: string | null;
+      reason?: string | null;
+    } = {},
   ): Promise<{ finalized: boolean; result: string | null }> {
     const outcome = await this.dataSource.transaction(async (manager) => {
       const txRoundRepo = manager.getRepository(LottoRound);
@@ -529,10 +1034,41 @@ export class LottoService {
         throw new BadRequestException('ADMIN_ID_REQUIRED');
       }
 
-      const normalizedResultValue =
-        source === 'ADMIN'
-          ? this.normalizeManualResult(result)
-          : this.generateServerResult();
+      // A prepared value for this round is PROMOTED VERBATIM — never re-drawn.
+      //
+      // Two kinds of prepared rows exist:
+      //   - admin pre-lock  (GENERATED + ADMIN) — as before;
+      //   - server pre-computation at cutoff (GENERATED + SERVER).
+      // The server draw below would produce a DIFFERENT symbol, which would
+      // break the value the client has already cached for the 00:00 reveal.
+      const preparedValue =
+        existingResult?.status === ResultStatus.GENERATED
+          ? this.normalizeResultValue(existingResult.result)
+          : null;
+
+      const hasPreparedValue = Boolean(
+        preparedValue && VALID_RESULT_VALUES.has(preparedValue),
+      );
+
+      const effectiveSource: 'SERVER' | 'ADMIN' =
+        source === 'ADMIN' || existingResult?.source === ResultSource.ADMIN
+          ? 'ADMIN'
+          : 'SERVER';
+
+      let normalizedResultValue: string;
+
+      if (source === 'ADMIN') {
+        // An explicit admin draw always wins (resultMode/ADMIN_RESULT paths).
+        normalizedResultValue = this.normalizeManualResult(result);
+      } else if (hasPreparedValue) {
+        // Promote the pre-computed (or admin-locked) value unchanged.
+        normalizedResultValue = preparedValue as string;
+      } else {
+        normalizedResultValue = await this.generateServerResult(
+          manager,
+          round.id,
+        );
+      }
 
       const resultRow =
         existingResult ??
@@ -541,8 +1077,11 @@ export class LottoService {
         });
 
       resultRow.result = normalizedResultValue;
-      resultRow.source = source as ResultSource;
-      resultRow.adminId = source === 'ADMIN' ? (adminId ?? null) : null;
+      resultRow.source = effectiveSource as ResultSource;
+      resultRow.adminId =
+        effectiveSource === 'ADMIN'
+          ? (source === 'ADMIN' ? (adminId ?? null) : (existingResult?.adminId ?? null))
+          : null;
       resultRow.status = ResultStatus.FINALIZED;
       resultRow.finalizedAt = new Date();
 
@@ -577,6 +1116,7 @@ export class LottoService {
           roundId,
           result: outcome.result,
           resultSource: 'ADMIN',
+          reason: context.reason?.trim() || undefined,
         },
         ipAddress: context.ipAddress,
         userAgent: context.userAgent,
@@ -584,6 +1124,187 @@ export class LottoService {
     }
 
     return outcome;
+  }
+
+  /**
+   * Admin result entry point with exact, race-free semantics.
+   *
+   * Timing rule (cutoff-first): no final-result write — lock or finalize —
+   * may land while betting is still open (now < cutoffAt). After the cutoff
+   * (betting closed) the symbol is LOCKED (lotto_results row with
+   * status=GENERATED, source=ADMIN) and the draw engine applies it verbatim
+   * at draw time — an admin decision can never be overwritten by the server
+   * draw.
+   *
+   * - Round already finalized → idempotent no-op (existing result returned).
+   * - Cutoff reached, not yet drawn → LOCK until draw time.
+   * - Round already drawn     → finalized immediately (source=ADMIN).
+   * - Before cutoff           → rejected (RESULT_LOCK_BEFORE_CUTOFF).
+   */
+  async setAdminResult(
+    roundId: number,
+    result: string,
+    adminId: string,
+    context: AdminActionContext,
+    reason?: string,
+  ): Promise<{
+    finalized: boolean;
+    locked: boolean;
+    result: string | null;
+    roundStatus: RoundStatus;
+    appliedAt: string | null;
+  }> {
+    const normalizedResult = this.normalizeManualResult(result);
+
+    const outcome = await this.dataSource.transaction(async (manager) => {
+      const txRoundRepo = manager.getRepository(LottoRound);
+      const txResultRepo = manager.getRepository(LottoResult);
+
+      const round = await txRoundRepo.findOne({
+        where: { id: roundId },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (!round) {
+        throw new NotFoundException('ROUND_NOT_FOUND');
+      }
+
+      if (this.isTerminalNonSettlableRoundStatus(round.status)) {
+        throw new ConflictException('ROUND_NOT_DRAWABLE');
+      }
+
+      // Already finalized — nothing to change (idempotent).
+      if (round.resultId) {
+        const existing = await txResultRepo.findOne({
+          where: { id: round.resultId },
+        });
+
+        return {
+          mode: 'ALREADY_FINALIZED' as const,
+          round,
+          previousResult: null,
+          existingResult: this.normalizeResultValue(existing?.result),
+        };
+      }
+
+      const existingRow = await txResultRepo.findOne({
+        where: { roundId: round.id },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (existingRow && existingRow.status === ResultStatus.FINALIZED) {
+        return {
+          mode: 'ALREADY_FINALIZED' as const,
+          round,
+          previousResult: null,
+          existingResult: this.normalizeResultValue(existingRow.result),
+        };
+      }
+
+      // Draw time has passed → the existing finalize path applies it now.
+      if (round.drawAt.getTime() <= Date.now()) {
+        return {
+          mode: 'FINALIZE' as const,
+          round,
+          previousResult: this.normalizeResultValue(existingRow?.result),
+          existingResult: null,
+        };
+      }
+
+      // CUTOFF GUARD — an admin lock is a final-result write, so it may only
+      // land once betting is closed (now >= cutoffAt). Locking before the
+      // cutoff would persist a final result while tickets are still accepted,
+      // violating the cutoff-first timing rule; reject it instead. After the
+      // cutoff the lock path below is safe: purchaseTicket already rejects
+      // non-OPEN rounds, so no new bet can be influenced by (or influence)
+      // the locked value.
+      if (round.cutoffAt.getTime() > Date.now()) {
+        throw new ConflictException('RESULT_LOCK_BEFORE_CUTOFF');
+      }
+
+      // Cutoff reached (draw still in future) → LOCK the symbol until draw.
+      const row = existingRow ?? txResultRepo.create({ roundId: round.id });
+      row.result = normalizedResult;
+      row.source = ResultSource.ADMIN;
+      row.adminId = adminId;
+      row.status = ResultStatus.GENERATED;
+      row.finalizedAt = null;
+      await txResultRepo.save(row);
+
+      return {
+        mode: 'LOCKED' as const,
+        round,
+        previousResult: this.normalizeResultValue(existingRow?.result),
+        existingResult: null,
+      };
+    });
+
+    if (outcome.mode === 'ALREADY_FINALIZED') {
+      return {
+        finalized: false,
+        locked: false,
+        result: outcome.existingResult,
+        roundStatus: outcome.round.status,
+        appliedAt: null,
+      };
+    }
+
+    if (outcome.mode === 'LOCKED') {
+      await this.writeAuditLog({
+        adminId,
+        action: 'LOCK_RESULT',
+        targetType: 'lotto_round',
+        targetId: roundId,
+        oldValue: { lockedResult: outcome.previousResult },
+        newValue: {
+          result: normalizedResult,
+          resultSource: 'ADMIN',
+          status: 'LOCKED',
+          drawAt: outcome.round.drawAt.toISOString(),
+        },
+        metadata: {
+          roundId,
+          roundNumber: outcome.round.roundNumber,
+          category: outcome.round.category,
+          result: normalizedResult,
+          resultSource: 'ADMIN',
+          lockedUntilDrawAt: outcome.round.drawAt.toISOString(),
+          reason: reason?.trim() || undefined,
+        },
+        ipAddress: context.ipAddress,
+        userAgent: context.userAgent,
+      });
+
+      return {
+        finalized: false,
+        locked: true,
+        result: normalizedResult,
+        roundStatus: outcome.round.status,
+        appliedAt: null,
+      };
+    }
+
+    const finalized = await this.finalizeRoundResult(
+      roundId,
+      normalizedResult,
+      'ADMIN',
+      adminId,
+      {
+        ipAddress: context.ipAddress,
+        userAgent: context.userAgent,
+        reason,
+      },
+    );
+
+    const round = await this.roundRepo.findOne({ where: { id: roundId } });
+
+    return {
+      finalized: finalized.finalized,
+      locked: false,
+      result: finalized.result,
+      roundStatus: round?.status ?? RoundStatus.RESULTED,
+      appliedAt: new Date().toISOString(),
+    };
   }
 
   private normalizeManualResult(result: string | null | undefined): string {
@@ -594,8 +1315,55 @@ export class LottoService {
     return normalized;
   }
 
-  private generateServerResult(): string {
-    const index = randomInt(16);
+  /**
+   * Resolves the result of a SERVER draw for one round.
+   *
+   * - `VERIFIED_RANDOM` keeps a strict uniform draw (never steered).
+   * - `RANDOM` strategy → uniform random symbol.
+   * - `HIGH` / `MEDIUM` / `LOW` → the symbol selected by the win-potential
+   *   ladder (see LottoWinStrategyService). If the ladder has no stake signal
+   *   the service already falls back to a uniform random symbol.
+   *
+   * Any analysis failure degrades gracefully to a uniform random symbol so a
+   * draw can never be blocked by the strategy layer.
+   */
+  private async generateServerResult(
+    manager: EntityManager,
+    roundId: number,
+  ): Promise<string> {
+    const controls = await this.getLottoRuntimeControls(manager);
+
+    if (
+      controls.winStrategy === 'RANDOM' ||
+      controls.resultMode === 'VERIFIED_RANDOM'
+    ) {
+      return this.randomResultSymbol();
+    }
+
+    try {
+      const selection = await this.winStrategyService.selectServerResult(
+        manager,
+        roundId,
+        controls.winStrategy,
+      );
+
+      if (selection.picked) {
+        this.logger.log(
+          `Round ${roundId} drawn by strategy ${controls.winStrategy}: ${selection.result} (win potential ${selection.picked.winPotential})`,
+        );
+      }
+
+      return selection.result;
+    } catch (error) {
+      this.logger.warn(
+        `Win strategy ${controls.winStrategy} failed for round ${roundId} — using a random draw: ${(error as Error).message}`,
+      );
+      return this.randomResultSymbol();
+    }
+  }
+
+  private randomResultSymbol(): string {
+    const index = randomInt(VALID_RESULT_VALUES_ARRAY.length);
     return VALID_RESULT_VALUES_ARRAY[index];
   }
 
@@ -696,9 +1464,23 @@ export class LottoService {
         ? Math.max(0, query.offset)
         : 0;
 
-    const where: { round?: { category: Category } } | undefined = query.category
-      ? { round: { category: query.category } }
-      : undefined;
+    // PUBLICATION IS DRIVEN BY SERVER TIME, NOT BY THE ENGINE TICK.
+    //
+    // A result prepared at the cutoff (status=GENERATED) becomes official the
+    // instant server time crosses its round's drawAt. Selecting it here — with
+    // the drawAt gate — means the value is readable at exactly 00:00 even if
+    // the engine tick that flips/separates it runs up to one interval later.
+    // Admin pre-locks for rounds whose drawAt is still in the future stay
+    // hidden, because they fail the same gate.
+    const publishedFrom = new Date();
+
+    const where: FindOptionsWhere<LottoResult> = {
+      status: In([ResultStatus.FINALIZED, ResultStatus.GENERATED]),
+      round: {
+        drawAt: LessThanOrEqual(publishedFrom),
+        ...(query.category ? { category: query.category } : {}),
+      },
+    };
 
     const [results, total] = await this.resultRepo.findAndCount({
       relations: {
@@ -706,7 +1488,11 @@ export class LottoService {
       },
       where,
       order: {
-        generatedAt: 'DESC',
+        // Newest PERIOD first — never insert order, so a late-created row for
+        // an older round can never be shown as the latest result.
+        round: {
+          drawAt: 'DESC',
+        },
         id: 'DESC',
       },
       take: safeLimit,
@@ -728,6 +1514,8 @@ export class LottoService {
         generatedAt: result.generatedAt?.toISOString() ?? null,
         finalizedAt: result.finalizedAt?.toISOString() ?? null,
         drawAt: result.round?.drawAt?.toISOString() ?? null,
+        // Earliest instant this value is public (= the round's draw time).
+        revealAt: result.round?.drawAt?.toISOString() ?? null,
       })),
     };
   }
@@ -744,9 +1532,20 @@ export class LottoService {
       throw new NotFoundException('ROUND_NOT_FOUND');
     }
 
-    const roundResult =
-      round.result ??
-      (await this.resultRepo.findOne({ where: { roundId: round.id } }));
+    // Same server-time publication gate as getRecentResults: a result prepared
+    // at the cutoff is readable from drawAt onwards, and a not-yet-drawn
+    // admin pre-lock stays hidden.
+    const isDrawn = round.drawAt.getTime() <= Date.now();
+
+    const roundResult = isDrawn
+      ? (round.result ??
+        (await this.resultRepo.findOne({
+          where: {
+            roundId: round.id,
+            status: In([ResultStatus.FINALIZED, ResultStatus.GENERATED]),
+          },
+        })))
+      : null;
 
     if (!roundResult) {
       throw new NotFoundException('ROUND_RESULT_NOT_FOUND');
@@ -764,6 +1563,7 @@ export class LottoService {
         generatedAt: roundResult.generatedAt?.toISOString() ?? null,
         finalizedAt: roundResult.finalizedAt?.toISOString() ?? null,
         drawAt: round.drawAt?.toISOString() ?? null,
+        revealAt: round.drawAt?.toISOString() ?? null,
       },
     };
   }
@@ -1708,19 +2508,23 @@ export class LottoService {
       ? manager.getRepository(AdminSetting)
       : this.adminSettingRepo;
 
-    const [pausedSetting, resultModeSetting] = await Promise.all([
-      settingRepo.findOne({ where: { key: LOTTO_PAUSED_SETTING_KEY } }),
-      settingRepo.findOne({ where: { key: LOTTO_RESULT_MODE_SETTING_KEY } }),
-    ]);
+    const [pausedSetting, resultModeSetting, winStrategySetting] =
+      await Promise.all([
+        settingRepo.findOne({ where: { key: LOTTO_PAUSED_SETTING_KEY } }),
+        settingRepo.findOne({ where: { key: LOTTO_RESULT_MODE_SETTING_KEY } }),
+        settingRepo.findOne({ where: { key: LOTTO_WIN_STRATEGY_SETTING_KEY } }),
+      ]);
 
     const paused = this.parseBooleanSetting(pausedSetting?.value ?? null);
     const resultMode = this.normalizeResultModeSetting(
       resultModeSetting?.value ?? null,
     );
+    const winStrategy = normalizeWinStrategy(winStrategySetting?.value ?? null);
 
     return {
       paused,
       resultMode,
+      winStrategy,
     };
   }
 
@@ -2066,6 +2870,10 @@ export class LottoService {
           reservedExposure?: string | number;
         }>();
 
+      const lockedResult = currentRound.resultId
+        ? null
+        : await this.findLockedAdminResult(currentRound.id);
+
       categoryCards.push({
         category,
         round: {
@@ -2083,6 +2891,9 @@ export class LottoService {
           resultSource: currentRound.result?.source ?? null,
           resultGeneratedAt:
             currentRound.resultGeneratedAt?.toISOString() ?? null,
+          lockedResult: lockedResult?.result ?? null,
+          lockedResultSource: lockedResult ? 'ADMIN' : null,
+          lockedAt: lockedResult?.generatedAt?.toISOString() ?? null,
           settledAt: currentRound.settledAt?.toISOString() ?? null,
         },
         tickets: Number(roundTotals?.ticketCount ?? 0),
@@ -2117,11 +2928,14 @@ export class LottoService {
     const totalTickets = Number(lifetimeTotals?.tickets ?? 0);
     const totalVolume = this.to2Dp(this.parseAmount(lifetimeTotals?.volume));
 
-    const recentResults = (await this.resultRepo.find({
-      relations: { round: true },
-      order: { generatedAt: 'DESC', id: 'DESC' },
-      take: 10,
-    })).map((result) => this.toResultAdminView(result));
+    const recentResults = (
+      await this.resultRepo.find({
+        where: { status: ResultStatus.FINALIZED },
+        relations: { round: true },
+        order: { generatedAt: 'DESC', id: 'DESC' },
+        take: 10,
+      })
+    ).map((result) => this.toResultAdminView(result));
 
     return {
       controls,
@@ -2360,6 +3174,7 @@ export class LottoService {
       game: {
         paused: controls.paused,
         resultMode: controls.resultMode,
+        winStrategy: controls.winStrategy,
       },
       categories: ALL_LOTTO_CATEGORIES.map((category) => ({
         category,
@@ -2387,6 +3202,7 @@ export class LottoService {
         },
       ],
       resultModes: Array.from(SUPPORTED_LOTTO_RESULT_MODES),
+      winStrategies: [...WIN_STRATEGY_VALUES],
       liquidity: {
         poolBalance: this.to2Dp(poolBalance),
         reservedLiquidity: this.to2Dp(reservedLiquidity),
@@ -2454,6 +3270,47 @@ export class LottoService {
     });
 
     return { resultMode: normalized };
+  }
+
+  /**
+   * Sets the win strategy applied to SERVER-RANDOM draws (audited).
+   *
+   * RANDOM → uniform random draw (no steering, default).
+   * HIGH   → the symbol with the highest win potential wins.
+   * MEDIUM → the symbol whose win potential is closest to the min/max mid-point.
+   * LOW    → the symbol with the lowest win potential wins.
+   */
+  async setWinStrategy(
+    winStrategy: string,
+    context: AdminActionContext,
+  ): Promise<{ winStrategy: WinStrategy }> {
+    const normalized = String(winStrategy ?? '').trim().toUpperCase();
+
+    if (!isWinStrategy(normalized)) {
+      throw new BadRequestException('INVALID_WIN_STRATEGY');
+    }
+
+    const previous = await this.getSettingValue(LOTTO_WIN_STRATEGY_SETTING_KEY);
+
+    await this.upsertSetting(
+      LOTTO_WIN_STRATEGY_SETTING_KEY,
+      normalized,
+      'string',
+    );
+
+    await this.writeAuditLog({
+      adminId: context.adminId,
+      action: 'SETTING_CHANGE',
+      targetType: 'lotto_settings',
+      targetId: 'winStrategy',
+      oldValue: { winStrategy: normalizeWinStrategy(previous ?? null) },
+      newValue: { winStrategy: normalized },
+      metadata: { setting: LOTTO_WIN_STRATEGY_SETTING_KEY, winStrategy: normalized },
+      ipAddress: context.ipAddress,
+      userAgent: context.userAgent,
+    });
+
+    return { winStrategy: normalized };
   }
 
   async adjustLiquidity(
@@ -2530,6 +3387,12 @@ export class LottoService {
       .where('ticket.roundId = :roundId', { roundId: round.id })
       .getRawOne<{ reservedExposure?: string | number }>();
 
+    // An admin result locked in advance (source=ADMIN, not finalized yet) must
+    // be visible to the operator so they can verify what will be drawn.
+    const lockedResult = round.resultId
+      ? null
+      : await this.findLockedAdminResult(round.id);
+
     return {
       id: round.id,
       roundNumber: round.roundNumber,
@@ -2541,6 +3404,9 @@ export class LottoService {
       result: this.normalizeResultValue(round.result?.result),
       resultSource: round.result?.source ?? null,
       resultGeneratedAt: round.resultGeneratedAt?.toISOString() ?? null,
+      lockedResult: lockedResult?.result ?? null,
+      lockedResultSource: lockedResult ? 'ADMIN' : null,
+      lockedAt: lockedResult?.generatedAt?.toISOString() ?? null,
       settledAt: round.settledAt?.toISOString() ?? null,
       refundedAt: round.refundedAt?.toISOString() ?? null,
       failedAt: round.failedAt?.toISOString() ?? null,
@@ -2630,6 +3496,8 @@ export class LottoService {
       category: result.round?.category ?? null,
       result: this.normalizeResultValue(result.result),
       resultSource: result.source,
+      // GENERATED = admin result locked in advance, not yet applied.
+      resultStatus: result.status,
       adminId: result.adminId ?? null,
       generatedAt: result.generatedAt?.toISOString() ?? null,
       finalizedAt: result.finalizedAt?.toISOString() ?? null,

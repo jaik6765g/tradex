@@ -41,13 +41,13 @@ export default function TdxWalletCard({
     );
 
   return (
-    <div className="rounded-[20px] border border-[#E7E9EE] bg-white p-[18px]">
+    <div className="rounded-[20px] border border-[#292B33] bg-[#15161C] p-[18px]">
       <div className="flex justify-between items-center mb-[14px]">
-        <h2 className="text-[19px] font-black text-[#111827]">
+        <h2 className="text-[19px] font-black text-[#F5F5F7]">
           TDX Wallet
         </h2>
 
-        <button className="text-[#F5B800] text-[15px] font-extrabold">
+        <button className="text-[#FF7A18] text-[15px] font-extrabold">
           View Details ›
         </button>
       </div>
@@ -65,7 +65,7 @@ export default function TdxWalletCard({
           title="Locked"
           value={`${locked} TDX`}
           icon={<LockKeyhole size={25} />}
-          iconColor="#F5B800"
+          iconColor="#FF7A18"
           loading={loading}
         />
 
@@ -73,13 +73,13 @@ export default function TdxWalletCard({
           title="Pending"
           value={`${pending} TDX`}
           icon={<Timer size={25} />}
-          iconColor="#3B82F6"
+          iconColor="#C99752"
           loading={loading}
         />
       </div>
 
       {error ? (
-        <div className="mt-3 text-xs font-semibold text-[#B42318]">
+        <div className="mt-3 text-xs font-semibold text-[#F87171]">
           {error}
         </div>
       ) : null}
@@ -101,13 +101,13 @@ function WalletItem({
   loading?: boolean;
 }) {
   return (
-    <div className="flex-1 min-h-[92px] rounded-[14px] border border-[#E7E9EE] p-[13px] flex justify-between">
+    <div className="flex-1 min-h-[92px] rounded-[14px] border border-[#292B33] p-[13px] flex justify-between">
       <div>
-        <div className="text-sm text-[#667085]">
+        <div className="text-sm text-[#A1A4AE]">
           {title}
         </div>
 
-        <div className="mt-2 text-sm font-extrabold text-[#111827]">
+        <div className="mt-2 text-sm font-extrabold text-[#F5F5F7]">
           {loading ? (
             <Loader2
               size={14}

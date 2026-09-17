@@ -8,27 +8,27 @@
 
 .lotto-premium {
   color-scheme: dark;
-  --lotto-bg: #070a18;
-  --lotto-surface: #0e1430;
-  --lotto-surface-2: #131b3b;
-  --lotto-border: rgba(148, 163, 199, 0.14);
-  --lotto-border-strong: rgba(148, 163, 199, 0.3);
-  --lotto-gold: #f5b800;
-  --lotto-gold-bright: #ffd94d;
-  --lotto-gold-soft: rgba(245, 184, 0, 0.13);
-  --lotto-text: #eef2ff;
-  --lotto-text-soft: #a6b1d4;
-  --lotto-text-mut: #5f6c9e;
+  --lotto-bg: #0B0C10;
+  --lotto-surface: #15161C;
+  --lotto-surface-2: #1B1917;
+  --lotto-border: rgba(255, 255, 255, 0.07);
+  --lotto-border-strong: rgba(255, 255, 255, 0.14);
+  --lotto-gold: #FF7A18;
+  --lotto-gold-bright: #FF8F3D;
+  --lotto-gold-soft: rgba(255, 138, 45, 0.12);
+  --lotto-text: #F5F5F7;
+  --lotto-text-soft: #A1A4AE;
+  --lotto-text-mut: #70737E;
   --lotto-green: #34d399;
   --lotto-red: #fb7185;
-  --lotto-yellow: #fbbf24;
-  --lotto-cyan: #22d3ee;
+  --lotto-yellow: #FF7A18;
+  --lotto-cyan: #C99752;
   --lotto-success: #2fe08e;
   --lotto-error: #ff5d73;
-  --lotto-warn: #ffcf4d;
-  --lotto-info: #7aa2ff;
+  --lotto-warn: #F59E0B;
+  --lotto-info: #C99752;
   --lotto-radius: 18px;
-  --lotto-shadow: 0 18px 44px -18px rgba(2, 6, 23, 0.9);
+  --lotto-shadow: 0 18px 44px -18px rgba(0, 0, 0, 0.9);
   background: var(--lotto-bg);
   color: var(--lotto-text);
 }
@@ -40,6 +40,74 @@
 }
 
 /* =========================================================
+   TPPLAY-STYLE BOTTOM BUY CARD (single shared LottoBuyCard)
+   overlay (dimmed game behind) + bottom sheet + slide-up.
+   ========================================================= */
+.lotto-buy-card {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.lotto-buy-card__overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(2px);
+  cursor: pointer;
+}
+
+.lotto-buy-card__sheet {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid #292B33;
+  border-bottom: 0;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  background: #111217;
+  box-shadow: 0 -18px 60px rgba(0, 0, 0, 0.65);
+}
+
+@media (min-width: 640px) {
+  .lotto-buy-card__sheet {
+    max-width: 28rem;
+  }
+}
+
+.lotto-buy-card__sheet--enter {
+  animation: lotto-buy-card-slide-up 0.28s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+.lotto-buy-card__grabber {
+  width: 44px;
+  height: 4px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.22);
+  margin: 8px auto 0;
+}
+
+@keyframes lotto-buy-card-slide-up {
+  from {
+    opacity: 0.4;
+    transform: translateY(48px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lotto-buy-card__sheet--enter {
+    animation: none;
+  }
+}
+
+/* =========================================================
    AMBIENT BACKGROUND GLOWS
    ========================================================= */
 .lotto-glow-total {
@@ -48,7 +116,7 @@
   inset: 0;
   overflow: hidden;
   background:
-    radial-gradient(58% 46% at 50% 0%, rgba(99, 102, 241, 0.2), transparent 70%),
+    radial-gradient(58% 46% at 50% 0%, rgba(201, 151, 82, 0.2), transparent 70%),
     radial-gradient(38% 34% at 88% 8%, rgba(245, 184, 0, 0.06), transparent 72%);
 }
 
@@ -77,7 +145,7 @@
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  background: radial-gradient(120% 64% at 50% -10%, rgba(99, 102, 241, 0.09), transparent 60%);
+  background: radial-gradient(120% 64% at 50% -10%, rgba(201, 151, 82, 0.09), transparent 60%);
 }
 
 .lotto-card > * {
@@ -104,7 +172,7 @@
    ========================================================= */
 .lotto-hero {
   border-radius: 22px;
-  border: 1px solid rgba(148, 163, 199, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   overflow: hidden;
   position: relative;
   box-shadow: var(--lotto-shadow);
@@ -152,7 +220,7 @@
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(12, 18, 41, 0.55);
-  color: #e8ecff;
+  color: #E4E5E8;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   cursor: pointer;
@@ -170,7 +238,7 @@
   font-weight: 900;
   letter-spacing: 0.02em;
   line-height: 1;
-  background: linear-gradient(105deg, #ffffff 10%, #ffd94d 48%, #f5b800 78%);
+  background: linear-gradient(105deg, #ffffff 10%, #FF8F3D 48%, #FF7A18 78%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -217,7 +285,7 @@
   min-height: 40px;
   padding: 6px 12px 6px 8px;
   border-radius: 14px;
-  border: 1px solid rgba(148, 163, 199, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.22);
   background: linear-gradient(135deg, rgba(19, 27, 59, 0.85), rgba(12, 18, 41, 0.85));
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
@@ -230,7 +298,7 @@
   width: 26px;
   height: 26px;
   border-radius: 9px;
-  background: linear-gradient(135deg, var(--lotto-gold), #c98f00);
+  background: linear-gradient(135deg, var(--lotto-gold), #B35A0E);
   color: #181205;
   font-size: 13px;
   font-weight: 900;
@@ -256,7 +324,7 @@
 
 .lotto-skeleton {
   border-radius: 8px;
-  background: linear-gradient(90deg, rgba(148, 163, 199, 0.12), rgba(148, 163, 199, 0.26), rgba(148, 163, 199, 0.12));
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0.12));
   background-size: 200% 100%;
   animation: lotto-shimmer 1.4s linear infinite;
 }
@@ -310,8 +378,8 @@
 }
 
 .lotto-badge--neutral {
-  border-color: rgba(148, 163, 199, 0.26);
-  background: rgba(148, 163, 199, 0.1);
+  border-color: rgba(255, 255, 255, 0.26);
+  background: rgba(255, 255, 255, 0.1);
   color: var(--lotto-text-soft);
 }
 
@@ -335,8 +403,8 @@
   position: absolute;
   inset: 6px;
   border-radius: 999px;
-  background: #0d1431;
-  border: 1px solid rgba(148, 163, 199, 0.16);
+  background: #0D0E13;
+  border: 1px solid rgba(255, 255, 255, 0.16);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -424,14 +492,14 @@
 .lotto-progress {
   height: 6px;
   border-radius: 999px;
-  background: rgba(148, 163, 199, 0.14);
+  background: rgba(255, 255, 255, 0.14);
   overflow: hidden;
 }
 
 .lotto-progress-fill {
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, #f5b800, #ffd94d);
+  background: linear-gradient(90deg, #FF7A18, #FF8F3D);
   box-shadow: 0 0 12px rgba(245, 184, 0, 0.55);
   transition: width 0.7s ease;
 }
@@ -452,7 +520,7 @@
   border-radius: 14px;
   border: 1.5px solid var(--lotto-border-strong);
   background: rgba(12, 18, 41, 0.72);
-  color: #e9edff;
+  color: #E4E5E8;
   font-size: 17px;
   font-weight: 900;
   font-variant-numeric: tabular-nums;
@@ -465,7 +533,7 @@
 .lotto-num:hover:not(:disabled):not(.lotto-num--selected) {
   background: rgba(23, 31, 66, 0.95);
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px -10px rgba(2, 6, 23, 0.9);
+  box-shadow: 0 8px 20px -10px rgba(0, 0, 0, 0.9);
 }
 
 .lotto-num:active:not(:disabled) {
@@ -529,7 +597,7 @@
   font-size: 11px;
   font-weight: 900;
   box-shadow: 0 3px 10px rgba(47, 224, 142, 0.4);
-  border: 1.5px solid #0d1431;
+  border: 1.5px solid #0D0E13;
 }
 /* =========================================================
    DICE QUICK PICK
@@ -562,7 +630,7 @@
 }
 
 .lotto-dice-btn--some {
-  border-color: rgba(148, 163, 199, 0.45);
+  border-color: rgba(255, 255, 255, 0.45);
   background: rgba(23, 31, 66, 0.8);
 }
 
@@ -579,7 +647,7 @@
   padding: 5px;
   border-radius: 10px;
   background: rgba(7, 10, 24, 0.6);
-  border: 1px solid rgba(148, 163, 199, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   width: 40px;
   height: 40px;
   flex-shrink: 0;
@@ -679,8 +747,8 @@
   width: 18px;
   height: 18px;
   border-radius: 999px;
-  background: linear-gradient(135deg, #ffd94d, #f5b800);
-  border: 2px solid #0d1431;
+  background: linear-gradient(135deg, #FF8F3D, #FF7A18);
+  border: 2px solid #0D0E13;
   box-shadow: 0 2px 10px rgba(245, 184, 0, 0.5);
   cursor: grab;
   transition: transform 0.15s ease;
@@ -691,8 +759,8 @@
   width: 18px;
   height: 18px;
   border-radius: 999px;
-  background: linear-gradient(135deg, #ffd94d, #f5b800);
-  border: 2px solid #0d1431;
+  background: linear-gradient(135deg, #FF8F3D, #FF7A18);
+  border: 2px solid #0D0E13;
   box-shadow: 0 2px 10px rgba(245, 184, 0, 0.5);
   cursor: grab;
 }
@@ -780,7 +848,7 @@
 .lotto-alert--info {
   border-color: rgba(122, 162, 255, 0.4);
   background: rgba(122, 162, 255, 0.1);
-  color: #c4d6ff;
+  color: #A1A4AE;
 }
 /* =========================================================
    TICKET RECEIPT
@@ -837,7 +905,7 @@
   gap: 10px;
   padding: 8px 12px;
   border-radius: 12px;
-  border: 1px solid rgba(148, 163, 199, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   background: rgba(7, 10, 24, 0.55);
 }
 
@@ -901,7 +969,7 @@
 
 .lotto-history-table td {
   padding: 10px;
-  border-bottom: 1px solid rgba(148, 163, 199, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   vertical-align: middle;
 }
 
@@ -978,26 +1046,26 @@
    ========================================================= */
 
 .lotto-premium {
-  color-scheme: light;
-  --lotto-bg: #f8fafc;
-  --lotto-surface: #ffffff;
-  --lotto-surface-2: #f1f5f9;
-  --lotto-border: rgba(148, 163, 199, 0.28);
-  --lotto-border-strong: rgba(148, 163, 199, 0.45);
-  --lotto-gold: #f59e0b;
-  --lotto-gold-bright: #b45309;
+  color-scheme: dark;
+  --lotto-bg: #111217;
+  --lotto-surface: #15161C;
+  --lotto-surface-2: #1B1917;
+  --lotto-border: rgba(255, 255, 255, 0.28);
+  --lotto-border-strong: rgba(255, 255, 255, 0.45);
+  --lotto-gold: #FF8F3D;
+  --lotto-gold-bright: #FF8F3D;
   --lotto-gold-soft: rgba(245, 158, 11, 0.12);
-  --lotto-text: #0f172a;
-  --lotto-text-soft: #475467;
-  --lotto-text-mut: #98a2b3;
-  --lotto-green: #067647;
-  --lotto-red: #b42318;
-  --lotto-yellow: #b54708;
-  --lotto-cyan: #0e7490;
-  --lotto-success: #067647;
-  --lotto-error: #b42318;
-  --lotto-warn: #b54708;
-  --lotto-info: #3538cd;
+  --lotto-text: #f5f5f7;
+  --lotto-text-soft: #70737E;
+  --lotto-text-mut: #A1A4AE;
+  --lotto-green: #4ADE80;
+  --lotto-red: #F87171;
+  --lotto-yellow: #FF8F3D;
+  --lotto-cyan: #C99752;
+  --lotto-success: #4ADE80;
+  --lotto-error: #F87171;
+  --lotto-warn: #FF8F3D;
+  --lotto-info: #C99752;
   --lotto-shadow: 0 10px 30px -12px rgba(16, 24, 40, 0.18);
   background: var(--lotto-bg);
   color: var(--lotto-text);
@@ -1016,8 +1084,8 @@
 
 /* Cards */
 .lotto-card {
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
+  border: 1px solid #292B33;
+  background: #15161C;
   box-shadow: 0 8px 24px -12px rgba(16, 24, 40, 0.14);
 }
 
@@ -1031,8 +1099,8 @@
 
 /* Hero (legacy header styles) — light */
 .lotto-hero {
-  border-color: #e5e7eb;
-  background-color: #ffffff;
+  border-color: #292B33;
+  background-color: #15161C;
   box-shadow: 0 8px 24px -12px rgba(16, 24, 40, 0.14);
 }
 
@@ -1041,9 +1109,9 @@
 }
 
 .lotto-icon-btn {
-  border-color: #e5e7eb;
-  background: #ffffff;
-  color: #475467;
+  border-color: #292B33;
+  background: #15161C;
+  color: #70737E;
 }
 
 .lotto-icon-btn:hover {
@@ -1053,7 +1121,7 @@
 }
 
 .lotto-hero-title {
-  background: linear-gradient(105deg, #1e1b4b 10%, #7c3aed 48%, #f59e0b 78%);
+  background: linear-gradient(105deg, #f5f5f7 10%, #C99752 48%, #FF8F3D 78%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -1072,8 +1140,8 @@
 }
 
 .lotto-chip--glass {
-  border-color: #e5e7eb;
-  background: #f8fafc;
+  border-color: #292B33;
+  background: #111217;
   color: var(--lotto-text-soft);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
@@ -1081,63 +1149,63 @@
 
 /* Wallet pill */
 .lotto-wallet-pill {
-  border-color: #e5e7eb;
-  background: #f8fafc;
+  border-color: #292B33;
+  background: #111217;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
 
 .lotto-wallet-value {
-  color: #0f172a;
+  color: #f5f5f7;
 }
 
 /* Status badges — light pastels */
 .lotto-badge--open {
   border-color: rgba(6, 118, 71, 0.3);
-  background: #ecfdf3;
-  color: #067647;
+  background: #10251A;
+  color: #4ADE80;
 }
 
 .lotto-badge--drawing {
   border-color: rgba(53, 56, 205, 0.3);
-  background: #eef4ff;
-  color: #3538cd;
+  background: #211810;
+  color: #C99752;
 }
 
 .lotto-badge--amber {
   border-color: rgba(181, 71, 8, 0.3);
-  background: #fffaeb;
-  color: #b54708;
+  background: #2A190D;
+  color: #FF8F3D;
 }
 
 .lotto-badge--danger {
   border-color: rgba(180, 35, 24, 0.3);
-  background: #fef3f2;
-  color: #b42318;
+  background: #281313;
+  color: #F87171;
 }
 
 .lotto-badge--neutral {
-  border-color: rgba(148, 163, 199, 0.35);
-  background: #f2f4f7;
-  color: #475467;
+  border-color: rgba(255, 255, 255, 0.35);
+  background: #1B1917;
+  color: #70737E;
 }
 
 .lotto-badge--gold {
   border-color: rgba(245, 158, 11, 0.4);
-  background: #fffaeb;
-  color: #b54708;
+  background: #2A190D;
+  color: #FF8F3D;
 }
 
 /* Pills (duration tabs) */
 .lotto-pill {
   border-color: var(--lotto-border-strong);
-  background: #ffffff;
+  background: #15161C;
   color: var(--lotto-text-soft);
 }
 
 .lotto-pill:hover:not(:disabled) {
   border-color: rgba(245, 158, 11, 0.5);
-  color: #0f172a;
+  color: #f5f5f7;
 }
 
 .lotto-pill--active {
@@ -1158,12 +1226,12 @@
 /* Number grid */
 .lotto-num {
   border-color: var(--lotto-border-strong);
-  background: #ffffff;
-  color: #1e1b4b;
+  background: #15161C;
+  color: #f5f5f7;
 }
 
 .lotto-num:hover:not(:disabled):not(.lotto-num--selected) {
-  background: #f1f5f9;
+  background: #1B1917;
   transform: translateY(-2px);
   box-shadow: 0 8px 20px -10px rgba(16, 24, 40, 0.25);
 }
@@ -1176,13 +1244,13 @@
 .lotto-num--selected {
   border-color: var(--lotto-gold) !important;
   background: linear-gradient(150deg, rgba(245, 158, 11, 0.3), rgba(245, 158, 11, 0.12));
-  color: #b45309 !important;
+  color: #FF8F3D !important;
 }
 
 /* Step buttons + amount input */
 .lotto-step-btn {
   border-color: var(--lotto-border-strong);
-  background: #ffffff;
+  background: #15161C;
   color: var(--lotto-text-soft);
 }
 
@@ -1195,8 +1263,8 @@
 
 .lotto-amount-input {
   border-color: var(--lotto-border-strong);
-  background: #ffffff;
-  color: #0f172a;
+  background: #15161C;
+  color: #f5f5f7;
 }
 
 .lotto-range::-webkit-slider-thumb {
@@ -1210,13 +1278,13 @@
 /* Preset amounts */
 .lotto-preset {
   border-color: var(--lotto-border-strong);
-  background: #ffffff;
+  background: #15161C;
   color: var(--lotto-text-soft);
 }
 
 .lotto-preset:hover:not(:disabled) {
   border-color: rgba(245, 158, 11, 0.45);
-  color: #0f172a;
+  color: #f5f5f7;
 }
 
 .lotto-preset--active {
@@ -1233,26 +1301,26 @@
 /* Alerts — light pastels */
 .lotto-alert--error {
   border-color: rgba(180, 35, 24, 0.35);
-  background: #fef3f2;
-  color: #b42318;
+  background: #281313;
+  color: #F87171;
 }
 
 .lotto-alert--success {
   border-color: rgba(6, 118, 71, 0.35);
-  background: #ecfdf3;
-  color: #067647;
+  background: #10251A;
+  color: #4ADE80;
 }
 
 .lotto-alert--warn {
   border-color: rgba(181, 71, 8, 0.35);
-  background: #fffaeb;
-  color: #b54708;
+  background: #2A190D;
+  color: #FF8F3D;
 }
 
 .lotto-alert--info {
   border-color: rgba(53, 56, 205, 0.35);
-  background: #eef4ff;
-  color: #3538cd;
+  background: #211810;
+  color: #C99752;
 }
 
 /* Ticket receipt */
@@ -1262,12 +1330,12 @@
 }
 
 .lotto-receipt-id {
-  color: #0f172a;
+  color: #f5f5f7;
 }
 
 .lotto-receipt-num {
   border-color: var(--lotto-border-strong);
-  background: #ffffff;
+  background: #15161C;
 }
 
 .lotto-receipt-stamp {
@@ -1276,14 +1344,14 @@
 
 /* Live period strip */
 .lotto-live-strip {
-  border-color: #e5e7eb;
-  background: #f8fafc;
+  border-color: #292B33;
+  background: #111217;
 }
 
 /* Result dots + history number chips */
 .lotto-result-dot {
   border-color: var(--lotto-border-strong);
-  background: #ffffff;
+  background: #15161C;
 }
 
 .lotto-result-dot--green { color: var(--lotto-green); }
@@ -1296,19 +1364,308 @@
 }
 
 .lotto-history-table tbody tr:hover {
-  background: #f8fafc;
+  background: #111217;
 }
 
 .lotto-history-num {
   border-color: var(--lotto-border-strong);
-  background: #ffffff;
+  background: #15161C;
 }
 
 /* Dice face (legacy group picker, kept light) */
 .lotto-dice-btn {
-  background: #ffffff;
+  background: #15161C;
 }
 
 .lotto-dice-cell {
   background: transparent;
+}
+
+/* ------------------------------------------------------------------ */
+/* Final-countdown pulse on the timer                                 */
+/* ------------------------------------------------------------------ */
+@keyframes countdown-pulse-kf {
+  0%   { transform: scale(1);    filter: brightness(1); }
+  40%  { transform: scale(1.18); filter: brightness(1.5); }
+  100% { transform: scale(1);    filter: brightness(1); }
+}
+.countdown-pulse {
+  animation: countdown-pulse-kf 1s ease-in-out;
+}
+
+/* ------------------------------------------------------------------ */
+/* Full-screen countdown / result overlay                             */
+/* ------------------------------------------------------------------ */
+.countdown-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none; /* never blocks clicks after it auto-dismisses */
+}
+/* Embedded mode — the countdown runs INSIDE the ball (Pick Numbers) card only,
+   never over the rest of the screen. Mirrors WinLossPopup's `embedded` prop.
+   The card is a size container (`container-type: inline-size` below), so every
+   countdown dimension is derived from the CARD width (cqw) instead of the
+   viewport: the clock fills the card identically on phone, tablet and desktop
+   (vw sizing used to make it tiny on wide screens). */
+.countdown-overlay--embedded {
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  overflow: hidden;
+  container-type: inline-size;
+}
+.countdown-overlay--embedded .countdown-overlay__backdrop {
+  border-radius: 16px;
+  /* Dim + desaturate the balls so the clock is the only thing in focus,
+     while the picked balls stay recognisable behind it. */
+  background:
+    radial-gradient(ellipse at center, rgba(13, 14, 24, 0.58) 0%, rgba(5, 5, 11, 0.92) 74%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(0, 0, 0, 0.16));
+  backdrop-filter: blur(3px) saturate(0.7);
+  -webkit-backdrop-filter: blur(3px) saturate(0.7);
+  animation: overlay-fade-in 0.22s ease both;
+}
+.countdown-overlay--embedded .countdown-overlay__center {
+  /* Capped, so the clock never becomes absurdly large on a wide desktop card.
+     The digits below are sized with cqw against THIS box. */
+  width: min(100%, 430px);
+  padding: 0 4%;
+  gap: 12px;
+  container-type: inline-size;
+}
+/* Notched flip-clock cells — shared look for the ball-card countdown clock.
+   The embedded variant below overrides the sizing (two big digits). */
+.countdown-overlay__clock {
+  --countdown-cell-mask: radial-gradient(circle 5px at 0 0, transparent 5px, #000 5.5px);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.5));
+  animation: overlay-scale-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.countdown-overlay__clock-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: clamp(38px, 11vw, 58px);
+  width: clamp(26px, 7.5vw, 40px);
+  border-radius: 8px;
+  background: #1A1A1A;
+  color: #F0C24B;
+  font-size: clamp(20px, 6vw, 32px);
+  font-weight: 900;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  -webkit-mask-image: var(--countdown-cell-mask);
+  mask-image: var(--countdown-cell-mask);
+}
+/* ------------------------------------------------------------------ */
+/* Embedded clock — sized from the CARD (cqw), not the viewport, so the */
+/* two-digit counter scales identically on every breakpoint. Declared    */
+/* after the base rules so it wins the cascade.                          */
+/* ------------------------------------------------------------------ */
+.countdown-overlay--embedded .countdown-overlay__clock {
+  --countdown-cell-mask: radial-gradient(circle 1.6cqw at 0 0, transparent 1.6cqw, #000 1.7cqw);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: center;
+  gap: 3cqw;
+  /* Two big digits fill the card without touching its edges; the px cap keeps
+     it sane on a very wide desktop card. */
+  width: min(86%, 340px);
+  filter: drop-shadow(0 10px 22px rgba(0, 0, 0, 0.55));
+  /* Gentle entrance (runs once) — the digits carry their own per-tick pop. */
+  animation: countdown-clock-in 0.3s ease-out both;
+}
+.countdown-overlay--embedded .countdown-overlay__clock-cell {
+  /* Height follows the card width too (aspect-ratio), so the flip-clock
+     proportion is identical on phone and desktop. */
+  height: auto;
+  width: 100%;
+  aspect-ratio: 0.8;
+  border-radius: 16%;
+  font-size: 32cqw;
+  background: linear-gradient(180deg, #262633 0%, #15151B 52%, #1E1E27 100%);
+  color: #F5C453;
+  text-shadow: 0 0 16px rgba(240, 194, 75, 0.32);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 4px 12px rgba(0, 0, 0, 0.45);
+  /* Only the digit that actually changes re-mounts (see SecondsCells), so this
+     pop runs per changed digit instead of the whole clock zooming per tick. */
+  animation: countdown-digit-pop 0.34s cubic-bezier(0.24, 1.4, 0.5, 1) both;
+}
+/* Last second (00 / result transition) — the clock burns orange and pulses. */
+.countdown-overlay--embedded .countdown-overlay__clock--final .countdown-overlay__clock-cell {
+  color: #FF7A45;
+  text-shadow: 0 0 20px rgba(255, 122, 69, 0.6);
+  animation: countdown-final-pulse 0.8s ease-in-out infinite;
+}
+/* Soft halo behind the clock so it reads as "lit up" over the dimmed balls. */
+.countdown-overlay--embedded .countdown-overlay__center::before {
+  content: "";
+  position: absolute;
+  inset: -22% -8%;
+  border-radius: 26px;
+  background: radial-gradient(ellipse at center, rgba(240, 194, 75, 0.2) 0%, rgba(240, 194, 75, 0) 68%);
+  filter: blur(10px);
+  animation: countdown-glow-pulse 1s ease-in-out infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+.countdown-overlay--embedded .countdown-overlay__label {
+  font-size: clamp(9px, 2.2vw, 12px);
+  letter-spacing: 0.14em;
+}
+/* Embedded result state — same card-relative (cqw) sizing as the clock, so the
+   picked numbers can never spill out of the ball card. The vw-based sizes below
+   would overflow/clip once the overlay lives inside the card instead of the
+   viewport. */
+.countdown-overlay--embedded .countdown-overlay__result {
+  gap: 2.2cqw;
+}
+.countdown-overlay--embedded .countdown-overlay__result-label,
+.countdown-overlay--embedded .countdown-overlay__result-status {
+  font-size: 2.7cqw;
+  letter-spacing: 0.12em;
+}
+.countdown-overlay--embedded .countdown-overlay__numbers {
+  max-width: 92%;
+  gap: 1.8cqw;
+}
+.countdown-overlay--embedded .countdown-overlay__num {
+  width: 11cqw;
+  height: 11cqw;
+  border-radius: 30%;
+  font-size: 5.2cqw;
+}
+.countdown-overlay__backdrop {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(15,15,30,0.55) 0%, rgba(8,8,16,0.82) 70%);
+  backdrop-filter: blur(2px);
+  animation: overlay-fade-in 0.25s ease both;
+}
+.countdown-overlay__center {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+}
+.countdown-overlay__pulse {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  animation: overlay-scale-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.countdown-overlay__second {
+  font-size: clamp(64px, 18vw, 160px);
+  font-weight: 900;
+  line-height: 1;
+  color: #FF8F3D;
+  text-shadow: 0 0 30px rgba(255,122,24,0.6), 0 0 60px rgba(255,122,24,0.3);
+  animation: countdown-pulse-kf 1s ease-in-out;
+}
+.countdown-overlay__label {
+  font-size: clamp(12px, 2.5vw, 18px);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #A1A4AE;
+}
+.countdown-overlay__result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  animation: overlay-scale-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.countdown-overlay__result-label {
+  font-size: clamp(12px, 2.5vw, 16px);
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #C99752;
+}
+.countdown-overlay__numbers {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+.countdown-overlay__num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: clamp(48px, 12vw, 84px);
+  height: clamp(48px, 12vw, 84px);
+  border-radius: 16px;
+  font-size: clamp(22px, 6vw, 40px);
+  font-weight: 900;
+  color: #fff;
+  background: linear-gradient(135deg, #FF7A18, #FF8F3D);
+  box-shadow: 0 0 24px rgba(255,122,24,0.55);
+  animation: overlay-num-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.countdown-overlay__num--empty {
+  background: #292B33;
+  color: #70737E;
+  box-shadow: none;
+}
+.countdown-overlay__result-status {
+  font-size: clamp(11px, 2.2vw, 14px);
+  font-weight: 600;
+  color: #A1A4AE;
+}
+
+@keyframes overlay-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes overlay-scale-in {
+  from { opacity: 0; transform: scale(0.7); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes overlay-num-in {
+  from { opacity: 0; transform: scale(0.4) rotate(-8deg); }
+  to   { opacity: 1; transform: scale(1) rotate(0); }
+}
+/* Embedded (ball card) clock effects */
+@keyframes countdown-clock-in {
+  from { opacity: 0; transform: scale(0.9); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes countdown-digit-pop {
+  0%   { opacity: 0;    transform: translateY(-14%) scale(0.86); filter: brightness(1.6); }
+  60%  { opacity: 1;    transform: translateY(0) scale(1.03);    filter: brightness(1.12); }
+  100% { opacity: 1;    transform: translateY(0) scale(1);       filter: brightness(1); }
+}
+@keyframes countdown-final-pulse {
+  0%, 100% { transform: scale(1);    filter: brightness(1.05); }
+  45%      { transform: scale(1.06); filter: brightness(1.5); }
+}
+@keyframes countdown-glow-pulse {
+  0%, 100% { opacity: 0.55; }
+  45%      { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .countdown-pulse,
+  .countdown-overlay__second,
+  .countdown-overlay__pulse,
+  .countdown-overlay__clock,
+  .countdown-overlay__clock-cell,
+  .countdown-overlay__center::before,
+  .countdown-overlay__result,
+  .countdown-overlay__num {
+    animation: none !important;
+  }
 }

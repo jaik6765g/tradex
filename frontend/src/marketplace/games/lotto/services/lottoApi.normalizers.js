@@ -294,6 +294,11 @@ export const normalizeResultItem = (item) => {
       pickFirstDefined(item.finalizedAt, item.settledAt, item.updatedAt),
     ),
     drawAt: normalizeIsoString(pickFirstDefined(item.drawAt, item.round?.drawAt, item.drawTime)),
+    // Earliest instant a pre-computed value may be shown (= the round's draw
+    // time). Falls back to drawAt for the normal results payload.
+    revealAt: normalizeIsoString(
+      pickFirstDefined(item.revealAt, item.drawAt, item.round?.drawAt, item.drawTime),
+    ),
   };
 };
 

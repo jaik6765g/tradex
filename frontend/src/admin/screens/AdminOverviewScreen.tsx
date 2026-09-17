@@ -19,12 +19,12 @@ interface OverviewData {
 }
 
 const STATUS_CONFIG: Record<FinancialPoolStatus, { label: string; className: string; icon: React.ReactNode }> = {
-  ACTIVE: { label: 'Active', className: 'bg-[#ECFDF3] text-[#027A48] border border-[#D1FADF]', icon: <CheckCircle size={14} /> },
-  LOW: { label: 'Low', className: 'bg-[#FFFBEB] text-[#B54708] border border-[#FEF0C7]', icon: <AlertCircle size={14} /> },
-  WARNING: { label: 'Warning', className: 'bg-[#FFFBEB] text-[#B54708] border border-[#FEF0C7]', icon: <AlertCircle size={14} /> },
-  EMPTY: { label: 'Empty', className: 'bg-[#F2F4F7] text-[#667085] border border-[#D0D5DD]', icon: <Activity size={14} /> },
-  PAUSED: { label: 'Paused', className: 'bg-[#FEF2F2] text-[#B42318] border border-[#FECACA]', icon: <AlertCircle size={14} /> },
-  ERROR: { label: 'Error', className: 'bg-[#FEF2F2] text-[#B42318] border border-[#FECACA]', icon: <AlertCircle size={14} /> },
+  ACTIVE: { label: 'Active', className: 'bg-[#10251A] text-[#6EE7B7] border border-[#123A24]', icon: <CheckCircle size={14} /> },
+  LOW: { label: 'Low', className: 'bg-[#2A190D] text-[#FF8F3D] border border-[#33220F]', icon: <AlertCircle size={14} /> },
+  WARNING: { label: 'Warning', className: 'bg-[#2A190D] text-[#FF8F3D] border border-[#33220F]', icon: <AlertCircle size={14} /> },
+  EMPTY: { label: 'Empty', className: 'bg-[#1B1917] text-[#A1A4AE] border border-[#34343E]', icon: <Activity size={14} /> },
+  PAUSED: { label: 'Paused', className: 'bg-[#281313] text-[#F87171] border border-[#4A2323]', icon: <AlertCircle size={14} /> },
+  ERROR: { label: 'Error', className: 'bg-[#281313] text-[#F87171] border border-[#4A2323]', icon: <AlertCircle size={14} /> },
 };
 type DiffValue = string | number | null | undefined;
 
@@ -45,10 +45,10 @@ function StatusBadge({ status }: { status: FinancialPoolStatus }) {
 
 function MetricRow({ label, value, icon, valueClassName }: { label: string; value: string; icon?: React.ReactNode; valueClassName?: string }) {
   return (
-    <div className="flex items-center justify-between py-2.5 border-b border-[#F2F4F7] last:border-0">
-      <span className="text-sm text-[#667085]">{label}</span>
+    <div className="flex items-center justify-between py-2.5 border-b border-[#1B1917] last:border-0">
+      <span className="text-sm text-[#A1A4AE]">{label}</span>
       <div className="flex items-center gap-2">
-        <span className={`font-semibold text-[#111827] ${valueClassName ?? ''}`}>{value}</span>
+        <span className={`font-semibold text-[#F5F5F7] ${valueClassName ?? ''}`}>{value}</span>
         {icon}
       </div>
     </div>
@@ -65,18 +65,18 @@ function DiffRow({ label, value }: { label: string; value: number | null }) {
       label={label}
       value={`${diffPrefix(value)}${formatTdx(value).replace('TDX', '').trim()} TDX`}
       valueClassName={diffColor(value)}
-      icon={value > 0 ? <TrendingUp size={16} className="text-[#027A48]" /> : value < 0 ? <TrendingDown size={16} className="text-[#B42318]" /> : <ArrowUpDown size={16} className="text-[#98A2B3]" />}
+      icon={value > 0 ? <TrendingUp size={16} className="text-[#6EE7B7]" /> : value < 0 ? <TrendingDown size={16} className="text-[#F87171]" /> : <ArrowUpDown size={16} className="text-[#70737E]" />}
     />
   );
 }
 
 function SectionError({ source, error }: { source: string; error?: string }) {
   return (
-    <div className="rounded-xl border border-[#FECACA] bg-[#FEF2F2] p-4 text-center">
-      <AlertCircle size={20} className="mx-auto text-[#B42318]" />
-      <p className="mt-1 text-xs font-medium text-[#B42318]">Source unavailable</p>
-      <p className="mt-0.5 text-[10px] text-[#98A2B3]">{source}</p>
-      {error && <p className="mt-1 text-[10px] text-[#B42318]">{error}</p>}
+    <div className="rounded-xl border border-[#4A2323] bg-[#281313] p-4 text-center">
+      <AlertCircle size={20} className="mx-auto text-[#F87171]" />
+      <p className="mt-1 text-xs font-medium text-[#F87171]">Source unavailable</p>
+      <p className="mt-0.5 text-[10px] text-[#70737E]">{source}</p>
+      {error && <p className="mt-1 text-[10px] text-[#F87171]">{error}</p>}
     </div>
   );
 }
@@ -91,7 +91,7 @@ function PoolCard({
   return (
     <Card className="p-5">
       <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">{icon}<h3 className="text-sm font-bold text-[#111827]">{title}</h3></div>
+        <div className="flex items-center gap-2">{icon}<h3 className="text-sm font-bold text-[#F5F5F7]">{title}</h3></div>
         <StatusBadge status={status} />
       </div>
       {!available ? <SectionError source={source} error={error} /> : (
@@ -140,7 +140,7 @@ function fmtPct(v: number | null | undefined): string {
 }
 
 function diffColor(v: number): string {
-  return v > 0 ? 'text-[#027A48]' : v < 0 ? 'text-[#B42318]' : 'text-[#667085]';
+  return v > 0 ? 'text-[#6EE7B7]' : v < 0 ? 'text-[#F87171]' : 'text-[#A1A4AE]';
 }
 
 function diffPrefix(v: number): string {
@@ -160,7 +160,7 @@ function vaultStatus(vault: { balance: string | null; available: boolean; error?
 }
 
 function actIcon(type: 'ADD' | 'REMOVE') {
-  return type === 'ADD' ? <Plus size={14} className="text-[#027A48]" /> : <Minus size={14} className="text-[#B42318]" />;
+  return type === 'ADD' ? <Plus size={14} className="text-[#6EE7B7]" /> : <Minus size={14} className="text-[#F87171]" />;
 }
 
 function actBadge(status: 'SUCCESS' | 'FAILED'): 'success' | 'error' {
@@ -169,40 +169,40 @@ function actBadge(status: 'SUCCESS' | 'FAILED'): 'success' | 'error' {
 function RecentActivityTable({ items }: { items: AdminFinancialOverviewResponse['recentLiquidityActivity'] }) {
   if (!items || items.length === 0) {
     return (
-      <div className="rounded-xl border border-[#E5E7EB] bg-white p-8 text-center">
-        <Activity size={24} className="mx-auto text-[#98A2B3]" />
-        <p className="mt-2 text-sm text-[#667085]">No recent liquidity activity</p>
-        <p className="text-xs text-[#98A2B3]">Admin ADD/REMOVE adjustments will appear here</p>
+      <div className="rounded-xl border border-[#292B33] bg-[#15161C] p-8 text-center">
+        <Activity size={24} className="mx-auto text-[#70737E]" />
+        <p className="mt-2 text-sm text-[#A1A4AE]">No recent liquidity activity</p>
+        <p className="text-xs text-[#70737E]">Admin ADD/REMOVE adjustments will appear here</p>
       </div>
     );
   }
   return (
-    <div className="overflow-x-auto rounded-xl border border-[#E5E7EB] bg-white">
-      <table className="min-w-full divide-y divide-[#E5E7EB]">
-        <thead className="bg-[#F9FAFB]">
+    <div className="overflow-x-auto rounded-xl border border-[#292B33] bg-[#15161C]">
+      <table className="min-w-full divide-y divide-[#292B33]">
+        <thead className="bg-[#15161C]">
           <tr>
-            <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#667085]">Date</th>
-            <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#667085]">Type</th>
-            <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#667085]">Amount</th>
-            <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#667085]">Source</th>
-            <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#667085]">Status</th>
-            <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#667085]">Reason</th>
+            <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#A1A4AE]">Date</th>
+            <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#A1A4AE]">Type</th>
+            <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#A1A4AE]">Amount</th>
+            <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#A1A4AE]">Source</th>
+            <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#A1A4AE]">Status</th>
+            <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#A1A4AE]">Reason</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-[#F2F4F7]">
+        <tbody className="divide-y divide-[#1B1917]">
           {items.map((item) => (
-            <tr key={item.id} className="hover:bg-[#F9FAFB]">
-              <td className="px-4 py-3 text-xs text-[#111827] font-mono">{fmtDateTime(item.date)}</td>
+            <tr key={item.id} className="hover:bg-[#15161C]">
+              <td className="px-4 py-3 text-xs text-[#F5F5F7] font-mono">{fmtDateTime(item.date)}</td>
               <td className="px-4 py-3">
                 <div className="flex items-center gap-1.5">
                   {actIcon(item.type)}
-                  <span className="text-xs font-semibold text-[#111827]">{item.type}</span>
+                  <span className="text-xs font-semibold text-[#F5F5F7]">{item.type}</span>
                 </div>
               </td>
-              <td className="px-4 py-3 text-xs font-semibold text-[#111827]">{formatTdx(item.amountTdx)}</td>
-              <td className="px-4 py-3 text-xs text-[#667085]">{item.source}</td>
+              <td className="px-4 py-3 text-xs font-semibold text-[#F5F5F7]">{formatTdx(item.amountTdx)}</td>
+              <td className="px-4 py-3 text-xs text-[#A1A4AE]">{item.source}</td>
               <td className="px-4 py-3"><Badge variant={actBadge(item.status)}>{item.status}</Badge></td>
-              <td className="px-4 py-3 text-xs text-[#667085] max-w-[200px] truncate">{item.reason || '—'}</td>
+              <td className="px-4 py-3 text-xs text-[#A1A4AE] max-w-[200px] truncate">{item.reason || '—'}</td>
             </tr>
           ))}
         </tbody>
@@ -306,13 +306,13 @@ export default function AdminOverviewScreen() {
       {/* HEADER */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-black text-[#111827]">TradeX Financial Overview</h1>
-          <p className="text-sm text-[#667085]">
+          <h1 className="text-2xl font-black text-[#F5F5F7]">TradeX Financial Overview</h1>
+          <p className="text-sm text-[#A1A4AE]">
             Complete TDX financial &amp; liquidity picture &middot; Last updated:{' '}
             {data?.financial?.fetchedAt ? new Date(data.financial.fetchedAt).toLocaleString() : 'N/A'}
           </p>
           {(data?.financialError || data?.dashboardError) && (
-            <p className="mt-1 text-xs text-[#B42318]">Partial data: {data?.financialError || data?.dashboardError}</p>
+            <p className="mt-1 text-xs text-[#F87171]">Partial data: {data?.financialError || data?.dashboardError}</p>
           )}
         </div>
         <Button variant="secondary" size="sm" loading={refreshing} disabled={refreshing} onClick={() => void fetchData({ withLoader: false })}>
@@ -322,110 +322,110 @@ export default function AdminOverviewScreen() {
 
       {/* PRIMARY METRICS */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="p-6 border border-[#D1FADF] bg-[#ECFDF3]/30">
+        <Card className="p-6 border border-[#123A24] bg-[#10251A]/30">
           <div className="flex items-center gap-2 mb-3">
-            <div className="w-10 h-10 rounded-full bg-[#D1FADF] flex items-center justify-center">
-              <Wallet size={20} className="text-[#027A48]" />
+            <div className="w-10 h-10 rounded-full bg-[#123A24] flex items-center justify-center">
+              <Wallet size={20} className="text-[#6EE7B7]" />
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-[#027A48]">All Users TDX</p>
-              <p className="text-[10px] text-[#667085]">Source: balances table (user balance aggregation)</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-[#6EE7B7]">All Users TDX</p>
+              <p className="text-[10px] text-[#A1A4AE]">Source: balances table (user balance aggregation)</p>
             </div>
           </div>
-          <p className="text-3xl font-black text-[#027A48]">{formatTdx(totals?.allUsersTdx)}</p>
+          <p className="text-3xl font-black text-[#6EE7B7]">{formatTdx(totals?.allUsersTdx)}</p>
           {usersTdx?.available && usersTdx.data ? (
             <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-              <div className="rounded-lg bg-white/70 p-2">
-                <p className="text-[10px] text-[#667085]">Available</p>
-                <p className="text-sm font-bold text-[#111827]">{formatTdx(usersTdx.data.availableTdx)}</p>
+              <div className="rounded-lg bg-[#15161C]/70 p-2">
+                <p className="text-[10px] text-[#A1A4AE]">Available</p>
+                <p className="text-sm font-bold text-[#F5F5F7]">{formatTdx(usersTdx.data.availableTdx)}</p>
               </div>
-              <div className="rounded-lg bg-white/70 p-2">
-                <p className="text-[10px] text-[#667085]">Locked</p>
-                <p className="text-sm font-bold text-[#111827]">{formatTdx(usersTdx.data.lockedTdx)}</p>
+              <div className="rounded-lg bg-[#15161C]/70 p-2">
+                <p className="text-[10px] text-[#A1A4AE]">Locked</p>
+                <p className="text-sm font-bold text-[#F5F5F7]">{formatTdx(usersTdx.data.lockedTdx)}</p>
               </div>
-              <div className="rounded-lg bg-white/70 p-2">
-                <p className="text-[10px] text-[#667085]">Accounts</p>
-                <p className="text-sm font-bold text-[#111827]">{formatCount(usersTdx.data.accountsCount)}</p>
+              <div className="rounded-lg bg-[#15161C]/70 p-2">
+                <p className="text-[10px] text-[#A1A4AE]">Accounts</p>
+                <p className="text-sm font-bold text-[#F5F5F7]">{formatCount(usersTdx.data.accountsCount)}</p>
               </div>
             </div>
           ) : (
-            <p className="mt-2 text-xs text-[#B42318]">{usersTdx?.error || 'User TDX data unavailable'}</p>
+            <p className="mt-2 text-xs text-[#F87171]">{usersTdx?.error || 'User TDX data unavailable'}</p>
           )}
         </Card>
 
-        <Card className="p-6 border border-[#D1FADF] bg-[#ECFDF3]/30">
+        <Card className="p-6 border border-[#123A24] bg-[#10251A]/30">
           <div className="flex items-center gap-2 mb-3">
-            <div className="w-10 h-10 rounded-full bg-[#D1FADF] flex items-center justify-center">
-              <Coins size={20} className="text-[#027A48]" />
+            <div className="w-10 h-10 rounded-full bg-[#123A24] flex items-center justify-center">
+              <Coins size={20} className="text-[#6EE7B7]" />
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-[#027A48]">Platform All Liquidity</p>
-              <p className="text-[10px] text-[#667085]">Source: balances + admin_settings + bot_wallets + admin_pool</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-[#6EE7B7]">Platform All Liquidity</p>
+              <p className="text-[10px] text-[#A1A4AE]">Source: balances + admin_settings + bot_wallets + admin_pool</p>
             </div>
           </div>
-          <p className="text-3xl font-black text-[#027A48]">{formatTdx(totals?.platformLiquidityTdx)}</p>
+          <p className="text-3xl font-black text-[#6EE7B7]">{formatTdx(totals?.platformLiquidityTdx)}</p>
           {totals?.platformLiquidityTdx !== null ? (
             <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-              <div className="rounded-lg bg-white/70 p-2">
-                <p className="text-[10px] text-[#667085]">Platform Owned</p>
-                <p className="text-sm font-bold text-[#111827]">{formatTdx(totals?.platformOwnedTdx)}</p>
+              <div className="rounded-lg bg-[#15161C]/70 p-2">
+                <p className="text-[10px] text-[#A1A4AE]">Platform Owned</p>
+                <p className="text-sm font-bold text-[#F5F5F7]">{formatTdx(totals?.platformOwnedTdx)}</p>
               </div>
-              <div className="rounded-lg bg-white/70 p-2">
-                <p className="text-[10px] text-[#667085]">Admin Added</p>
-                <p className="text-sm font-bold text-[#111827]">{formatTdx(adminLiquidity?.data?.addedTdx)}</p>
+              <div className="rounded-lg bg-[#15161C]/70 p-2">
+                <p className="text-[10px] text-[#A1A4AE]">Admin Added</p>
+                <p className="text-sm font-bold text-[#F5F5F7]">{formatTdx(adminLiquidity?.data?.addedTdx)}</p>
               </div>
-              <div className="rounded-lg bg-white/70 p-2">
-                <p className="text-[10px] text-[#667085]">Total Tracked</p>
-                <p className="text-sm font-bold text-[#111827]">{formatTdx(totals?.totalTrackedTdx)}</p>
+              <div className="rounded-lg bg-[#15161C]/70 p-2">
+                <p className="text-[10px] text-[#A1A4AE]">Total Tracked</p>
+                <p className="text-sm font-bold text-[#F5F5F7]">{formatTdx(totals?.totalTrackedTdx)}</p>
               </div>
             </div>
           ) : (
-            <p className="mt-2 text-xs text-[#B42318]">Totals unavailable</p>
+            <p className="mt-2 text-xs text-[#F87171]">Totals unavailable</p>
           )}
         </Card>
       </div>
 
       {/* SECONDARY METRICS */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="p-5 border border-[#D1FADF] bg-[#ECFDF3]/30">
+        <Card className="p-5 border border-[#123A24] bg-[#10251A]/30">
           <div className="flex items-center gap-2 mb-2">
-            <Shield size={16} className="text-[#027A48]" />
-            <p className="text-xs font-semibold uppercase tracking-wider text-[#027A48]">Avail. User TDX</p>
+            <Shield size={16} className="text-[#6EE7B7]" />
+            <p className="text-xs font-semibold uppercase tracking-wider text-[#6EE7B7]">Avail. User TDX</p>
           </div>
-          <p className="text-xl font-black text-[#027A48]">{formatTdx(usersTdx?.data?.availableTdx)}</p>
+          <p className="text-xl font-black text-[#6EE7B7]">{formatTdx(usersTdx?.data?.availableTdx)}</p>
         </Card>
-        <Card className="p-5 border border-[#D1FADF] bg-[#ECFDF3]/30">
+        <Card className="p-5 border border-[#123A24] bg-[#10251A]/30">
           <div className="flex items-center gap-2 mb-2">
-            <Activity size={16} className="text-[#B54708]" />
-            <p className="text-xs font-semibold uppercase tracking-wider text-[#B54708]">Current Platform Liquidity</p>
+            <Activity size={16} className="text-[#FF8F3D]" />
+            <p className="text-xs font-semibold uppercase tracking-wider text-[#FF8F3D]">Current Platform Liquidity</p>
           </div>
-          <p className="text-xl font-black text-[#B54708]">{formatTdx(totals?.platformLiquidityTdx)}</p>
+          <p className="text-xl font-black text-[#FF8F3D]">{formatTdx(totals?.platformLiquidityTdx)}</p>
         </Card>
-        <Card className="p-5 border border-[#D1FADF] bg-[#ECFDF3]/30">
+        <Card className="p-5 border border-[#123A24] bg-[#10251A]/30">
           <div className="flex items-center gap-2 mb-2">
-            <PieChart size={16} className="text-[#B42318]" />
-            <p className="text-xs font-semibold uppercase tracking-wider text-[#B42318]">Locked User TDX</p>
+            <PieChart size={16} className="text-[#F87171]" />
+            <p className="text-xs font-semibold uppercase tracking-wider text-[#F87171]">Locked User TDX</p>
           </div>
-          <p className="text-xl font-black text-[#B42318]">{formatTdx(usersTdx?.data?.lockedTdx)}</p>
+          <p className="text-xl font-black text-[#F87171]">{formatTdx(usersTdx?.data?.lockedTdx)}</p>
         </Card>
-        <Card className="p-5 border border-[#D1FADF] bg-[#ECFDF3]/30">
+        <Card className="p-5 border border-[#123A24] bg-[#10251A]/30">
           <div className="flex items-center gap-2 mb-2">
-            <Coins size={16} className="text-[#027A48]" />
-            <p className="text-xs font-semibold uppercase tracking-wider text-[#027A48]">Reserved Liquidity</p>
+            <Coins size={16} className="text-[#6EE7B7]" />
+            <p className="text-xs font-semibold uppercase tracking-wider text-[#6EE7B7]">Reserved Liquidity</p>
           </div>
-          <p className="text-xl font-black text-[#027A48]">{formatTdx(platformPool?.data?.reservedTdx)}</p>
+          <p className="text-xl font-black text-[#6EE7B7]">{formatTdx(platformPool?.data?.reservedTdx)}</p>
         </Card>
       </div>
 
       {/* LIQUIDITY BREAKDOWN */}
       <div>
-        <h2 className="text-lg font-bold text-[#111827] mb-4">Liquidity Breakdown</h2>
+        <h2 className="text-lg font-bold text-[#F5F5F7] mb-4">Liquidity Breakdown</h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="space-y-4">
             {platformPool?.available && platformPool.data ? (
               <PoolCard
                 title="Pulse Trade (Shared Pool)"
-                icon={<Activity size={18} className="text-[#175CD3]" />}
+                icon={<Activity size={18} className="text-[#60A5FA]" />}
                 status={platformPool.data.status ?? 'ERROR'}
                                 source="admin_settings PULSE_LIQUIDITY_POOL_BALANCE"
                 available={true}
@@ -440,7 +440,7 @@ export default function AdminOverviewScreen() {
             ) : (
               <PoolCard
                 title="Pulse Trade (Shared Pool)"
-                icon={<Activity size={18} className="text-[#175CD3]" />}
+                icon={<Activity size={18} className="text-[#60A5FA]" />}
                 status="ERROR"
                 source="admin_settings PULSE_LIQUIDITY_POOL_BALANCE"
                 error={platformPool?.error}
@@ -479,7 +479,7 @@ export default function AdminOverviewScreen() {
             {botLiquidity?.available && botLiquidity.data ? (
               <PoolCard
                 title="Bot Trade Liquidity"
-                icon={<DollarSign size={18} className="text-[#175CD3]" />}
+                icon={<DollarSign size={18} className="text-[#60A5FA]" />}
                 status={botLiquidity.data.status ?? 'ERROR'}
                                 source="bot_wallets / bot_activations"
                 available={true}
@@ -495,7 +495,7 @@ export default function AdminOverviewScreen() {
             ) : (
               <PoolCard
                 title="Bot Trade Liquidity"
-                icon={<DollarSign size={18} className="text-[#175CD3]" />}
+                icon={<DollarSign size={18} className="text-[#60A5FA]" />}
                 status="ERROR"
                 source="bot_wallets / bot_activations"
                 error={botLiquidity?.error}
@@ -536,77 +536,77 @@ export default function AdminOverviewScreen() {
       {/* USER FUNDS */}
       <Card className="p-6">
         <div className="flex items-center gap-2 mb-3">
-          <Wallet size={18} className="text-[#175CD3]" />
-          <h3 className="text-base font-bold text-[#111827]">User Funds</h3>
+          <Wallet size={18} className="text-[#60A5FA]" />
+          <h3 className="text-base font-bold text-[#F5F5F7]">User Funds</h3>
         </div>
-        <p className="text-xs text-[#667085] mb-4">Source: balances table + ledger_entries. User TDX is separate from platform liquidity and is never mixed.</p>
+        <p className="text-xs text-[#A1A4AE] mb-4">Source: balances table + ledger_entries. User TDX is separate from platform liquidity and is never mixed.</p>
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
-          <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
-            <p className="text-xs font-medium text-[#667085]">Total User TDX</p>
-            <p className="text-lg font-black text-[#111827]">{formatTdx(totals?.allUsersTdx)}</p>
+          <div className="rounded-xl border border-[#292B33] bg-[#15161C] p-4">
+            <p className="text-xs font-medium text-[#A1A4AE]">Total User TDX</p>
+            <p className="text-lg font-black text-[#F5F5F7]">{formatTdx(totals?.allUsersTdx)}</p>
           </div>
-          <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
-            <p className="text-xs font-medium text-[#667085]">Available</p>
-            <p className="text-lg font-black text-[#111827]">{formatTdx(usersTdx?.data?.availableTdx)}</p>
+          <div className="rounded-xl border border-[#292B33] bg-[#15161C] p-4">
+            <p className="text-xs font-medium text-[#A1A4AE]">Available</p>
+            <p className="text-lg font-black text-[#F5F5F7]">{formatTdx(usersTdx?.data?.availableTdx)}</p>
           </div>
-          <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
-            <p className="text-xs font-medium text-[#667085]">Locked</p>
-            <p className="text-lg font-black text-[#111827]">{formatTdx(usersTdx?.data?.lockedTdx)}</p>
+          <div className="rounded-xl border border-[#292B33] bg-[#15161C] p-4">
+            <p className="text-xs font-medium text-[#A1A4AE]">Locked</p>
+            <p className="text-lg font-black text-[#F5F5F7]">{formatTdx(usersTdx?.data?.lockedTdx)}</p>
           </div>
-          <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
-            <p className="text-xs font-medium text-[#667085]">Accounts</p>
-            <p className="text-lg font-black text-[#111827]">{formatCount(usersTdx?.data?.accountsCount)}</p>
+          <div className="rounded-xl border border-[#292B33] bg-[#15161C] p-4">
+            <p className="text-xs font-medium text-[#A1A4AE]">Accounts</p>
+            <p className="text-lg font-black text-[#F5F5F7]">{formatCount(usersTdx?.data?.accountsCount)}</p>
           </div>
         </div>
         {userLedger?.available && userLedger.data ? (
-          <div className="rounded-xl border border-[#E5E7EB] bg-white p-4">
-            <p className="text-[10px] font-semibold text-[#667085] mb-2">USER LEDGER (lifetime)</p>
+          <div className="rounded-xl border border-[#292B33] bg-[#15161C] p-4">
+            <p className="text-[10px] font-semibold text-[#A1A4AE] mb-2">USER LEDGER (lifetime)</p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
-              <div><p className="text-xs text-[#667085]">Deposited</p><p className="font-bold text-[#027A48]">{formatTdx(userLedger.data.lifetimeDepositedTdx)}</p></div>
-              <div><p className="text-xs text-[#667085]">Withdrawn</p><p className="font-bold text-[#B42318]">{formatTdx(userLedger.data.lifetimeWithdrawnTdx)}</p></div>
-              <div><p className="text-xs text-[#667085]">Deposits</p><p className="font-bold text-[#111827]">{formatCount(userLedger.data.depositCount)}</p></div>
-              <div><p className="text-xs text-[#667085]">Withdrawals</p><p className="font-bold text-[#111827]">{formatCount(userLedger.data.withdrawalCount)}</p></div>
+              <div><p className="text-xs text-[#A1A4AE]">Deposited</p><p className="font-bold text-[#6EE7B7]">{formatTdx(userLedger.data.lifetimeDepositedTdx)}</p></div>
+              <div><p className="text-xs text-[#A1A4AE]">Withdrawn</p><p className="font-bold text-[#F87171]">{formatTdx(userLedger.data.lifetimeWithdrawnTdx)}</p></div>
+              <div><p className="text-xs text-[#A1A4AE]">Deposits</p><p className="font-bold text-[#F5F5F7]">{formatCount(userLedger.data.depositCount)}</p></div>
+              <div><p className="text-xs text-[#A1A4AE]">Withdrawals</p><p className="font-bold text-[#F5F5F7]">{formatCount(userLedger.data.withdrawalCount)}</p></div>
             </div>
           </div>
         ) : (
-          <p className="mt-2 text-xs text-[#B42318]">{userLedger?.error || 'Ledger data unavailable'}</p>
+          <p className="mt-2 text-xs text-[#F87171]">{userLedger?.error || 'Ledger data unavailable'}</p>
         )}
       </Card>
 
       {/* PLATFORM RECONCILIATION */}
       <Card className="p-6">
         <div className="flex items-center gap-2 mb-3">
-          <BarChart3 size={18} className="text-[#175CD3]" />
-          <h3 className="text-base font-bold text-[#111827]">Platform Liquidity Reconciliation</h3>
+          <BarChart3 size={18} className="text-[#60A5FA]" />
+          <h3 className="text-base font-bold text-[#F5F5F7]">Platform Liquidity Reconciliation</h3>
         </div>
-        <p className="text-xs text-[#667085] mb-4">
+        <p className="text-xs text-[#A1A4AE] mb-4">
           Reconciliation of all platform-owned TDX across Pulse Trade pool, bot wallets, and the Lotto fee pool.
           User TDX is excluded from this total (tracked separately).
         </p>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="space-y-2">
-            <p className="text-[10px] font-semibold text-[#667085] uppercase">PLATFORM OWNED TDX (by source)</p>
+            <p className="text-[10px] font-semibold text-[#A1A4AE] uppercase">PLATFORM OWNED TDX (by source)</p>
             <MetricRow label="Pulse Trade Pool" value={formatTdx(platformPool?.data?.currentTdx)} />
             <MetricRow label="Bot Wallets Total" value={formatTdx(botLiquidity?.data?.totalTdx)} />
             <MetricRow label="Lotto Fee Pool" value={formatTdx(lottoFeePool?.data?.totalTdx)} />
-            <div className="border-t border-[#E5E7EB] pt-2 mt-2">
-              <MetricRow label="Platform Owned Total" value={formatTdx(totals?.platformOwnedTdx)} icon={<Database size={14} className="text-[#175CD3]" />} />
+            <div className="border-t border-[#292B33] pt-2 mt-2">
+              <MetricRow label="Platform Owned Total" value={formatTdx(totals?.platformOwnedTdx)} icon={<Database size={14} className="text-[#60A5FA]" />} />
             </div>
           </div>
           <div className="space-y-2">
-            <p className="text-[10px] font-semibold text-[#667085] uppercase">PLATFORM ALL LIQUIDITY</p>
-            <MetricRow label="Current Liquidity" value={formatTdx(totals?.platformLiquidityTdx)} icon={<Coins size={14} className="text-[#027A48]" />} />
+            <p className="text-[10px] font-semibold text-[#A1A4AE] uppercase">PLATFORM ALL LIQUIDITY</p>
+            <MetricRow label="Current Liquidity" value={formatTdx(totals?.platformLiquidityTdx)} icon={<Coins size={14} className="text-[#6EE7B7]" />} />
             <MetricRow label="Admin Added" value={formatTdx(adminLiquidity?.data?.addedTdx)} />
             <MetricRow label="Bot Wallets Total" value={formatTdx(botLiquidity?.data?.totalTdx)} />
             <MetricRow label="Lotto Fee Pool" value={formatTdx(lottoFeePool?.data?.totalTdx)} />
           </div>
           <div className="space-y-2">
-            <p className="text-[10px] font-semibold text-[#667085] uppercase">RECONCILIATION</p>
+            <p className="text-[10px] font-semibold text-[#A1A4AE] uppercase">RECONCILIATION</p>
             <MetricRow label="Total Added Liquidity" value={formatTdx(adminLiquidity?.data?.addedTdx)} />
             <MetricRow label="Current Liquidity" value={formatTdx(totals?.platformLiquidityTdx)} />
             <DiffRow label="Difference" value={reconciliationDiff} />
-            <div className="border-t border-[#E5E7EB] pt-2 mt-2">
-              <MetricRow label="Total Tracked TDX" value={formatTdx(totals?.totalTrackedTdx)} icon={<Database size={14} className="text-[#027A48]" />} />
+            <div className="border-t border-[#292B33] pt-2 mt-2">
+              <MetricRow label="Total Tracked TDX" value={formatTdx(totals?.totalTrackedTdx)} icon={<Database size={14} className="text-[#6EE7B7]" />} />
             </div>
           </div>
         </div>
@@ -615,35 +615,35 @@ export default function AdminOverviewScreen() {
       {/* VAULT / ON-CHAIN */}
       <Card className="p-6">
         <div className="flex items-center gap-2 mb-3">
-          <Activity size={18} className="text-[#175CD3]" />
-          <h3 className="text-base font-bold text-[#111827]">Vault &amp; On-chain Balances (USDT)</h3>
+          <Activity size={18} className="text-[#60A5FA]" />
+          <h3 className="text-base font-bold text-[#F5F5F7]">Vault &amp; On-chain Balances (USDT)</h3>
         </div>
-        <p className="text-xs text-[#667085] mb-4">
+        <p className="text-xs text-[#A1A4AE] mb-4">
           On-chain TDX is not available (TDX is internal accounting; no TDX token is deployed).
                     Vault balances are read on-chain in USDT.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
+          <div className="rounded-xl border border-[#292B33] bg-[#15161C] p-4">
             <div className="flex items-center justify-between mb-2">
-                            <p className="text-xs font-medium text-[#667085]">Deposit Vault (on-chain USDT)</p>
+                            <p className="text-xs font-medium text-[#A1A4AE]">Deposit Vault (on-chain USDT)</p>
               <StatusBadge status={depositVaultStatus} />
             </div>
-            <p className="text-lg font-black text-[#111827]">{formatUsdt(depositVaultUsdt)}</p>
+            <p className="text-lg font-black text-[#F5F5F7]">{formatUsdt(depositVaultUsdt)}</p>
           </div>
-          <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
+          <div className="rounded-xl border border-[#292B33] bg-[#15161C] p-4">
             <div className="flex items-center justify-between mb-2">
-                            <p className="text-xs font-medium text-[#667085]">Withdrawal Vault (on-chain USDT)</p>
+                            <p className="text-xs font-medium text-[#A1A4AE]">Withdrawal Vault (on-chain USDT)</p>
               <StatusBadge status={withdrawalVaultStatus} />
             </div>
-            <p className="text-lg font-black text-[#111827]">{formatUsdt(withdrawalVaultUsdt)}</p>
+            <p className="text-lg font-black text-[#F5F5F7]">{formatUsdt(withdrawalVaultUsdt)}</p>
           </div>
-          <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
+          <div className="rounded-xl border border-[#292B33] bg-[#15161C] p-4">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-xs font-medium text-[#667085]">Database Tracked TDX</p>
-              <CheckCircle size={14} className="text-[#027A48]" />
+              <p className="text-xs font-medium text-[#A1A4AE]">Database Tracked TDX</p>
+              <CheckCircle size={14} className="text-[#6EE7B7]" />
             </div>
-            <p className="text-lg font-black text-[#111827]">{formatTdx(totals?.totalTrackedTdx)}</p>
-            <p className="text-[10px] text-[#667085] mt-1">users + pool + bots + lotto</p>
+            <p className="text-lg font-black text-[#F5F5F7]">{formatTdx(totals?.totalTrackedTdx)}</p>
+            <p className="text-[10px] text-[#A1A4AE] mt-1">users + pool + bots + lotto</p>
           </div>
         </div>
       </Card>
@@ -651,19 +651,19 @@ export default function AdminOverviewScreen() {
       {/* RECENT LIQUIDITY ACTIVITY */}
       <div>
         <div className="flex items-center gap-2 mb-3">
-          <Activity size={20} className="text-[#175CD3]" />
-          <h2 className="text-lg font-bold text-[#111827]">Recent Liquidity Activity</h2>
+          <Activity size={20} className="text-[#60A5FA]" />
+          <h2 className="text-lg font-bold text-[#F5F5F7]">Recent Liquidity Activity</h2>
         </div>
-        <p className="text-xs text-[#667085] mb-3">
+        <p className="text-xs text-[#A1A4AE] mb-3">
           Source: admin_audit_logs (PULSE_LIQUIDITY_ADJUSTMENT) — admin ADD / REMOVE operations on the platform pool.
         </p>
         <RecentActivityTable items={fin?.recentLiquidityActivity ?? []} />
       </div>
 
       {/* Footer: data sources */}
-      <div className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
-        <p className="text-[10px] font-semibold text-[#667085] mb-1">DATA SOURCES</p>
-        <p className="text-[10px] text-[#98A2B3]">
+      <div className="rounded-xl border border-[#292B33] bg-[#15161C] p-4">
+        <p className="text-[10px] font-semibold text-[#A1A4AE] mb-1">DATA SOURCES</p>
+        <p className="text-[10px] text-[#70737E]">
           {totals?.sources?.join(' | ') || 'No sources available'} · User TDX and platform funds are never mixed · Pulse Trade + Lotto share one pool
         </p>
       </div>

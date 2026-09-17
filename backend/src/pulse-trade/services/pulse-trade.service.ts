@@ -4,6 +4,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -12,12 +13,15 @@ import {
   EntityManager,
   In,
   LessThanOrEqual,
+  Like,
   QueryFailedError,
   Repository,
   SelectQueryBuilder,
 } from 'typeorm';
 import { randomUUID } from 'crypto';
 import Decimal from 'decimal.js';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 
 import { Balance } from '../../balances/balance.entity';
 import { LedgerEntry, LedgerType } from '../../ledger/ledger.entity';
@@ -51,6 +55,12 @@ import { PriceService } from './price-service';
 import { RiskService } from './risk-service';
 import { LiquidityService } from './liquidity-service';
 import { ACTIVE_SETTLEMENT_STATUSES } from '../constants/trade-status.constants';
+import {
+  PULSE_SETTLEMENT_QUEUE,
+  PULSE_SETTLEMENT_SETTLE_JOB,
+  pulseSettlementTradeJobId,
+} from '../workers/pulse-settlement.queue';
+import { AdminSettlementRecoveryDto } from '../dtos/admin-settlement-recovery.dto';
 
 type SupportedTradeSymbol = PulseSupportedPair;
 
@@ -63,6 +73,14 @@ const TERMINAL_NON_SETTLABLE_STATUSES: TradeStatus[] = [
 const PULSE_LIQUIDITY_POOL_BALANCE_SETTING_KEY = 'PULSE_LIQUIDITY_POOL_BALANCE';
 const PULSE_LIQUIDITY_AUDIT_ACTION = 'PULSE_LIQUIDITY_ADJUSTMENT';
 const PULSE_LIQUIDITY_AUDIT_TARGET_TYPE = 'pulse_liquidity';
+const PULSE_SETTLEMENT_RECOVERY_AUDIT_ACTION = 'PULSE_SETTLEMENT_RECOVERY';
+const PULSE_SETTLEMENT_RECOVERY_AUDIT_TARGET_TYPE = 'pulse_trade';
+/**
+ * HIGH-1 (TOCTOU fix): placement risk-domain advisory lock key.
+ * har authoritative risk/liquidity re-check isi lock ke andar hota hai,
+ * taaki concurrent placements same stale exposure par pass na ho sakein.
+ */
+const PULSE_PLACEMENT_RISK_LOCK_KEY = 'pulse-placement-risk';
 const RISK_MAX_TOTAL_EXPOSURE_PERCENT = new Decimal('100');
 const RISK_MAX_PAIR_EXPOSURE_PERCENT = new Decimal('40');
 const RISK_MAX_DURATION_EXPOSURE_PERCENT = new Decimal('30');
@@ -151,6 +169,14 @@ interface ReferralDistributionTarget {
   ancestorUserId: string | null;
 }
 
+export interface SettlementRecoveryResult {
+  tradeId: string;
+  previousStatus: TradeStatus;
+  action: 'RECOVERY_QUEUED' | 'ALREADY_SETTLED';
+  status: TradeStatus;
+  jobId: string | null;
+}
+
 @Injectable()
 export class PulseTradeService {
   private readonly logger = new Logger(PulseTradeService.name);
@@ -165,6 +191,15 @@ export class PulseTradeService {
     private readonly riskService: RiskService,
     private readonly liquidityService: LiquidityService,
     private readonly configService: ConfigService,
+    /**
+     * HIGH-3 (settlement recovery): existing deterministic settlement queue.
+     * Optional — unit tests / queue-less bootstrap break na hon; queue
+     * unavailable ho to recovery sirf authoritative DB reset karti hai aur
+     * existing 1s expiry scan trade ko utha leta hai.
+     */
+    @Optional()
+    @InjectQueue(PULSE_SETTLEMENT_QUEUE)
+    private readonly settlementQueue?: Queue,
   ) {}
 
   private async getLiquidityPoolBalance(
@@ -259,6 +294,175 @@ export class PulseTradeService {
       driverError?.code === '23505' &&
       driverError?.constraint === 'IDX_admin_settings_key_unique'
     );
+  }
+
+  /**
+   * HIGH-4: sirf unallocated-referral→liquidity index ka 23505 classify hota
+   * hai. Baaki unique violations (clientRequestId, TRADE_FEE_DISTRIBUTION,
+   * TRADE_FEE_ALLOCATION, TRADE_SETTLEMENT) kabhi swallow/convert nahi hote.
+   */
+  private isUnallocatedReferralUniqueViolation(error: unknown): boolean {
+    if (!(error instanceof QueryFailedError)) {
+      return false;
+    }
+
+    const driverError = error.driverError as {
+      code?: string;
+      constraint?: string;
+    };
+
+    return (
+      driverError?.code === '23505' &&
+      driverError?.constraint ===
+        'IDX_ledger_trade_fee_unallocated_reference_unique'
+    );
+  }
+
+  /**
+   * HIGH-5 (replay integrity): authoritative placement financial completeness
+   * verification. Replay sirf COMPLETE hone par success hai; INCOMPLETE
+   * (missing legs/records) aur INCONSISTENT (wrong amounts/duplicates/
+   * contradictions) dono fail-closed hain — koi auto-repair nahi, koi
+   * partial mutation nahi.
+   *
+   * Stable business identities use hote hain: reference_type + reference_id
+   * (tradeId / `${tradeId}:L{level}:{recipient}`) + exact Decimal amounts.
+   * Koi fragile global ledger count nahi.
+   */
+  private async verifyPlacementFinancialCompleteness(
+    trade: Trade,
+    userId: string,
+    ledgerRepo: Repository<LedgerEntry>,
+    settingRepo: Repository<AdminSetting>,
+    balanceRepo: Repository<Balance>,
+  ): Promise<'COMPLETE' | 'INCOMPLETE' | 'INCONSISTENT'> {
+    // 1. Ownership/identity — cross-user ya corrupt identity fail-closed.
+    if (trade.userId !== userId) {
+      return 'INCONSISTENT';
+    }
+    if (!trade.amount || !trade.entryPrice || !trade.pair || !trade.expiryAt) {
+      return 'INCOMPLETE';
+    }
+
+    const amount = this.parseAmount(trade.amount);
+    const feeBreakdown = this.computeTradeFeeBreakdown(amount);
+
+    // 2. Entry debit ledger — exactly once, exact gross amount.
+    const entryLegs = await ledgerRepo.find({
+      where: { referenceType: 'pulse_trade', referenceId: trade.id },
+    });
+    if (entryLegs.length === 0) {
+      return 'INCOMPLETE';
+    }
+    if (entryLegs.length > 1) {
+      return 'INCONSISTENT';
+    }
+    if (!this.parseAmount(entryLegs[0].amount).eq(amount)) {
+      return 'INCONSISTENT';
+    }
+
+    // 3. Fee allocation ledger — exactly once, exact 5% amount.
+    const feeLegs = await ledgerRepo.find({
+      where: {
+        referenceType: PULSE_SETTLEMENT_POLICY.ledger.feeReferenceType,
+        referenceId: trade.id,
+      },
+    });
+    if (feeLegs.length === 0) {
+      return 'INCOMPLETE';
+    }
+    if (feeLegs.length > 1) {
+      return 'INCONSISTENT';
+    }
+    if (!this.parseAmount(feeLegs[0].amount).eq(feeBreakdown.totalFee)) {
+      return 'INCONSISTENT';
+    }
+
+    // 4. Referral legs — L1..L6 har level exactly once, exact level amount,
+    // sum === referral allocation (2%). Allocated/unallocated mix
+    // chain-shape agnostic hai.
+    const referralLegs = await ledgerRepo.find({
+      where: { referenceId: Like(`${trade.id}:L%`) },
+    });
+    const legsByLevel = new Map<number, LedgerEntry[]>();
+    const validReferralTypes: string[] = [
+      PULSE_SETTLEMENT_POLICY.ledger.feeAllocationReferenceType,
+      PULSE_SETTLEMENT_POLICY.ledger
+        .unallocatedReferralToLiquidityReferenceType,
+    ];
+    for (const leg of referralLegs) {
+      if (!validReferralTypes.includes(leg.referenceType)) {
+        return 'INCONSISTENT';
+      }
+      const match = /^[^:]+:L(\d+):/.exec(leg.referenceId ?? '');
+      const level = match ? Number(match[1]) : Number.NaN;
+      const levelPercent =
+        PULSE_SETTLEMENT_POLICY.referral.levels[
+          `L${level}` as keyof typeof PULSE_SETTLEMENT_POLICY.referral.levels
+        ];
+      if (!Number.isFinite(level) || levelPercent === undefined) {
+        return 'INCONSISTENT';
+      }
+      const bucket = legsByLevel.get(level) ?? [];
+      bucket.push(leg);
+      legsByLevel.set(level, bucket);
+    }
+
+    let referralSum = new Decimal(0);
+    for (let level = 1; level <= 6; level += 1) {
+      const legs = legsByLevel.get(level) ?? [];
+      if (legs.length === 0) {
+        return 'INCOMPLETE';
+      }
+      if (legs.length > 1) {
+        return 'INCONSISTENT';
+      }
+      const levelPercent =
+        PULSE_SETTLEMENT_POLICY.referral.levels[
+          `L${level}` as keyof typeof PULSE_SETTLEMENT_POLICY.referral.levels
+        ] ?? '0';
+      const expected = this.percentOf(amount, levelPercent);
+      if (!this.parseAmount(legs[0].amount).eq(expected)) {
+        return 'INCONSISTENT';
+      }
+      referralSum = referralSum.plus(legs[0].amount);
+    }
+    if (!referralSum.eq(feeBreakdown.referral)) {
+      return 'INCONSISTENT';
+    }
+
+    // 5. Pool routing record — unallocated legs hon to pool setting maujood.
+    const hasUnallocatedLegs = referralLegs.some(
+      (leg) =>
+        leg.referenceType ===
+        PULSE_SETTLEMENT_POLICY.ledger
+          .unallocatedReferralToLiquidityReferenceType,
+    );
+    if (hasUnallocatedLegs) {
+      const pool = await settingRepo.findOne({
+        where: { key: PULSE_LIQUIDITY_POOL_BALANCE_SETTING_KEY },
+      });
+      if (!pool) {
+        return 'INCOMPLETE';
+      }
+    }
+
+    // 6. Balance debit agreement — unsettled trade ka stake locked hona
+    // chahiye (settlement lock legitimately release karta hai).
+    if (trade.status !== TradeStatus.SETTLED) {
+      const balance = await balanceRepo.findOne({ where: { userId } });
+      if (!balance) {
+        return 'INCOMPLETE';
+      }
+      if (
+        this.parseAmount(balance.lockedBalance).lt(amount) ||
+        this.parseAmount(balance.tradingLocked).lt(amount)
+      ) {
+        return 'INCONSISTENT';
+      }
+    }
+
+    return 'COMPLETE';
   }
 
   private isTerminalNonSettlableStatus(status: TradeStatus): boolean {
@@ -449,6 +653,104 @@ export class PulseTradeService {
     }
   }
 
+  /**
+   * HIGH-1 (TOCTOU fix): fresh, authoritative risk-exposure snapshot.
+   * Ye helper SIRF placement transaction ke andar, serialization/advisory
+   * lock hold karte waqt call hona chahiye — tabhi ye "authoritative" hai.
+   * Snapshot queries same manager (same DB transaction / same connection)
+   * par chalti hain, isliye concurrent committed placements ka effect
+   * yahan dikh jata hai.
+   *
+   * Fail-closed: snapshot banana fail ho jaye to placement reject hota hai
+   * (zeros return karna fail-open hoga jo risk ke liye galat hai).
+   */
+  private async getRiskSnapshotForPlacement(
+    pair: PulseSupportedPair,
+    durationSeconds: number,
+    userId: string,
+    manager: EntityManager,
+  ): Promise<{
+    currentTotalExposure: string;
+    currentPairExposure: string;
+    currentDurationExposure: string;
+    currentUserExposure: string;
+  }> {
+    try {
+      const tradeRepo = manager.getRepository(Trade);
+
+      const totalExposureRaw = await tradeRepo
+        .createQueryBuilder('trade')
+        .select('COALESCE(SUM(trade.amount), 0)', 'totalExposure')
+        .where('trade.status IN (:...openStatuses)', {
+          openStatuses: ACTIVE_SETTLEMENT_STATUSES,
+        })
+        .getRawOne<{ totalExposure: string }>();
+
+      const pairExposureRaw = await tradeRepo
+        .createQueryBuilder('trade')
+        .select('COALESCE(SUM(trade.amount), 0)', 'pairExposure')
+        .where('trade.status IN (:...openStatuses)', {
+          openStatuses: ACTIVE_SETTLEMENT_STATUSES,
+        })
+        .andWhere('trade.pair = :pair', { pair })
+        .getRawOne<{ pairExposure: string }>();
+
+      const durationExposureRaw = await tradeRepo
+        .createQueryBuilder('trade')
+        .select('COALESCE(SUM(trade.amount), 0)', 'durationExposure')
+        .where('trade.status IN (:...openStatuses)', {
+          openStatuses: ACTIVE_SETTLEMENT_STATUSES,
+        })
+        .andWhere('trade.duration = :durationSeconds', { durationSeconds })
+        .getRawOne<{ durationExposure: string }>();
+
+      const userExposureRaw = await tradeRepo
+        .createQueryBuilder('trade')
+        .select('COALESCE(SUM(trade.amount), 0)', 'userExposure')
+        .where('trade.status IN (:...openStatuses)', {
+          openStatuses: ACTIVE_SETTLEMENT_STATUSES,
+        })
+        .andWhere('trade.userId = :userId', { userId })
+        .getRawOne<{ userExposure: string }>();
+
+      return {
+        currentTotalExposure: this.parseAmount(
+          totalExposureRaw?.totalExposure ?? '0',
+        ).toFixed(18),
+        currentPairExposure: this.parseAmount(
+          pairExposureRaw?.pairExposure ?? '0',
+        ).toFixed(18),
+        currentDurationExposure: this.parseAmount(
+          durationExposureRaw?.durationExposure ?? '0',
+        ).toFixed(18),
+        currentUserExposure: this.parseAmount(
+          userExposureRaw?.userExposure ?? '0',
+        ).toFixed(18),
+      };
+    } catch (error) {
+      this.logger.warn(
+        `Failed to build risk snapshot for placement on ${pair}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      throw new ConflictException('RISK_SNAPSHOT_UNAVAILABLE_FOR_PLACEMENT');
+    }
+  }
+
+  /**
+   * HIGH-1 (TOCTOU fix): risk-domain serialization lock.
+   * Project convention follow karta hai (deposit-address/sweeps jaisa):
+   *   SELECT pg_advisory_xact_lock(hashtext($1)::bigint)
+   * Transaction-scoped hai — commit/rollback par apne aap release ho jata
+   * hai, isliye success/rejection/exception teeno cases me lock release
+   * sahi hota hai. Global lock nahi hai — sirf pulse placement risk domain
+   * (total/pair/duration/user exposure) ke liye hai; existing AdminSetting
+   * pool row-lock liquidity serialization ke liye waise hi chalta rahega.
+   */
+  private canUsePlacementAdvisoryLock(manager: EntityManager): boolean {
+    return typeof (manager as { query?: unknown }).query === 'function';
+  }
+
   private canEnforcePlacementLiquidityWithLock(
     manager: EntityManager,
   ): boolean {
@@ -523,6 +825,27 @@ export class PulseTradeService {
       order: { createdAt: 'DESC' },
     });
     if (existing) {
+      // HIGH-5 (replay integrity): fast-path replay bhi financial
+      // completeness verify karta hai. Authoritative decision phir bhi
+      // placement transaction ke andar (advisory lock ke baad) hota hai —
+      // ye sirf performance fast path hai.
+      const completeness = await this.verifyPlacementFinancialCompleteness(
+        existing,
+        userId,
+        this.dataSource.getRepository(LedgerEntry),
+        this.dataSource.getRepository(AdminSetting),
+        this.balanceRepo,
+      );
+      if (completeness !== 'COMPLETE') {
+        this.logger.error(
+          `Pulse placement replay rejected for trade ${existing.id}: financial state ${completeness} (fail-closed, no auto-repair)`,
+        );
+        throw new ConflictException(
+          completeness === 'INCOMPLETE'
+            ? 'PLACEMENT_REPLAY_INCOMPLETE: placement financial state is incomplete'
+            : 'PLACEMENT_REPLAY_INCONSISTENT: placement financial state is inconsistent',
+        );
+      }
       return this.toPlaceTradeResult(
         existing,
         await this.getUserBalanceSnapshot(userId),
@@ -545,6 +868,12 @@ export class PulseTradeService {
     if (!risk.approved) {
       throw new ConflictException(risk.reason ?? 'RISK_LIMIT_REACHED');
     }
+
+    // NOTE (HIGH-1): ye pre-transaction risk/liquidity checks sirf
+    // performance-only fast-fail hain. AUTHORITATIVE decision niche
+    // placement transaction ke andar, advisory lock hold karte hue fresh
+    // exposure snapshot ke saath hota hai. Stale snapshot par koi placement
+    // accept nahi hoti.
 
     const liquiditySnapshot =
       await this.getLiquiditySnapshotForPlacement(symbol);
@@ -570,13 +899,66 @@ export class PulseTradeService {
     const netStake = feeBreakdown.netStake;
     const expiresAt = new Date(now.getTime() + durationSeconds * 1000);
 
-    let persistedTrade: Trade;
+    // HIGH-2 (placement financial atomicity): poora placement — balance
+    // debit, trade INSERT, entry/fee/referral ledger legs, liquidity pool
+    // routing — EK HI transaction ke andar hota hai. Outcome union: normal
+    // { trade } ya in-tx idempotency replay { replay }.
+    let placementOutcome: { trade: Trade } | { replay: Trade };
 
     try {
-      persistedTrade = await this.dataSource.transaction(async (manager) => {
-        const txBalanceRepo = manager.getRepository(Balance);
+      placementOutcome = await this.dataSource.transaction(
+      async (manager) => {
+        // HIGH-1 (TOCTOU fix) — step 1: risk-domain advisory lock SABSE PEHLE.
+        // Project convention: pg_advisory_xact_lock(hashtext(...)).
+        // Transaction-scoped hai → commit/rollback/exception par automatic
+        // release. Yahi lock concurrent placements ko serialize karta hai,
+        // taki niche ka fresh risk/liquidity re-check authoritative rahe.
+        if (this.canUsePlacementAdvisoryLock(manager)) {
+          await manager.query(
+            'SELECT pg_advisory_xact_lock(hashtext($1)::bigint)',
+            [PULSE_PLACEMENT_RISK_LOCK_KEY],
+          );
+        }
+
         const txTradeRepo = manager.getRepository(Trade);
+        const txBalanceRepo = manager.getRepository(Balance);
         const txLedgerRepo = manager.getRepository(LedgerEntry);
+
+        // HIGH-2 (placement atomicity): in-tx idempotency re-check — advisory
+        // lock ke andar, KISI bhi financial mutation se PEHLE. Pre-tx check
+        // ek concurrent placement ko miss kar sakta hai jo hum lock wait
+        // karte waqt commit ho chuka ho; lock ke andar padha gaya state
+        // authoritative hai. Milne par seedha replay — na doosra debit, na
+        // doosra trade, na duplicate fee legs (kuch bhi mutate nahi hua isliye
+        // early return par rollback ka koi financial side-effect nahi).
+        const inTxReplay = await txTradeRepo.findOne({
+          where: { userId, clientRequestId },
+        });
+        if (inTxReplay) {
+          // HIGH-5 (replay integrity): replay sirf tab valid hai jab poora
+          // placement financial state complete + consistent ho.
+          const completeness = await this.verifyPlacementFinancialCompleteness(
+            inTxReplay,
+            userId,
+            txLedgerRepo,
+            manager.getRepository(AdminSetting),
+            txBalanceRepo,
+          );
+          if (completeness !== 'COMPLETE') {
+            this.logger.error(
+              `Pulse placement replay rejected for trade ${inTxReplay.id}: financial state ${completeness} (fail-closed, no auto-repair)`,
+            );
+            throw new ConflictException(
+              completeness === 'INCOMPLETE'
+                ? 'PLACEMENT_REPLAY_INCOMPLETE: placement financial state is incomplete'
+                : 'PLACEMENT_REPLAY_INCONSISTENT: placement financial state is inconsistent',
+            );
+          }
+          this.logger.log(
+            `Pulse placement replayed inside transaction for user ${userId}: clientRequestId ${clientRequestId} already committed (financially verified)`,
+          );
+          return { replay: inTxReplay };
+        }
 
         let balance = await txBalanceRepo.findOne({
           where: { userId },
@@ -623,6 +1005,34 @@ export class PulseTradeService {
               liquidityInTx.reason ?? 'LIQUIDITY_LIMIT_REACHED',
             );
           }
+        }
+
+        // HIGH-1 (TOCTOU fix) — authoritative RISK re-check on FRESH state.
+        // Advisory lock (upar) + same-transaction snapshot queries: ye padha
+        // gaya exposure concurrent committed placements ko include karta hai.
+        // Fail hone par yahin reject — balance/trade/fee ka koi mutation nahi
+        // hua (poora tx rollback hota hai).
+        const riskSnapshotInTx = await this.getRiskSnapshotForPlacement(
+          symbol,
+          durationSeconds,
+          userId,
+          manager,
+        );
+        const riskInTx = await this.riskService.evaluatePreTradeRisk({
+          userId,
+          pair: symbol,
+          amount: amount.toFixed(18),
+          duration: durationSeconds,
+          currentTotalExposure: riskSnapshotInTx.currentTotalExposure,
+          currentPairExposure: riskSnapshotInTx.currentPairExposure,
+          currentDurationExposure: riskSnapshotInTx.currentDurationExposure,
+          currentUserExposure: riskSnapshotInTx.currentUserExposure,
+        });
+
+        if (!riskInTx.approved) {
+          throw new ConflictException(
+            riskInTx.reason ?? 'RISK_LIMIT_REACHED',
+          );
         }
 
         const availableBefore = this.parseAmount(balance.availableBalance);
@@ -814,6 +1224,26 @@ export class PulseTradeService {
               );
             }
 
+            // HIGH-4 (unallocated referral → liquidity idempotency):
+            // fast-path guard. Same (referenceType, referenceId) leg pehle se
+            // committed hai to yahin fail-closed conflict — pool credit aur
+            // ledger write ek hi atomic pair hain (dono hote hain ya dono
+            // nahi). DB unique index (migration 1768) final concurrency
+            // backstop hai.
+            const existingUnallocatedLeg = await txLedgerRepo.findOne({
+              where: {
+                referenceType:
+                  PULSE_SETTLEMENT_POLICY.ledger
+                    .unallocatedReferralToLiquidityReferenceType,
+                referenceId: distributionReferenceId,
+              },
+            });
+            if (existingUnallocatedLeg) {
+              throw new ConflictException(
+                'REFERRAL_UNALLOCATED_LEDGER_CONFLICT: unallocated referral liquidity leg already exists for this trade',
+              );
+            }
+
             const poolBefore = Decimal.max(
               this.parseAmount(liquidityPoolSettingForReferral.value),
               0,
@@ -877,7 +1307,22 @@ export class PulseTradeService {
             },
           });
 
-          await txLedgerRepo.save(distributionEntry);
+          try {
+            await txLedgerRepo.save(distributionEntry);
+          } catch (error) {
+            if (this.isUnallocatedReferralUniqueViolation(error)) {
+              // HIGH-4 backstop: pre-check race loss par 23505 aata hai.
+              // PostgreSQL transaction ab aborted hai — continue karna unsafe
+              // hai, isliye typed conflict throw → poora placement tx roll
+              // back (koi partial financial state nahi). Baaki 23505
+              // (clientRequestId, TRADE_FEE_DISTRIBUTION, etc.) aise hi
+              // rethrow hote hain — kuch swallow nahi hota.
+              throw new ConflictException(
+                'REFERRAL_UNALLOCATED_LEDGER_CONFLICT: unallocated referral liquidity leg already exists for this trade',
+              );
+            }
+            throw error;
+          }
         }
 
         /*
@@ -912,7 +1357,7 @@ export class PulseTradeService {
           );
         }
 
-        return savedTrade;
+        return { trade: savedTrade };
       });
     } catch (error) {
       if (this.isClientRequestUniqueViolation(error)) {
@@ -922,6 +1367,22 @@ export class PulseTradeService {
         });
 
         if (replay) {
+          // HIGH-5: unique-violation replay bhi financially verified hona
+          // chahiye — incomplete/inconsistent state par fail-closed.
+          const completeness = await this.verifyPlacementFinancialCompleteness(
+            replay,
+            userId,
+            this.dataSource.getRepository(LedgerEntry),
+            this.dataSource.getRepository(AdminSetting),
+            this.balanceRepo,
+          );
+          if (completeness !== 'COMPLETE') {
+            throw new ConflictException(
+              completeness === 'INCOMPLETE'
+                ? 'PLACEMENT_REPLAY_INCOMPLETE: placement financial state is incomplete'
+                : 'PLACEMENT_REPLAY_INCONSISTENT: placement financial state is inconsistent',
+            );
+          }
           return this.toPlaceTradeResult(
             replay,
             await this.getUserBalanceSnapshot(userId),
@@ -932,8 +1393,15 @@ export class PulseTradeService {
       throw error;
     }
 
+    if ('replay' in placementOutcome) {
+      return this.toPlaceTradeResult(
+        placementOutcome.replay,
+        await this.getUserBalanceSnapshot(userId),
+      );
+    }
+
     return this.toPlaceTradeResult(
-      persistedTrade,
+      placementOutcome.trade,
       await this.getUserBalanceSnapshot(userId),
     );
   }
@@ -1434,6 +1902,8 @@ export class PulseTradeService {
       throw new NotFoundException('TRADE_NOT_FOUND');
     }
 
+    // CRITICAL-2 guard (fast path): pehle se SETTLED hai to idempotent
+    // success — dobara payout/ledger/status-touch bilkul nahi.
     if (preloadedTrade.status === TradeStatus.SETTLED) {
       return this.toSettlementResult(preloadedTrade);
     }
@@ -1479,98 +1949,104 @@ export class PulseTradeService {
       throw error;
     }
 
-    const settledTrade = await this.dataSource.transaction(async (manager) => {
-      const txTradeRepo = manager.getRepository(Trade);
-      const txBalanceRepo = manager.getRepository(Balance);
-      const txLedgerRepo = manager.getRepository(LedgerEntry);
-      const txAdminSettingRepo = manager.getRepository(AdminSetting);
+    try {
+      const settledTrade = await this.dataSource.transaction(
+        async (manager) => {
+          const txTradeRepo = manager.getRepository(Trade);
+          const txBalanceRepo = manager.getRepository(Balance);
+          const txLedgerRepo = manager.getRepository(LedgerEntry);
+          const txAdminSettingRepo = manager.getRepository(AdminSetting);
 
-      const trade = await txTradeRepo.findOne({
-        where: { id: tradeId },
-        lock: { mode: 'pessimistic_write' },
-      });
+          const trade = await txTradeRepo.findOne({
+            where: { id: tradeId },
+            lock: { mode: 'pessimistic_write' },
+          });
 
-      if (!trade) {
-        throw new NotFoundException('TRADE_NOT_FOUND');
-      }
+          if (!trade) {
+            throw new NotFoundException('TRADE_NOT_FOUND');
+          }
 
-      if (trade.status === TradeStatus.SETTLED) {
-        return trade;
-      }
+          if (trade.status === TradeStatus.SETTLED) {
+            return trade;
+          }
 
-      if (this.isTerminalNonSettlableStatus(trade.status)) {
-        throw new ConflictException('TRADE_TERMINAL_STATUS');
-      }
+          if (this.isTerminalNonSettlableStatus(trade.status)) {
+            throw new ConflictException('TRADE_TERMINAL_STATUS');
+          }
 
-      if (trade.expiryAt.getTime() > now.getTime()) {
-        throw new ConflictException('TRADE_NOT_EXPIRED');
-      }
+          if (trade.expiryAt.getTime() > now.getTime()) {
+            throw new ConflictException('TRADE_NOT_EXPIRED');
+          }
 
-      const previousTerminalStatus = trade.status;
-      trade.status = TradeStatus.SETTLING;
-      await txTradeRepo.save(trade);
+          const previousTerminalStatus = trade.status;
+          trade.status = TradeStatus.SETTLING;
+          await txTradeRepo.save(trade);
 
-      let balance = await txBalanceRepo.findOne({
-        where: { userId: trade.userId },
-        lock: { mode: 'pessimistic_write' },
-      });
+          let balance = await txBalanceRepo.findOne({
+            where: { userId: trade.userId },
+            lock: { mode: 'pessimistic_write' },
+          });
 
-      if (!balance) {
-        const zero = '0.000000000000000000';
-        balance = txBalanceRepo.create({
-          userId: trade.userId,
-          availableBalance: zero,
-          lockedBalance: zero,
-          gameLocked: zero,
-          tradingLocked: zero,
-          withdrawalLocked: zero,
-          totalBalance: zero,
-        });
-        balance = await txBalanceRepo.save(balance);
-      }
+          if (!balance) {
+            const zero = '0.000000000000000000';
+            balance = txBalanceRepo.create({
+              userId: trade.userId,
+              availableBalance: zero,
+              lockedBalance: zero,
+              gameLocked: zero,
+              tradingLocked: zero,
+              withdrawalLocked: zero,
+              totalBalance: zero,
+            });
+            balance = await txBalanceRepo.save(balance);
+          }
 
-      const stake = this.parseAmount(trade.amount);
-      const currentlyLocked = this.parseAmount(balance.lockedBalance);
-      const currentlyTradingLocked = this.parseAmount(balance.tradingLocked);
+          const stake = this.parseAmount(trade.amount);
+          const currentlyLocked = this.parseAmount(balance.lockedBalance);
+          const currentlyTradingLocked = this.parseAmount(
+            balance.tradingLocked,
+          );
 
-      if (currentlyLocked.lt(stake) || currentlyTradingLocked.lt(stake)) {
-        throw new ConflictException('BALANCE_LOCK_MISMATCH_FOR_SETTLEMENT');
-      }
+          if (currentlyLocked.lt(stake) || currentlyTradingLocked.lt(stake)) {
+            throw new ConflictException(
+              'BALANCE_LOCK_MISMATCH_FOR_SETTLEMENT',
+            );
+          }
 
-      const entryPrice = this.parseAmount(trade.entryPrice);
-      const expiryPrice = this.parseAmount(settlementPrice);
-      const result = this.determineTradeResult(
-        trade.direction,
-        entryPrice,
-        expiryPrice,
-      );
-      const payout = this.computePayout(stake, result);
+          const entryPrice = this.parseAmount(trade.entryPrice);
+          const expiryPrice = this.parseAmount(settlementPrice);
+          const result = this.determineTradeResult(
+            trade.direction,
+            entryPrice,
+            expiryPrice,
+          );
+          const payout = this.computePayout(stake, result);
 
-      const liquidityPoolSetting =
-        await this.getOrCreateLiquidityPoolSettingForUpdate(manager);
-      const liquidityPoolBalanceBefore = Decimal.max(
-        this.parseAmount(liquidityPoolSetting.value),
-        0,
-      );
-      // Settlement liquidity accounting invariant:
-      //   platformPnl = stake - payout
-      //   poolAfter = poolBefore + platformPnl
-      // WIN  => platformPnl < 0 (pool pays out)
-      // LOSS => platformPnl > 0 (pool retains stake)
-      // DRAW => platformPnl = 0 (pool unchanged)
-      const liquidityPoolDelta = stake.minus(payout);
-      const liquidityPoolBalanceAfter =
-        liquidityPoolBalanceBefore.plus(liquidityPoolDelta);
+          const liquidityPoolSetting =
+            await this.getOrCreateLiquidityPoolSettingForUpdate(manager);
+          const liquidityPoolBalanceBefore = Decimal.max(
+            this.parseAmount(liquidityPoolSetting.value),
+            0,
+          );
+          // Settlement liquidity accounting invariant:
+          //   platformPnl = stake - payout
+          //   poolAfter = poolBefore + platformPnl
+          // WIN  => platformPnl < 0 (pool pays out)
+          // LOSS => platformPnl > 0 (pool retains stake)
+          // DRAW => platformPnl = 0 (pool unchanged)
+          const liquidityPoolDelta = stake.minus(payout);
+          const liquidityPoolBalanceAfter =
+            liquidityPoolBalanceBefore.plus(liquidityPoolDelta);
 
-      if (liquidityPoolBalanceAfter.lt(0)) {
-        throw new ConflictException(
-          'LIQUIDITY_POOL_BALANCE_UNDERFLOW_FOR_SETTLEMENT',
-        );
-      }
+          if (liquidityPoolBalanceAfter.lt(0)) {
+            throw new ConflictException(
+              'LIQUIDITY_POOL_BALANCE_UNDERFLOW_FOR_SETTLEMENT',
+            );
+          }
 
-      liquidityPoolSetting.value = liquidityPoolBalanceAfter.toFixed(18);
-      liquidityPoolSetting.updatedBy = null;
-      await txAdminSettingRepo.save(liquidityPoolSetting);
+          liquidityPoolSetting.value = liquidityPoolBalanceAfter.toFixed(18);
+          liquidityPoolSetting.updatedBy = null;
+          await txAdminSettingRepo.save(liquidityPoolSetting);
 
       const availableBefore = this.parseAmount(balance.availableBalance);
       const lockedAfter = currentlyLocked.minus(stake);
@@ -1647,9 +2123,172 @@ export class PulseTradeService {
       trade.settlementFailureReason = null;
       trade.nextSettlementRetryAt = null;
       return txTradeRepo.save(trade);
+        },
+      );
+
+      return this.toSettlementResult(settledTrade);
+    } catch (error) {
+      // CRITICAL-2 race guard: commit-phase ka koi bhi exception (duplicate /
+      // unique ledger conflict, balance race, DB error) blindly DELAYED me
+      // mat badlo. Pehle authoritative DB state dobara padho:
+      // - SETTLED mil gaya → doosre worker ne jeet liya; idempotent success
+      //   return karo. No payout, no ledger, no status-touch.
+      // - abhi bhi ACTIVE hai → tabhi DELAYED/retry lagao.
+      // - terminal (non-SETTLED) hai → waisa hi rehne do, original error pheko.
+      return this.handleSettlementCommitFailure(tradeId, error);
+    }
+  }
+
+  /**
+   * CRITICAL-2: settlement commit-phase failure ka race-safe handler.
+   * Sirf tabhi SETTLEMENT_DELAYED lagata hai jab trade abhi bhi active
+   * settlement state me hai. SETTLED milne par idempotent success return
+   * hota hai (proof: DB row + existing settlement ledger jab mile).
+   */
+  private async handleSettlementCommitFailure(
+    tradeId: string,
+    error: unknown,
+  ): Promise<SettlementResult> {
+    const current = await this.tradeRepo.findOne({
+      where: { id: tradeId },
     });
 
-    return this.toSettlementResult(settledTrade);
+    if (!current) {
+      throw error instanceof Error
+        ? error
+        : new Error('PULSE_TRADE_SETTLEMENT_FAILED');
+    }
+
+    if (current.status === TradeStatus.SETTLED) {
+      this.logger.log(
+        `settleTrade race resolved for trade ${tradeId}: already SETTLED by a concurrent worker (idempotent success, no duplicate payout)`,
+      );
+      return this.toSettlementResult(current);
+    }
+
+    if (this.isTerminalNonSettlableStatus(current.status)) {
+      this.logger.warn(
+        `settleTrade skipped DELAYED transition for trade ${tradeId}: terminal status ${current.status} preserved`,
+      );
+      throw error instanceof Error
+        ? error
+        : new Error('PULSE_TRADE_SETTLEMENT_FAILED');
+    }
+
+    if (
+      (ACTIVE_SETTLEMENT_STATUSES as string[]).includes(current.status) &&
+      this.isSettlementIdempotencyConflict(error)
+    ) {
+      // Duplicate/idempotency conflict + row abhi bhi ACTIVE: ho sakta hai
+      // winner ka commit itna fresh ho ki re-read me dikha nahi, ya ledger
+      // guard ne duplicate roka ho. Settlement ledger maujood hai to use
+      // successful settlement ka proof mano.
+      const proof = await this.findExistingSettlementProof(tradeId);
+      if (proof.settled) {
+        const settledRow =
+          (await this.tradeRepo.findOne({ where: { id: tradeId } })) ??
+          current;
+        if (settledRow.status === TradeStatus.SETTLED) {
+          this.logger.log(
+            `settleTrade race resolved for trade ${tradeId}: settlement ledger already exists (idempotent success, no duplicate payout)`,
+          );
+          return this.toSettlementResult(settledRow);
+        }
+        this.logger.warn(
+          `settleTrade found existing settlement ledger for trade ${tradeId} but status is ${settledRow.status}; keeping authoritative status, no duplicate payout`,
+        );
+        throw error instanceof Error
+          ? error
+          : new Error('PULSE_TRADE_SETTLEMENT_FAILED');
+      }
+    }
+
+    if ((ACTIVE_SETTLEMENT_STATUSES as string[]).includes(current.status)) {
+      const settlementRetryCount =
+        Math.max(Number(current.settlementRetryCount ?? 0), 0) + 1;
+      const lastSettlementAttemptAt = new Date();
+      const nextSettlementRetryAt = new Date(
+        lastSettlementAttemptAt.getTime() +
+          this.getSettlementRetryDelaySeconds() * 1000,
+      );
+
+      await this.tradeRepo.update(
+        {
+          id: tradeId,
+          status: In(ACTIVE_SETTLEMENT_STATUSES),
+        },
+        {
+          status: TradeStatus.SETTLEMENT_DELAYED,
+          settlementRetryCount,
+          settlementFailureReason: this.toErrorMessage(error),
+          lastSettlementAttemptAt,
+          nextSettlementRetryAt,
+        },
+      );
+    } else {
+      this.logger.warn(
+        `settleTrade skipped DELAYED transition for trade ${tradeId}: status ${current.status} is not an active settlement state`,
+      );
+    }
+
+    throw error instanceof Error
+      ? error
+      : new Error('PULSE_TRADE_SETTLEMENT_FAILED');
+  }
+
+  /**
+   * Duplicate/unique-violation shape detect karta hai (ledger idempotency
+   * guard ya clientRequestId guard se aaya conflict).
+   */
+  private isSettlementIdempotencyConflict(error: unknown): boolean {
+    if (this.isSettlementUniqueViolation(error)) return true;
+    if (this.isClientRequestUniqueViolation(error)) return true;
+    const message = this.toErrorMessage(error);
+    return (
+      message.includes('DUPLICATE') ||
+      message.includes('23505') ||
+      message.includes('IDX_ledger_trade_settlement_reference_unique') ||
+      message.includes('IDX_ledger_trade_fee') ||
+      message.includes('TRADE_SETTLEMENT') ||
+      message.includes('already exists')
+    );
+  }
+
+  /**
+   * Generic Postgres unique-violation (23505) detector — ledger idempotency
+   * guard ya kisi bhi partial unique index se aaya conflict.
+   */
+  private isSettlementUniqueViolation(error: unknown): boolean {
+    if (error instanceof QueryFailedError) {
+      const driverError = error.driverError as { code?: string };
+      if (driverError?.code === '23505') return true;
+    }
+    if (typeof error === 'object' && error !== null) {
+      const code = (error as { code?: unknown }).code;
+      if (code === '23505') return true;
+    }
+    return false;
+  }
+
+  /**
+   * Existing successful settlement ka proof: TRADE_SETTLEMENT referenceType
+   * wala ledger row tradeId par maujood hai ya nahi.
+   */
+  private async findExistingSettlementProof(
+    tradeId: string,
+  ): Promise<{ settled: boolean }> {
+    try {
+      const existing = await this.dataSource.getRepository(LedgerEntry).findOne({
+        where: {
+          referenceId: tradeId,
+          referenceType:
+            PULSE_SETTLEMENT_POLICY.ledger.settlementReferenceType,
+        },
+      });
+      return { settled: Boolean(existing) };
+    } catch {
+      return { settled: false };
+    }
   }
 
   private payoutForTrade(
@@ -1702,6 +2341,9 @@ export class PulseTradeService {
     attemptsMade?: number,
     maxAttempts?: number,
   ): Promise<boolean> {
+    // CRITICAL-1 race guard: conditional UPDATE — SETTLED (or any terminal /
+    // non-active row) kabhi overwrite nahi hoga. Read-then-update nahi hai;
+    // single atomic statement me status predicate hai.
     const normalizedAttemptsMade =
       typeof attemptsMade === 'number' &&
       Number.isFinite(attemptsMade) &&
@@ -1738,9 +2380,269 @@ export class PulseTradeService {
                 : ''
           }: ${reason}`,
       );
+      return true;
     }
 
-    return updated;
+    // affectedRows = 0 → trade ACTIVE list me nahi hai. Authoritative
+    // re-read karke decide karo: SETTLED hai to idempotent success mano
+    // (downgrade mat karo), terminal hai to chhuo mat.
+    const current = await this.tradeRepo.findOne({
+      where: { id: tradeId },
+    });
+
+    if (current?.status === TradeStatus.SETTLED) {
+      this.logger.log(
+        `markTradeSettlementFailed skipped for trade ${tradeId}: already SETTLED (idempotent success, no downgrade)`,
+      );
+      return false;
+    }
+
+    if (current) {
+      this.logger.warn(
+        `markTradeSettlementFailed skipped for trade ${tradeId}: status is ${current.status} (not an active settlement state, no transition applied)`,
+      );
+    }
+
+    return false;
+  }
+
+  /**
+   * HIGH-3 (settlement recovery): SETTLEMENT_FAILED trade ke liye controlled
+   * admin recovery. Yeh method KABHI bhi khud balance credit, payout ledger
+   * insert ya `SETTLED` set nahi karti — wo sab existing authoritative
+   * `settleTrade()` (BullMQ worker ke through) karta hai.
+   *
+   * Recovery = conditional FAILED -> SETTLEMENT_DELAYED reset (CRITICAL-1
+   * ke jaisa race-safe conditional UPDATE) + existing deterministic settle
+   * job (pulseSettlementTradeJobId → BullMQ dedup) re-enqueue. Queue down
+   * ho to 1s expiry scan khud DELAYED trade ko uthata hai (scan query
+   * ACTIVE_SETTLEMENT_STATUSES + expiryAt <= now scan karti hai).
+   */
+  async requestSettlementRecovery(
+    adminId: string,
+    tradeId: string,
+    dto: AdminSettlementRecoveryDto,
+    context: { ipAddress: string | null; userAgent: string | null },
+  ): Promise<SettlementRecoveryResult> {
+    const trade = await this.tradeRepo.findOne({ where: { id: tradeId } });
+    if (!trade) {
+      throw new NotFoundException('TRADE_NOT_FOUND');
+    }
+
+    const previousStatus = trade.status;
+    const reason = typeof dto.reason === 'string' ? dto.reason.trim() : '';
+
+    // Idempotent replay — trade pehle se SETTLED hai: koi payout, koi ledger,
+    // koi status change nahi. Sirf audited result.
+    if (trade.status === TradeStatus.SETTLED) {
+      await this.auditSettlementRecovery(
+        adminId,
+        trade,
+        previousStatus,
+        TradeStatus.SETTLED,
+        'ALREADY_SETTLED',
+        context,
+        reason,
+      );
+      return {
+        tradeId,
+        previousStatus,
+        action: 'ALREADY_SETTLED',
+        status: TradeStatus.SETTLED,
+        jobId: null,
+      };
+    }
+
+    // Sirf SETTLEMENT_FAILED recoverable hai. Active states (ACCEPTED /
+    // ENTRY_CLOSED / EXPIRING / SETTLING / SETTLEMENT_DELAYED) already
+    // existing pipeline me hain; REJECTED / CANCELLED irrecoverable terminal
+    // hain. Koi force-settle path nahi.
+    if (trade.status !== TradeStatus.SETTLEMENT_FAILED) {
+      await this.auditSettlementRecovery(
+        adminId,
+        trade,
+        previousStatus,
+        previousStatus,
+        'REJECTED_NOT_RECOVERABLE',
+        context,
+        reason,
+      );
+      throw new ConflictException(
+        'SETTLEMENT_RECOVERY_NOT_ELIGIBLE: trade is not in SETTLEMENT_FAILED state',
+      );
+    }
+
+    // Eligibility: authoritative settlement data maujood hona chahiye.
+    // Outcome/payout/price kabhi admin set nahi karta — settleTrade derive
+    // karta hai.
+    if (!trade.pair || !trade.amount || !trade.entryPrice || !trade.expiryAt) {
+      await this.auditSettlementRecovery(
+        adminId,
+        trade,
+        previousStatus,
+        previousStatus,
+        'REJECTED_DATA_MISSING',
+        context,
+        reason,
+      );
+      throw new ConflictException('SETTLEMENT_RECOVERY_DATA_MISSING');
+    }
+
+    // CRITICAL-1-consistent race guard: single conditional UPDATE — sirf
+    // FAILED -> SETTLEMENT_DELAYED. Agar concurrent worker settlement beech
+    // me SETTLED kar de to affectedRows = 0 aur hum override nahi karte.
+    const updateResult = await this.tradeRepo.update(
+      { id: tradeId, status: TradeStatus.SETTLEMENT_FAILED },
+      {
+        status: TradeStatus.SETTLEMENT_DELAYED,
+        settlementRetryCount: 0,
+        settlementFailureReason: null,
+        lastSettlementAttemptAt: new Date(),
+        nextSettlementRetryAt: null,
+      },
+    );
+
+    if (Number(updateResult.affected ?? 0) === 0) {
+      const current = await this.tradeRepo.findOne({
+        where: { id: tradeId },
+      });
+
+      if (current?.status === TradeStatus.SETTLED) {
+        await this.auditSettlementRecovery(
+          adminId,
+          trade,
+          previousStatus,
+          TradeStatus.SETTLED,
+          'ALREADY_SETTLED',
+          context,
+          reason,
+        );
+        return {
+          tradeId,
+          previousStatus,
+          action: 'ALREADY_SETTLED',
+          status: TradeStatus.SETTLED,
+          jobId: null,
+        };
+      }
+
+      await this.auditSettlementRecovery(
+        adminId,
+        trade,
+        previousStatus,
+        current?.status ?? previousStatus,
+        'RACE_CONFLICT',
+        context,
+        reason,
+      );
+      throw new ConflictException(
+        'SETTLEMENT_RECOVERY_STATE_CHANGED: trade state changed during recovery',
+      );
+    }
+
+    return this.enqueueSettlementRecoveryJob(adminId, trade, previousStatus, context, reason);
+  }
+
+  /**
+   * Existing deterministic settlement job me re-queue — same job name, same
+   * deterministic jobId (BullMQ duplicate active job dedup karta hai), same
+   * attempts/backoff jo scan jobs use karte hain. Koi parallel/second
+   * settlement implementation nahi.
+   */
+  private async enqueueSettlementRecoveryJob(
+    adminId: string,
+    trade: Trade,
+    previousStatus: TradeStatus,
+    context: { ipAddress: string | null; userAgent: string | null },
+    reason: string,
+  ): Promise<SettlementRecoveryResult> {
+    let jobId: string | null = null;
+    if (this.settlementQueue) {
+      try {
+        jobId = pulseSettlementTradeJobId(trade.id);
+        await this.settlementQueue.add(
+          PULSE_SETTLEMENT_SETTLE_JOB,
+          { tradeId: trade.id },
+          {
+            jobId,
+            attempts: 5,
+            backoff: { type: 'exponential', delay: 1000 },
+            removeOnComplete: 100,
+            removeOnFail: 500,
+          },
+        );
+      } catch (error) {
+        // Redis/queue unavailable: recovery reset (DELAYED + expired) DB me
+        // already hai — existing 1s scan ise utha lega. Queue failure
+        // recovery ko block nahi karti.
+        jobId = null;
+        this.logger.warn(
+          `Pulse settlement recovery enqueue failed for trade ${trade.id}; falling back to expiry scan: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+    }
+
+    await this.auditSettlementRecovery(
+      adminId,
+      trade,
+      previousStatus,
+      TradeStatus.SETTLEMENT_DELAYED,
+      'RECOVERY_QUEUED',
+      context,
+      reason,
+    );
+
+    return {
+      tradeId: trade.id,
+      previousStatus,
+      action: 'RECOVERY_QUEUED',
+      status: TradeStatus.SETTLEMENT_DELAYED,
+      jobId,
+    };
+  }
+
+  private async auditSettlementRecovery(
+    adminId: string,
+    trade: Pick<Trade, 'id' | 'userId' | 'pair' | 'amount'>,
+    previousStatus: TradeStatus,
+    resultingStatus: TradeStatus,
+    result: string,
+    context: { ipAddress: string | null; userAgent: string | null },
+    reason: string,
+  ): Promise<void> {
+    try {
+      const auditRepo = this.dataSource.getRepository(AdminAuditLog);
+      await auditRepo.save(
+        auditRepo.create({
+          adminId,
+          action: PULSE_SETTLEMENT_RECOVERY_AUDIT_ACTION,
+          targetType: PULSE_SETTLEMENT_RECOVERY_AUDIT_TARGET_TYPE,
+          targetId: trade.id,
+          oldValue: { status: previousStatus },
+          newValue: { status: resultingStatus },
+          ipAddress: context.ipAddress,
+          userAgent: context.userAgent,
+          metadata: {
+            tradeId: trade.id,
+            userId: trade.userId,
+            pair: trade.pair,
+            amount: trade.amount,
+            result,
+            reason: reason || null,
+          },
+        }),
+      );
+    } catch (error) {
+      // Audit write fail ho to recovery action block na ho — par loudly log
+      // karo (audit trail operators ke liye critical hai).
+      this.logger.error(
+        `Failed to write pulse settlement recovery audit log for trade ${trade.id}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
   }
 
   private determineTradeResult(

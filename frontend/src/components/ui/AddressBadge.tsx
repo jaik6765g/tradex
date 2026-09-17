@@ -16,11 +16,11 @@ export default function AddressBadge({
   return (
     <div
       className={cx(
-        'inline-flex items-center gap-2 rounded-[10px] border border-[#E4E7EC] bg-[#F8FAFC] px-3 py-1.5',
+        'inline-flex items-center gap-2 rounded-[10px] border border-[#292B33] bg-[#111217] px-3 py-1.5',
         className,
       )}
     >
-      <span className="text-xs font-bold text-[#475467]">
+      <span className="text-xs font-bold text-[#A1A4AE]">
         {formatAddress(address)}
       </span>
 

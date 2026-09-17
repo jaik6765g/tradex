@@ -46,11 +46,11 @@ export default function TradeHero() {
   const Icon = slide.icon;
 
   return (
-      <div className="relative w-full h-[210px] rounded-[22px] overflow-hidden bg-gradient-to-br from-[#0D1B2A] via-[#0A1424] to-[#1A2C4E] shadow-[0_8px_40px_rgba(0,0,0,0.35)] border border-white/10">
+      <div className="relative w-full h-[210px] rounded-[22px] overflow-hidden bg-gradient-to-br from-[#211810] via-[#211810] to-[#34261C] shadow-[0_8px_40px_rgba(0,0,0,0.35)] border border-white/10">
         {/* Subtle background patterns */}
         <div className="absolute inset-0 opacity-10">
-          <div className="absolute -top-10 -left-10 w-52 h-52 rounded-full bg-[#FBBF24] blur-[100px]" />
-          <div className="absolute -bottom-10 -right-10 w-52 h-52 rounded-full bg-[#3B82F6] blur-[100px]" />
+          <div className="absolute -top-10 -left-10 w-52 h-52 rounded-full bg-[#FF7A18] blur-[100px]" />
+          <div className="absolute -bottom-10 -right-10 w-52 h-52 rounded-full bg-[#C99752] blur-[100px]" />
         </div>
 
         <div className="h-full px-6 py-5 flex relative overflow-hidden">
@@ -59,15 +59,15 @@ export default function TradeHero() {
               {slide.title}
             </div>
 
-            <div className="text-[#FBBF24] text-[24px] font-black leading-[30px] tracking-tight drop-shadow-[0_2px_10px_rgba(251,191,36,0.3)]">
+            <div className="text-[#FF7A18] text-[24px] font-black leading-[30px] tracking-tight drop-shadow-[0_2px_10px_rgba(255,122,24,0.3)]">
               {slide.highlight}
             </div>
 
-            <div className="text-[#E2E8F0] text-[13px] leading-[19px] mt-2 max-w-[230px] opacity-90">
+            <div className="text-[#A1A4AE] text-[13px] leading-[19px] mt-2 max-w-[230px] opacity-90">
               {slide.description}
             </div>
 
-            <button className="mt-4 bg-gradient-to-r from-[#FBBF24] to-[#F59E0B] rounded-[12px] px-5 py-2.5 flex items-center gap-2 text-[#0D1B2A] text-[13px] font-black shadow-[0_4px_15px_rgba(251,191,36,0.4)] hover:shadow-[0_6px_25px_rgba(251,191,36,0.6)] hover:scale-[1.02] transition-all duration-300">
+            <button className="mt-4 bg-gradient-to-r from-[#FF7A18] to-[#FF8F3D] rounded-[12px] px-5 py-2.5 flex items-center gap-2 text-[#211810] text-[13px] font-black shadow-[0_4px_15px_rgba(255,122,24,0.4)] hover:shadow-[0_6px_25px_rgba(255,122,24,0.35)] hover:scale-[1.02] transition-all duration-300">
               {slide.button}
               <ChevronRight size={18} className="stroke-[2.5]" />
             </button>
@@ -75,24 +75,24 @@ export default function TradeHero() {
 
           <div className="absolute right-[-10px] top-0 w-[48%] h-[210px]">
             {/* Glow behind the TDX coin */}
-            <div className="absolute w-[180px] h-[180px] rounded-full bg-[#FBBF24]/[0.1] right-0 top-6 blur-[20px]" />
+            <div className="absolute w-[180px] h-[180px] rounded-full bg-[#FF7A18]/[0.1] right-0 top-6 blur-[20px]" />
 
-            <div className="absolute w-[115px] h-[115px] rounded-full right-5 top-[42px] bg-gradient-to-br from-[#FBBF24] to-[#F59E0B] flex items-center justify-center shadow-[0_0_35px_rgba(251,191,36,0.7)] animate-pulse-slow border-2 border-white/20">
-            <span className="text-[#0D1B2A] text-[28px] font-black drop-shadow-sm">
+            <div className="absolute w-[115px] h-[115px] rounded-full right-5 top-[42px] bg-gradient-to-br from-[#FF7A18] to-[#FF8F3D] flex items-center justify-center shadow-[0_0_35px_rgba(255,122,24,0.35)] animate-pulse-slow border-2 border-white/20">
+            <span className="text-[#211810] text-[28px] font-black drop-shadow-sm">
               TDX
             </span>
             </div>
 
-            <div className="absolute w-[30px] h-[30px] rounded-full right-[135px] top-[35px] bg-gradient-to-br from-[#DFA719] to-[#FBBF24] flex items-center justify-center shadow-[0_0_15px_rgba(251,191,36,0.5)]">
+            <div className="absolute w-[30px] h-[30px] rounded-full right-[135px] top-[35px] bg-gradient-to-br from-[#FF8F3D] to-[#FF7A18] flex items-center justify-center shadow-[0_0_15px_rgba(255,122,24,0.3)]">
               <span className="text-white text-[12px] font-black">T</span>
             </div>
 
-            <div className="absolute w-[34px] h-[34px] rounded-full right-1 bottom-[30px] bg-gradient-to-br from-[#DFA719] to-[#FBBF24] flex items-center justify-center shadow-[0_0_15px_rgba(251,191,36,0.5)]">
+            <div className="absolute w-[34px] h-[34px] rounded-full right-1 bottom-[30px] bg-gradient-to-br from-[#FF8F3D] to-[#FF7A18] flex items-center justify-center shadow-[0_0_15px_rgba(255,122,24,0.3)]">
               <span className="text-white text-[12px] font-black">T</span>
             </div>
 
-            <div className="absolute right-[115px] bottom-[20px] w-[60px] h-[60px] rounded-full bg-[#111D30]/80 border border-white/20 backdrop-blur-sm flex items-center justify-center shadow-[0_0_20px_rgba(251,191,36,0.2)]">
-              <Icon size={46} color="#FBBF24" strokeWidth={2.5} />
+            <div className="absolute right-[115px] bottom-[20px] w-[60px] h-[60px] rounded-full bg-[#211810]/80 border border-white/20 backdrop-blur-sm flex items-center justify-center shadow-[0_0_20px_rgba(255,122,24,0.2)]">
+              <Icon size={46} color="#FF7A18" strokeWidth={2.5} />
             </div>
           </div>
         </div>
@@ -105,8 +105,8 @@ export default function TradeHero() {
                   onClick={() => setActiveIndex(index)}
                   className={`h-[8px] rounded-full transition-all duration-300 ${
                       index === activeIndex
-                          ? 'w-6 bg-gradient-to-r from-[#FBBF24] to-[#F59E0B] shadow-[0_0_10px_rgba(251,191,36,0.6)]'
-                          : 'w-[8px] bg-[#667085] hover:bg-[#94A3B8]'
+                          ? 'w-6 bg-gradient-to-r from-[#FF7A18] to-[#FF8F3D] shadow-[0_0_10px_rgba(255,122,24,0.35)]'
+                          : 'w-[8px] bg-[#70737E] hover:bg-[#A1A4AE]'
                   }`}
               />
           ))}

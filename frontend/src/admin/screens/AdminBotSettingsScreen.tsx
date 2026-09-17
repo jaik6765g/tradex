@@ -99,9 +99,9 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-[16px] border border-[#E5E7EB] bg-white p-4">
-      <h2 className="text-sm font-black text-[#111827]">{title}</h2>
-      <p className="mt-0.5 text-xs text-[#667085]">{description}</p>
+    <section className="rounded-[16px] border border-[#292B33] bg-[#15161C] p-4">
+      <h2 className="text-sm font-black text-[#F5F5F7]">{title}</h2>
+      <p className="mt-0.5 text-xs text-[#A1A4AE]">{description}</p>
       <div className="mt-4">{children}</div>
     </section>
   );
@@ -125,7 +125,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#667085]">
+      <span className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#A1A4AE]">
         {label}
       </span>
       <div className="mt-1 flex items-center gap-2">
@@ -135,13 +135,13 @@ function Field({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className={`h-10 w-full rounded-[10px] border bg-white px-3 text-sm font-bold text-[#111827] outline-none transition focus:ring-2 ${
+          className={`h-10 w-full rounded-[10px] border bg-[#15161C] px-3 text-sm font-bold text-[#F5F5F7] outline-none transition focus:ring-2 ${
             invalid
-              ? 'border-[#D92D20] focus:ring-[#FECDCA]'
-              : 'border-[#D0D5DD] focus:ring-[#D1E9FF]'
+              ? 'border-[#D92D20] focus:ring-[#4A2323]'
+              : 'border-[#34343E] focus:ring-[#1E3A5F]'
           }`}
         />
-        <span className="min-w-[42px] text-xs font-black text-[#667085]">
+        <span className="min-w-[42px] text-xs font-black text-[#A1A4AE]">
           {suffix}
         </span>
       </div>
@@ -291,7 +291,7 @@ export default function AdminBotSettingsScreen() {
   if (loading && !settings) {
     return (
       <div className="space-y-3">
-        <section className="rounded-[16px] border border-[#E5E7EB] bg-white p-4">
+        <section className="rounded-[16px] border border-[#292B33] bg-[#15161C] p-4">
           <Skeleton className="h-5 w-48" />
           <div className="mt-4 space-y-2">
             {Array.from({ length: 6 }).map((_, i) => (
@@ -318,17 +318,17 @@ export default function AdminBotSettingsScreen() {
   return (
     <div className="space-y-3">
       {/* Header */}
-      <section className="rounded-[16px] border border-[#E5E7EB] bg-white p-4">
+      <section className="rounded-[16px] border border-[#292B33] bg-[#15161C] p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#E5E7EB] bg-[#F9FAFB]">
-              <Bot size={18} className="text-[#344054]" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#292B33] bg-[#15161C]">
+              <Bot size={18} className="text-[#E4E5E8]" />
             </div>
             <div>
-              <h1 className="text-[18px] font-black text-[#111827]">
+              <h1 className="text-[18px] font-black text-[#F5F5F7]">
                 Bot Settings
               </h1>
-              <p className="text-xs text-[#667085]">
+              <p className="text-xs text-[#A1A4AE]">
                 Activation limits, first-activation allocation, referral rates
                 and qualification
               </p>
@@ -349,12 +349,12 @@ export default function AdminBotSettingsScreen() {
 
       {/* Feedback */}
       {error && (
-        <div className="rounded-[12px] border border-[#FECDCA] bg-[#FEF3F2] px-4 py-3 text-sm font-bold text-[#B42318]">
+        <div className="rounded-[12px] border border-[#4A2323] bg-[#281313] px-4 py-3 text-sm font-bold text-[#F87171]">
           {error}
         </div>
       )}
       {successMessage && (
-        <div className="rounded-[12px] border border-[#ABEFC6] bg-[#ECFDF3] px-4 py-3 text-sm font-bold text-[#067647]">
+        <div className="rounded-[12px] border border-[#1E4A32] bg-[#10251A] px-4 py-3 text-sm font-bold text-[#4ADE80]">
           {successMessage}
         </div>
       )}
@@ -409,16 +409,16 @@ export default function AdminBotSettingsScreen() {
         </div>
         <div className="mt-3 flex items-center gap-1.5 text-xs font-bold">
           {allocationValid ? (
-            <span className="inline-flex items-center gap-1 text-[#067647]">
+            <span className="inline-flex items-center gap-1 text-[#4ADE80]">
               <Check size={14} /> Valid — allocation totals 100%
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 text-[#B42318]">
+            <span className="inline-flex items-center gap-1 text-[#F87171]">
               <X size={14} /> Liquidity + Referral Reserve must total 100%
             </span>
           )}
         </div>
-        <div className="mt-2 text-[10px] text-[#667085]">
+        <div className="mt-2 text-[10px] text-[#A1A4AE]">
           Current total:{' '}
           {form
             ? (parseFloat(form.liquidityAllocationRate) + parseFloat(form.firstReferralRate)).toFixed(2)
@@ -445,21 +445,21 @@ export default function AdminBotSettingsScreen() {
             />
           ))}
         </div>
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-[10px] border border-[#EAECF0] bg-[#F9FAFB] px-3 py-2">
-          <p className="text-xs font-bold text-[#344054]">
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-[10px] border border-[#202229] bg-[#15161C] px-3 py-2">
+          <p className="text-xs font-bold text-[#E4E5E8]">
             Total Referral Rate:{' '}
-            <span className="text-[#111827]">
+            <span className="text-[#F5F5F7]">
               {levelRateSum !== null
                 ? `${(Number(levelRateSum) / 10 ** RATE_SCALE).toFixed(2)}%`
                 : '—'}
             </span>
           </p>
           {referralRatesValid ? (
-            <span className="inline-flex items-center gap-1 text-xs font-bold text-[#067647]">
+            <span className="inline-flex items-center gap-1 text-xs font-bold text-[#4ADE80]">
               <Check size={14} /> Valid
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 text-xs font-bold text-[#B42318]">
+            <span className="inline-flex items-center gap-1 text-xs font-bold text-[#F87171]">
               <X size={14} /> Referral rates must total{' '}
               {formatRateDisplay(form.firstReferralRate)}%
             </span>
@@ -486,8 +486,8 @@ export default function AdminBotSettingsScreen() {
           ))}
         </div>
 
-        <div className="mt-4 rounded-[12px] border border-[#EAECF0] bg-[#F9FAFB] p-3">
-          <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#667085]">
+        <div className="mt-4 rounded-[12px] border border-[#202229] bg-[#15161C] p-3">
+          <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#A1A4AE]">
             Qualification Table
           </p>
           <div className="mt-2 grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
@@ -500,12 +500,12 @@ export default function AdminBotSettingsScreen() {
               return (
                 <div
                   key={count}
-                  className="flex items-center justify-between rounded-[8px] border border-[#EAECF0] bg-white px-2.5 py-1.5"
+                  className="flex items-center justify-between rounded-[8px] border border-[#202229] bg-[#15161C] px-2.5 py-1.5"
                 >
-                  <span className="text-xs font-bold text-[#344054]">
+                  <span className="text-xs font-bold text-[#E4E5E8]">
                     {count} Active Direct{count === 1 ? '' : 's'}
                   </span>
-                  <span className="text-xs font-black text-[#111827]">
+                  <span className="text-xs font-black text-[#F5F5F7]">
                     {unlocked.length === 0
                       ? 'None'
                       : unlocked.length === 6
@@ -517,7 +517,7 @@ export default function AdminBotSettingsScreen() {
             })}
           </div>
           {!qualificationValid && (
-            <p className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-[#B42318]">
+            <p className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-[#F87171]">
               <X size={14} /> Qualification thresholds must be {'>= 1'} and
               non-decreasing (L2 {'>='} L1, L3 {'>='} L2, ...)
             </p>
@@ -526,13 +526,13 @@ export default function AdminBotSettingsScreen() {
       </Section>
 
       {/* Save */}
-      <section className="rounded-[16px] border border-[#E5E7EB] bg-white p-4">
+      <section className="rounded-[16px] border border-[#292B33] bg-[#15161C] p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-bold text-[#344054]">
+            <p className="text-xs font-bold text-[#E4E5E8]">
               {hasChanges ? 'You have unsaved changes' : 'All changes saved'}
             </p>
-            <p className="text-[11px] text-[#667085]">
+            <p className="text-[11px] text-[#A1A4AE]">
               Last updated:{' '}
               {settings.updatedAt
                 ? new Date(settings.updatedAt).toLocaleString()

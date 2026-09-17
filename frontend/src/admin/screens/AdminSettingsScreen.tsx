@@ -198,11 +198,11 @@ export default function AdminSettingsScreen() {
   return (
     <div className="space-y-3">
       {/* Header */}
-      <section className="rounded-[16px] border border-[#E5E7EB] bg-white p-4">
+      <section className="rounded-[16px] border border-[#292B33] bg-[#15161C] p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-[20px] font-black text-[#111827]">Settings</h1>
-            <p className="mt-0.5 text-xs text-[#667085]">
+            <h1 className="text-[20px] font-black text-[#F5F5F7]">Settings</h1>
+            <p className="mt-0.5 text-xs text-[#A1A4AE]">
               Manage backend-persisted admin settings only. Changes are validated and audit logged.
             </p>
           </div>
@@ -222,8 +222,8 @@ export default function AdminSettingsScreen() {
       {feedback && (
         <section className={`rounded-[12px] border px-3 py-2.5 ${
           feedback.type === 'success'
-            ? 'border-[#ABEFC6] bg-[#ECFDF3] text-[#067647]'
-            : 'border-[#FECDCA] bg-[#FEF3F2] text-[#B42318]'
+            ? 'border-[#1E4A32] bg-[#10251A] text-[#4ADE80]'
+            : 'border-[#4A2323] bg-[#281313] text-[#F87171]'
         }`}>
           <div className="flex items-center justify-between gap-2">
             <p className="text-xs font-semibold">{feedback.message}</p>
@@ -235,13 +235,13 @@ export default function AdminSettingsScreen() {
       )}
 
       {/* Filters */}
-      <section className="rounded-[16px] border border-[#E5E7EB] bg-white p-4">
+      <section className="rounded-[16px] border border-[#292B33] bg-[#15161C] p-4">
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_auto_auto]">
           <div>
-            <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#667085]">Search</label>
+            <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#A1A4AE]">Search</label>
             <div className="flex items-center gap-2">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#98A2B3]" />
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#70737E]" />
                 <input
                   type="text"
                   value={searchInput}
@@ -253,7 +253,7 @@ export default function AdminSettingsScreen() {
                     }
                   }}
                   placeholder="Search key, description, or value..."
-                  className="h-10 w-full rounded-[10px] border border-[#D0D5DD] bg-white pl-9 pr-3 text-sm text-[#111827] placeholder:text-[#98A2B3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F5B800]"
+                  className="h-10 w-full rounded-[10px] border border-[#34343E] bg-[#15161C] pl-9 pr-3 text-sm text-[#F5F5F7] placeholder:text-[#70737E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A18]"
                 />
               </div>
               <Button
@@ -271,7 +271,7 @@ export default function AdminSettingsScreen() {
           </div>
 
           <div>
-            <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#667085]">Rows</label>
+            <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#A1A4AE]">Rows</label>
             <select
               value={settingsState.limit}
               onChange={(e) => {
@@ -281,7 +281,7 @@ export default function AdminSettingsScreen() {
                   offset: 0,
                 }));
               }}
-              className="h-10 rounded-[10px] border border-[#D0D5DD] bg-white px-3 text-sm font-semibold text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F5B800]"
+              className="h-10 rounded-[10px] border border-[#34343E] bg-[#15161C] px-3 text-sm font-semibold text-[#F5F5F7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A18]"
             >
               {[20, 50, 100].map((option) => (
                 <option key={option} value={option}>{option}</option>
@@ -309,7 +309,7 @@ export default function AdminSettingsScreen() {
       {loading ? (
         <section className="grid grid-cols-1 gap-3 xl:grid-cols-2">
           {Array.from({ length: SECTION_DEFINITIONS.length }).map((_, index) => (
-            <div key={`setting-section-skeleton-${index}`} className="rounded-[16px] border border-[#E5E7EB] bg-white p-4">
+            <div key={`setting-section-skeleton-${index}`} className="rounded-[16px] border border-[#292B33] bg-[#15161C] p-4">
               <Skeleton className="h-5 w-40" />
               <div className="mt-3 space-y-2">
                 {Array.from({ length: 3 }).map((__, rowIndex) => (
@@ -332,31 +332,31 @@ export default function AdminSettingsScreen() {
 
       {!loading && !error && (
         <section className="space-y-3">
-          <div className="rounded-[12px] border border-[#E5E7EB] bg-white px-3 py-2 text-xs text-[#667085]">
-            Showing <span className="font-bold text-[#111827]">{rangeStart}-{rangeEnd}</span> of{' '}
-            <span className="font-bold text-[#111827]">{settingsState.total}</span> settings
+          <div className="rounded-[12px] border border-[#292B33] bg-[#15161C] px-3 py-2 text-xs text-[#A1A4AE]">
+            Showing <span className="font-bold text-[#F5F5F7]">{rangeStart}-{rangeEnd}</span> of{' '}
+            <span className="font-bold text-[#F5F5F7]">{settingsState.total}</span> settings
           </div>
 
           <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
             {SECTION_DEFINITIONS.map((section) => {
               const sectionItems = groupedSettings[section.key];
               return (
-                <article key={section.key} className="rounded-[16px] border border-[#E5E7EB] bg-white p-4">
-                  <h2 className="text-xs font-black uppercase tracking-[0.08em] text-[#475467]">{section.label}</h2>
+                <article key={section.key} className="rounded-[16px] border border-[#292B33] bg-[#15161C] p-4">
+                  <h2 className="text-xs font-black uppercase tracking-[0.08em] text-[#A1A4AE]">{section.label}</h2>
 
                   {sectionItems.length === 0 ? (
-                    <div className="mt-3 rounded-[12px] border border-dashed border-[#D0D5DD] bg-[#F9FAFB] p-3 text-xs text-[#667085]">
+                    <div className="mt-3 rounded-[12px] border border-dashed border-[#34343E] bg-[#15161C] p-3 text-xs text-[#A1A4AE]">
                       No backend-persisted settings in this category.
                     </div>
                   ) : (
                     <div className="mt-3 space-y-2">
                       {sectionItems.map((setting) => (
-                        <div key={setting.id} className="rounded-[12px] border border-[#EAECF0] bg-[#F9FAFB] p-3">
+                        <div key={setting.id} className="rounded-[12px] border border-[#202229] bg-[#15161C] p-3">
                           <div className="flex flex-wrap items-start justify-between gap-2">
                             <div className="min-w-0">
-                              <p className="text-xs font-black text-[#111827] break-all">{setting.key}</p>
+                              <p className="text-xs font-black text-[#F5F5F7] break-all">{setting.key}</p>
                               {setting.description && (
-                                <p className="mt-1 text-[11px] text-[#667085]">{setting.description}</p>
+                                <p className="mt-1 text-[11px] text-[#A1A4AE]">{setting.description}</p>
                               )}
                             </div>
                             <div className="flex items-center gap-1.5">
@@ -378,11 +378,11 @@ export default function AdminSettingsScreen() {
                               </Button>
                             </div>
                           </div>
-                          <pre className="mt-2 max-h-36 overflow-auto whitespace-pre-wrap break-words rounded-[8px] border border-[#EAECF0] bg-white p-2 text-[11px] text-[#111827]">
+                          <pre className="mt-2 max-h-36 overflow-auto whitespace-pre-wrap break-words rounded-[8px] border border-[#202229] bg-[#15161C] p-2 text-[11px] text-[#F5F5F7]">
                             {stringifyValue(setting.parsedValue, setting.valueType)}
                           </pre>
-                          <p className="mt-2 text-[10px] text-[#667085]">
-                            Updated: <span className="font-semibold text-[#111827]">{formatDateTime(setting.updatedAt)}</span>
+                          <p className="mt-2 text-[10px] text-[#A1A4AE]">
+                            Updated: <span className="font-semibold text-[#F5F5F7]">{formatDateTime(setting.updatedAt)}</span>
                           </p>
                         </div>
                       ))}
@@ -394,7 +394,7 @@ export default function AdminSettingsScreen() {
           </div>
 
           {/* Pagination */}
-          <div className="rounded-[16px] border border-[#E5E7EB] bg-white px-3 py-2.5">
+          <div className="rounded-[16px] border border-[#292B33] bg-[#15161C] px-3 py-2.5">
             <div className="flex flex-wrap items-center justify-end gap-2">
               <Button
                 variant="secondary"
@@ -405,7 +405,7 @@ export default function AdminSettingsScreen() {
               >
                 Previous
               </Button>
-              <span className="text-xs font-semibold text-[#344054]">Page {currentPage} of {totalPages}</span>
+              <span className="text-xs font-semibold text-[#E4E5E8]">Page {currentPage} of {totalPages}</span>
               <Button
                 variant="secondary"
                 size="sm"
@@ -423,23 +423,23 @@ export default function AdminSettingsScreen() {
       {/* Edit Modal */}
       {editing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#101828]/50 p-4">
-          <div className="w-full max-w-2xl rounded-[16px] border border-[#E5E7EB] bg-white p-4 shadow-xl">
+          <div className="w-full max-w-2xl rounded-[16px] border border-[#292B33] bg-[#15161C] p-4 shadow-xl">
             <div className="mb-3 flex items-center justify-between gap-2">
-              <h2 className="text-lg font-black text-[#111827]">Edit Setting</h2>
+              <h2 className="text-lg font-black text-[#F5F5F7]">Edit Setting</h2>
               <Button variant="secondary" size="sm" className="h-8 px-3 text-xs" onClick={() => setEditing(null)}>
                 Close
               </Button>
             </div>
             <div className="space-y-2">
-              <p className="text-xs text-[#667085]">
-                <span className="font-bold text-[#111827]">{editing.setting.key}</span> ({editing.setting.valueType})
+              <p className="text-xs text-[#A1A4AE]">
+                <span className="font-bold text-[#F5F5F7]">{editing.setting.key}</span> ({editing.setting.valueType})
               </p>
               <textarea
                 value={editing.value}
                 onChange={(e) => setEditing((prev) => prev ? { ...prev, value: e.target.value } : prev)}
-                className="min-h-[220px] w-full rounded-[10px] border border-[#D0D5DD] bg-white p-3 text-xs text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F5B800]"
+                className="min-h-[220px] w-full rounded-[10px] border border-[#34343E] bg-[#15161C] p-3 text-xs text-[#F5F5F7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A18]"
               />
-              <p className="text-[11px] text-[#667085]">
+              <p className="text-[11px] text-[#A1A4AE]">
                 This setting is persisted through frontend → AdminService → backend validation/service → database.
               </p>
             </div>
@@ -459,19 +459,19 @@ export default function AdminSettingsScreen() {
       {/* Confirm Modal */}
       {confirming && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#101828]/50 p-4">
-          <div className="w-full max-w-lg rounded-[16px] border border-[#E5E7EB] bg-white p-4 shadow-xl">
-            <h2 className="text-base font-black text-[#111827]">Confirm Setting Change</h2>
-            <p className="mt-2 text-xs text-[#475467]">
-              You are about to update <span className="font-bold text-[#111827]">{confirming.setting.key}</span>.
+          <div className="w-full max-w-lg rounded-[16px] border border-[#292B33] bg-[#15161C] p-4 shadow-xl">
+            <h2 className="text-base font-black text-[#F5F5F7]">Confirm Setting Change</h2>
+            <p className="mt-2 text-xs text-[#A1A4AE]">
+              You are about to update <span className="font-bold text-[#F5F5F7]">{confirming.setting.key}</span>.
               {isSensitiveSetting(confirming.setting) && ' This is a sensitive setting and should be reviewed carefully before applying.'}
             </p>
-            <div className="mt-3 rounded-[10px] border border-[#EAECF0] bg-[#F9FAFB] p-3 text-[11px] text-[#111827]">
+            <div className="mt-3 rounded-[10px] border border-[#202229] bg-[#15161C] p-3 text-[11px] text-[#F5F5F7]">
               <p><span className="font-semibold">Value Type:</span> {confirming.payload.valueType}</p>
-              <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-[8px] bg-white p-2 text-[11px] text-[#111827]">
+              <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-[8px] bg-[#15161C] p-2 text-[11px] text-[#F5F5F7]">
                 {confirming.payload.value}
               </pre>
             </div>
-            <p className="mt-3 text-[11px] text-[#667085]">
+            <p className="mt-3 text-[11px] text-[#A1A4AE]">
               On success, settings data will refresh and backend will create an audit record for this update.
             </p>
             <div className="mt-4 flex justify-end gap-2">

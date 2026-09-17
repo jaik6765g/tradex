@@ -106,7 +106,7 @@ export default function ReferralStructure({
             <Ionicons
                 name="git-network-outline"
                 size={15}
-                color="#F59E0B"
+                color="#FF8F3D"
             />
 
             <Text style={styles.levelBadgeText}>
@@ -197,7 +197,7 @@ export default function ReferralStructure({
                   <Ionicons
                       name={expanded ? 'chevron-up' : 'chevron-down'}
                       size={18}
-                      color="#64748B"
+                      color="#70737E"
                   />
                 </Pressable>
 
@@ -233,7 +233,7 @@ export default function ReferralStructure({
                             <Ionicons
                                 name="people-outline"
                                 size={25}
-                                color="#CBD5E1"
+                                color="#34343E"
                             />
 
                             <Text style={styles.emptyText}>
@@ -266,7 +266,7 @@ export default function ReferralStructure({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#0D1B2A',
+    backgroundColor: '#211810',
     borderRadius: 20,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 100,
-    backgroundColor: 'rgba(251,191,36,0.05)',
+    backgroundColor: 'rgba(255,122,24,0.05)',
     top: -50,
     right: -50,
   },
@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
     width: 150,
     height: 150,
     borderRadius: 75,
-    backgroundColor: 'rgba(251,191,36,0.03)',
+    backgroundColor: 'rgba(255,122,24,0.03)',
     bottom: -30,
     left: -30,
   },
@@ -315,13 +315,13 @@ const styles = StyleSheet.create({
   },
 
   subtitle: {
-    color: '#64748B',
+    color: '#70737E',
     fontSize: 11,
     marginTop: 3,
   },
 
   levelBadge: {
-    backgroundColor: 'rgba(251,191,36,0.1)',
+    backgroundColor: 'rgba(255,122,24,0.1)',
     borderRadius: 10,
     paddingHorizontal: 9,
     paddingVertical: 6,
@@ -329,11 +329,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     borderWidth: 1,
-    borderColor: 'rgba(251,191,36,0.2)',
+    borderColor: 'rgba(255,122,24,0.2)',
   },
 
   levelBadgeText: {
-    color: '#FBBF24',
+    color: '#FF7A18',
     fontSize: 10,
     fontWeight: '800',
   },
@@ -349,20 +349,20 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: 'rgba(251,191,36,0.06)',
+    backgroundColor: 'rgba(255,122,24,0.06)',
     top: -20,
   },
 
   rootCard: {
     width: '100%',
-    backgroundColor: '#111C2E',
+    backgroundColor: '#211810',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(251,191,36,0.2)',
+    borderColor: 'rgba(255,122,24,0.2)',
     padding: 13,
     flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#FBBF24',
+    shadowColor: '#FF7A18',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
@@ -373,7 +373,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#25344B',
+    backgroundColor: '#34261C',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -384,7 +384,7 @@ const styles = StyleSheet.create({
   },
 
   rootLabel: {
-    color: '#CBD5E1',
+    color: '#34343E',
     fontSize: 10,
   },
 
@@ -400,12 +400,12 @@ const styles = StyleSheet.create({
   },
 
   rootEarnedLabel: {
-    color: '#94A3B8',
+    color: '#A1A4AE',
     fontSize: 9,
   },
 
   rootEarnedValue: {
-    color: '#FBBF24',
+    color: '#FF7A18',
     fontSize: 14,
     fontWeight: '900',
     marginTop: 3,
@@ -430,7 +430,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#111C2E',
+    backgroundColor: '#211810',
   },
 
   levelIcon: {
@@ -458,7 +458,7 @@ const styles = StyleSheet.create({
   },
 
   levelMeta: {
-    color: '#94A3B8',
+    color: '#A1A4AE',
     fontSize: 9,
     marginTop: 3,
   },
@@ -474,7 +474,7 @@ const styles = StyleSheet.create({
   },
 
   memberCount: {
-    color: '#94A3B8',
+    color: '#A1A4AE',
     fontSize: 9,
     marginTop: 2,
   },
@@ -501,7 +501,7 @@ const styles = StyleSheet.create({
   },
 
   summaryLabel: {
-    color: '#64748B',
+    color: '#70737E',
     fontSize: 9,
   },
 
@@ -529,7 +529,7 @@ const styles = StyleSheet.create({
   },
 
   emptyText: {
-    color: '#94A3B8',
+    color: '#A1A4AE',
     fontSize: 11,
     marginTop: 5,
   },

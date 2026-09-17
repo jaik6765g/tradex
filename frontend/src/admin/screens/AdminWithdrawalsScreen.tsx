@@ -1,7 +1,7 @@
 // frontend/src/admin/screens/AdminWithdrawalsScreen.tsx
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { RefreshCw, Search, X, CheckSquare } from 'lucide-react';
+import { RefreshCw, Search, Wallet, X, CheckSquare } from 'lucide-react';
 import { usePublicClient, useWriteContract } from 'wagmi';
 
 import { AdminService } from '../services/admin.service';
@@ -116,26 +116,26 @@ function WithdrawalFilters({
   onReset: () => void;
 }) {
   return (
-    <section className="rounded-[16px] border border-[#E5E7EB] bg-white p-3">
+    <section className="rounded-[16px] border border-[#292B33] bg-[#15161C] p-3">
       <form
         className="grid grid-cols-1 gap-2 md:grid-cols-[minmax(0,1fr)_180px_140px_auto]"
         onSubmit={(e) => { e.preventDefault(); onSearchSubmit(); }}
       >
         <div className="relative">
-          <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#98A2B3]" />
+          <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#70737E]" />
           <input
             type="text"
             placeholder="Search by withdrawal ID, user ID, or wallet"
             value={searchInput}
             onChange={(e) => onSearchInputChange(e.target.value)}
-            className="w-full rounded-[10px] border border-[#D0D5DD] bg-white pl-9 pr-3 py-2 text-sm text-[#111827] placeholder:text-[#98A2B3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F5B800]"
+            className="w-full rounded-[10px] border border-[#34343E] bg-[#15161C] pl-9 pr-3 py-2 text-sm text-[#F5F5F7] placeholder:text-[#70737E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A18]"
           />
         </div>
 
         <select
           value={status}
           onChange={(e) => onStatusChange(e.target.value as AdminWithdrawalFilterStatus)}
-          className="rounded-[10px] border border-[#D0D5DD] bg-white px-3 py-2 text-sm font-semibold text-[#111827] outline-none focus-visible:ring-2 focus-visible:ring-[#F5B800]"
+          className="rounded-[10px] border border-[#34343E] bg-[#15161C] px-3 py-2 text-sm font-semibold text-[#F5F5F7] outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A18]"
         >
           {WITHDRAWAL_STATUS_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>{option.label}</option>
@@ -145,7 +145,7 @@ function WithdrawalFilters({
         <select
           value={limit}
           onChange={(e) => onLimitChange(Number(e.target.value))}
-          className="rounded-[10px] border border-[#D0D5DD] bg-white px-3 py-2 text-sm font-semibold text-[#111827] outline-none focus-visible:ring-2 focus-visible:ring-[#F5B800]"
+          className="rounded-[10px] border border-[#34343E] bg-[#15161C] px-3 py-2 text-sm font-semibold text-[#F5F5F7] outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A18]"
         >
           {PAGE_SIZE_OPTIONS.map((size) => (
             <option key={size} value={size}>{size} / page</option>
@@ -199,32 +199,32 @@ function WithdrawalTableRow({
   );
 
   return (
-    <tr className="align-top transition-colors hover:bg-[#F8FAFC]">
-      <td className="px-3 py-2 text-xs text-[#111827]">
+    <tr className="align-top transition-colors hover:bg-[#111217]">
+      <td className="px-3 py-2 text-xs text-[#F5F5F7]">
         <input
           type="checkbox"
           checked={isSelected}
           disabled={isDisabled}
           onChange={(e) => onSelect(withdrawal.id, e.target.checked)}
-          className="h-4 w-4 cursor-pointer rounded border-[#D0D5DD] text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F5B800] disabled:cursor-not-allowed disabled:opacity-50"
+          className="h-4 w-4 cursor-pointer rounded border-[#34343E] text-[#F5F5F7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A18] disabled:cursor-not-allowed disabled:opacity-50"
           aria-label={`Select withdrawal ${withdrawal.id}`}
         />
       </td>
-      <td className="px-3 py-2 text-xs text-[#111827]">
+      <td className="px-3 py-2 text-xs text-[#F5F5F7]">
         <p className="font-mono font-bold">{withdrawal.id.slice(0, 8)}...</p>
-        <p className="mt-1 text-[10px] text-[#667085]">User: {withdrawal.userId.slice(0, 8)}...</p>
+        <p className="mt-1 text-[10px] text-[#A1A4AE]">User: {withdrawal.userId.slice(0, 8)}...</p>
       </td>
-      <td className="px-3 py-2 text-xs text-[#111827] font-mono">{formatAddress(withdrawal.walletAddress)}</td>
-      <td className="px-3 py-2 text-xs text-[#111827]">
+      <td className="px-3 py-2 text-xs text-[#F5F5F7] font-mono">{formatAddress(withdrawal.walletAddress)}</td>
+      <td className="px-3 py-2 text-xs text-[#F5F5F7]">
         <p className="font-bold">{formatTokenAmount(withdrawal.tdxAmount)}</p>
-        <p className="mt-1 text-[10px] text-[#667085]">{formatTokenAmount(withdrawal.usdtAmount, 'USDT')}</p>
+        <p className="mt-1 text-[10px] text-[#A1A4AE]">{formatTokenAmount(withdrawal.usdtAmount, 'USDT')}</p>
       </td>
       <td className="px-3 py-2 text-xs">
         <Badge variant={WITHDRAWAL_STATUS_BADGE_VARIANTS[withdrawal.status]}>
           {formatWithdrawalStatus(withdrawal.status)}
         </Badge>
       </td>
-      <td className="px-3 py-2 text-xs text-[#111827]">
+      <td className="px-3 py-2 text-xs text-[#F5F5F7]">
         {withdrawal.status === 'HOLD' ? (
           <div className="flex items-center gap-2">
             <Button
@@ -275,11 +275,11 @@ function WithdrawalTableRow({
             </Button>
           </div>
         ) : (
-          <span className="text-[#98A2B3]">—</span>
+          <span className="text-[#70737E]">—</span>
         )}
       </td>
-      <td className="px-3 py-2 text-xs text-[#111827] cursor-help">{formatRelativeTime(withdrawal.createdAt)}</td>
-      <td className="px-3 py-2 text-xs text-[#111827] font-mono">
+      <td className="px-3 py-2 text-xs text-[#F5F5F7] cursor-help">{formatRelativeTime(withdrawal.createdAt)}</td>
+      <td className="px-3 py-2 text-xs text-[#F5F5F7] font-mono">
         {hasRecordedTxHash ? formatAddress(normalizedTxHash) : '—'}
       </td>
     </tr>
@@ -287,7 +287,7 @@ function WithdrawalTableRow({
 }
 
 export default function AdminWithdrawalsScreen() {
-  const { address } = useWalletContext();
+  const { address, openWallet, isConnecting } = useWalletContext();
   const publicClient = usePublicClient();
   const { writeContractAsync } = useWriteContract();
 
@@ -799,32 +799,53 @@ export default function AdminWithdrawalsScreen() {
       {toast && (
         <div className={`rounded-[12px] border px-4 py-3 ${
           toast.type === 'success'
-            ? 'border-[#ABEFC6] bg-[#ECFDF3] text-[#067647]'
-            : 'border-[#FECDCA] bg-[#FEF3F2] text-[#B42318]'
+            ? 'border-[#1E4A32] bg-[#10251A] text-[#4ADE80]'
+            : 'border-[#4A2323] bg-[#281313] text-[#F87171]'
         }`}>
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm font-semibold">{toast.message}</p>
-            <button onClick={() => setToast(null)} className="text-[#667085] hover:text-[#111827]">
+            <button onClick={() => setToast(null)} className="text-[#A1A4AE] hover:text-[#F5F5F7]">
               <X size={16} />
             </button>
           </div>
         </div>
       )}
 
-      <section className="rounded-[16px] border border-[#E5E7EB] bg-white p-4">
+      <section className="rounded-[16px] border border-[#292B33] bg-[#15161C] p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-[20px] font-black text-[#111827]">Withdrawals</h1>
-            <p className="mt-0.5 text-xs text-[#667085]">Review and manage withdrawal requests with search, filtering, and bulk actions</p>
+            <h1 className="text-[20px] font-black text-[#F5F5F7]">Withdrawals</h1>
+            <p className="mt-0.5 text-xs text-[#A1A4AE]">Review and manage withdrawal requests with search, filtering, and bulk actions</p>
             {total > 0 && (
-              <p className="mt-1 text-xs font-semibold text-[#111827]">
+              <p className="mt-1 text-xs font-semibold text-[#F5F5F7]">
                 Total: {total} withdrawal{total === 1 ? '' : 's'}
               </p>
             )}
           </div>
-          <Button variant="secondary" size="sm" className="h-9 px-3 text-xs" loading={refreshing} onClick={() => void loadWithdrawals({ withLoader: false })}>
-            <RefreshCw size={14} className="mr-1.5" /> Refresh
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* Admin payout wallet — connection is REQUIRED to sign on-chain
+                withdrawals. Wallet connection stays for ADMIN ONLY. */}
+            {address ? (
+              <span className="inline-flex h-9 items-center gap-2 rounded-[10px] border border-[#1E4A32] bg-[#10251A] px-3 text-xs font-mono font-bold text-[#4ADE80]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#4ADE80]" />
+                {formatAddress(address)}
+              </span>
+            ) : (
+              <Button
+                variant="primary"
+                size="sm"
+                className="h-9 px-3 text-xs"
+                loading={isConnecting}
+                onClick={() => openWallet()}
+              >
+                <Wallet size={14} className="mr-1.5" />
+                Connect Admin Wallet
+              </Button>
+            )}
+            <Button variant="secondary" size="sm" className="h-9 px-3 text-xs" loading={refreshing} onClick={() => void loadWithdrawals({ withLoader: false })}>
+              <RefreshCw size={14} className="mr-1.5" /> Refresh
+            </Button>
+          </div>
         </div>
       </section>
 
@@ -841,7 +862,7 @@ export default function AdminWithdrawalsScreen() {
 
       {/* ✅ Bulk Actions Bar */}
       {selectedCount > 0 && (
-        <section className="rounded-[12px] border border-[#B9E6FE] bg-[#F0F9FF] px-3 py-2.5">
+        <section className="rounded-[12px] border border-[#123A33] bg-[#0F1B2E] px-3 py-2.5">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <CheckSquare size={16} className="text-[#0C4A6E]" />
@@ -886,7 +907,7 @@ export default function AdminWithdrawalsScreen() {
       )}
 
       {loading && !withdrawals.length && (
-        <section className="rounded-[16px] border border-[#E5E7EB] bg-white p-4">
+        <section className="rounded-[16px] border border-[#292B33] bg-[#15161C] p-4">
           <div className="space-y-3">
             {Array.from({ length: 6 }).map((_, i) => (
               <div key={`withdrawal-skeleton-${i}`} className="grid grid-cols-8 gap-2">
@@ -904,39 +925,39 @@ export default function AdminWithdrawalsScreen() {
       )}
 
       {!loading && !error && (
-        <section className="overflow-hidden rounded-[16px] border border-[#E5E7EB] bg-white">
+        <section className="overflow-hidden rounded-[16px] border border-[#292B33] bg-[#15161C]">
           {withdrawals.length === 0 ? (
             <div className="p-8 text-center">
-              <p className="text-base font-bold text-[#344054]">No withdrawals found</p>
-              <p className="mt-1 text-xs text-[#667085]">Try changing status, search text, or pagination options.</p>
+              <p className="text-base font-bold text-[#E4E5E8]">No withdrawals found</p>
+              <p className="mt-1 text-xs text-[#A1A4AE]">Try changing status, search text, or pagination options.</p>
             </div>
           ) : (
             <>
               <div className="overflow-x-auto">
-                <table className="min-w-[1080px] w-full divide-y divide-[#EAECF0]">
-                  <thead className="bg-[#F9FAFB]">
+                <table className="min-w-[1080px] w-full divide-y divide-[#202229]">
+                  <thead className="bg-[#15161C]">
                     <tr>
-                      <th className="w-10 px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">
+                      <th className="w-10 px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">
                         <input
                           ref={bulkSelectAllRef}
                           type="checkbox"
                           checked={allEligibleCurrentPageSelected}
                           disabled={!hasEligibleCurrentPageWithdrawals || isAnyActionRunning}
                           onChange={(e) => handleSelectAll(e.target.checked)}
-                          className="h-4 w-4 cursor-pointer rounded border-[#D0D5DD] text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F5B800] disabled:cursor-not-allowed"
+                          className="h-4 w-4 cursor-pointer rounded border-[#34343E] text-[#F5F5F7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A18] disabled:cursor-not-allowed"
                           aria-label="Select all eligible withdrawals"
                         />
                       </th>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">ID</th>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">Wallet</th>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">Amount</th>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">Status</th>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">Actions</th>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">Created</th>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">Tx Hash</th>
+                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">ID</th>
+                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Wallet</th>
+                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Amount</th>
+                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Status</th>
+                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Actions</th>
+                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Created</th>
+                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Tx Hash</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#F2F4F7] bg-white">
+                  <tbody className="divide-y divide-[#1B1917] bg-[#15161C]">
                     {withdrawals.map((withdrawal) => (
                       <WithdrawalTableRow
                         key={withdrawal.id}
@@ -958,10 +979,10 @@ export default function AdminWithdrawalsScreen() {
                 </table>
               </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#EAECF0] px-3 py-2.5">
-                <p className="text-xs text-[#667085]">
-                  Showing <span className="font-bold text-[#111827]">{rangeStart}-{rangeEnd}</span> of{' '}
-                  <span className="font-bold text-[#111827]">{total}</span>
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#202229] px-3 py-2.5">
+                <p className="text-xs text-[#A1A4AE]">
+                  Showing <span className="font-bold text-[#F5F5F7]">{rangeStart}-{rangeEnd}</span> of{' '}
+                  <span className="font-bold text-[#F5F5F7]">{total}</span>
                 </p>
 
                 <div className="flex items-center gap-2">
@@ -977,7 +998,7 @@ export default function AdminWithdrawalsScreen() {
                   >
                     Previous
                   </Button>
-                  <span className="text-xs font-semibold text-[#344054]">
+                  <span className="text-xs font-semibold text-[#E4E5E8]">
                     Page {currentPage} of {totalPages}
                   </span>
                   <Button

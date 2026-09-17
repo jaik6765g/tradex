@@ -38,7 +38,7 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     minHeight: '100%',
-    backgroundColor: '#E5E7EB',
+    backgroundColor: '#292B33',
     alignItems: 'center',
   },
 
@@ -46,7 +46,7 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     maxWidth: 430,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#15161C',
 
     // Important for web
     overflow: 'hidden',

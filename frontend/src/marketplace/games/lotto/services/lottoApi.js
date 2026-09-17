@@ -40,6 +40,11 @@ export const lottoApi = {
           resultMode: String(controls.resultMode ?? 'SERVER_RANDOM'),
         },
         round: normalizeRound(response.data?.round),
+        // Authoritative server time (ISO) so the client can compute a clock
+        // offset and stay correct even if the user's local clock is wrong.
+        serverNow: response.data?.serverNow ?? null,
+        // Authoritative WinGo 30-second period state (null until first sync).
+        wingoPeriod: response.data?.wingoPeriod ?? null,
       };
     } catch (error) {
       rethrowApiError(error, 'Failed to fetch active round');
@@ -148,6 +153,30 @@ export const lottoApi = {
       };
     } catch (error) {
       rethrowApiError(error, 'Failed to fetch round result');
+    }
+  },
+
+  /**
+   * The result that is ALREADY PRE-COMPUTED for the round currently in its
+   * cutoff window (betting closed, draw not yet reached), together with the
+   * authoritative server instant it may be revealed at (`revealAt`).
+   *
+   * Lets the client cache the value a few seconds early so the 00:00 reveal is
+   * instant and requires no API call at exactly 0. Returns
+   * `{ pendingResult: null }` outside that window.
+   */
+  async getPendingResult({ category } = {}) {
+    try {
+      const response = await apiClient.get('/lotto/results/pending', {
+        params: category ? { category } : undefined,
+      });
+
+      return {
+        serverNow: response.data?.serverNow ?? null,
+        pendingResult: normalizeResultItem(response.data?.pendingResult),
+      };
+    } catch (error) {
+      rethrowApiError(error, 'Failed to fetch pending result');
     }
   },
 

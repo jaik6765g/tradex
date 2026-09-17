@@ -2,7 +2,7 @@
 .asset-list-container {
   background: white;
   border-radius: 16px;
-  border: 1px solid #F3F4F6;
+  border: 1px solid #1B1917;
   padding: 16px 20px;
   margin: 0 20px 12px 20px;
 }
@@ -26,7 +26,7 @@
 .game-card .game-icon {
   width: 44px;
   height: 44px;
-  background: linear-gradient(135deg, #f7971e, #ffd200);
+  background: linear-gradient(135deg, #FF8F3D, #ffd200);
   border-radius: 10px;
   display: flex;
   align-items: center;
@@ -37,16 +37,16 @@
 .game-card .game-name {
   font-weight: 700;
   font-size: 0.95rem;
-  color: #111827;
+  color: #292B33;
 }
 
 .game-card .game-subtitle {
   font-size: 0.75rem;
-  color: #6B7280;
+  color: #70737E;
 }
 
 .game-card .play-btn {
-  background: linear-gradient(135deg, #f7971e, #ffd200);
+  background: linear-gradient(135deg, #FF8F3D, #ffd200);
   color: #1a1a2e;
   padding: 6px 16px;
   border-radius: 8px;

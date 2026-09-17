@@ -14,11 +14,11 @@ interface WithdrawalStatusProps {
 export function WithdrawalStatus({ status, error, withdrawalId }: WithdrawalStatusProps) {
   if (status === 'processing') {
     return (
-      <div className="mt-3 p-3 bg-yellow-50 rounded-xl border border-yellow-200">
-        <p className="text-sm text-yellow-700 font-medium">⏳ Processing...</p>
-        <p className="text-xs text-gray-500 mt-1">Your withdrawal is being processed.</p>
+      <div className="mt-3 p-3 bg-[#2A190D] rounded-xl border border-[#3A281C]">
+        <p className="text-sm text-[#F59E0B] font-medium">⏳ Processing...</p>
+        <p className="text-xs text-[#A1A4AE] mt-1">Your withdrawal is being processed.</p>
         {withdrawalId && (
-          <p className="text-xs text-gray-400 break-all mt-1">
+          <p className="text-xs text-[#70737E] break-all mt-1">
             ID: {withdrawalId}
           </p>
         )}
@@ -28,10 +28,10 @@ export function WithdrawalStatus({ status, error, withdrawalId }: WithdrawalStat
 
   if (status === 'success') {
     return (
-      <div className="mt-3 p-3 bg-green-50 rounded-xl border border-green-200">
-        <p className="text-sm text-green-700 font-medium">✅ Withdrawal completed successfully.</p>
+      <div className="mt-3 p-3 bg-[#10251A] rounded-xl border border-[#123A24]">
+        <p className="text-sm text-[#6EE7B7] font-medium">✅ Withdrawal completed successfully.</p>
         {withdrawalId && (
-          <p className="text-xs text-gray-500 break-all mt-1">
+          <p className="text-xs text-[#A1A4AE] break-all mt-1">
             ID: {withdrawalId}
           </p>
         )}
@@ -41,9 +41,9 @@ export function WithdrawalStatus({ status, error, withdrawalId }: WithdrawalStat
 
   if (status === 'paymentNotDone') {
     return (
-      <div className="mt-3 p-3 bg-red-50 rounded-xl border border-red-200">
-        <p className="text-sm text-red-700 font-medium">⛔ Payment Not Done</p>
-        <p className="text-xs text-gray-500 mt-1">
+      <div className="mt-3 p-3 bg-[#281313] rounded-xl border border-[#4A2323]">
+        <p className="text-sm text-[#F87171] font-medium">⛔ Payment Not Done</p>
+        <p className="text-xs text-[#A1A4AE] mt-1">
           {error || 'The withdrawal payment was not completed.'}
         </p>
       </div>
@@ -52,17 +52,17 @@ export function WithdrawalStatus({ status, error, withdrawalId }: WithdrawalStat
 
   if (status === 'error' && error) {
     return (
-      <div className="mt-3 p-3 bg-red-50 rounded-xl border border-red-200">
-        <p className="text-sm text-red-700">{error}</p>
+      <div className="mt-3 p-3 bg-[#281313] rounded-xl border border-[#4A2323]">
+        <p className="text-sm text-[#F87171]">{error}</p>
       </div>
     );
   }
 
   if (status === 'requesting') {
     return (
-      <div className="mt-3 p-3 bg-yellow-50 rounded-xl border border-yellow-200">
-        <p className="text-sm text-yellow-700">⏳ Requesting withdrawal...</p>
-        <p className="text-xs text-gray-500 mt-1">Please wait</p>
+      <div className="mt-3 p-3 bg-[#2A190D] rounded-xl border border-[#3A281C]">
+        <p className="text-sm text-[#F59E0B]">⏳ Requesting withdrawal...</p>
+        <p className="text-xs text-[#A1A4AE] mt-1">Please wait</p>
       </div>
     );
   }

@@ -26,7 +26,7 @@ export default function ReferralLinkCard({
         <Ionicons
           name="link-outline"
           size={24}
-          color="#F59E0B"
+          color="#FF8F3D"
         />
       </View>
 
@@ -46,7 +46,7 @@ export default function ReferralLinkCard({
           <Ionicons
             name="copy-outline"
             size={19}
-            color="#111827"
+            color="#292B33"
           />
         </Pressable>
       </View>
@@ -59,7 +59,7 @@ export default function ReferralLinkCard({
         <Ionicons
           name="share-social-outline"
           size={18}
-          color="#111827"
+          color="#292B33"
         />
 
         <Text style={styles.shareText}>
@@ -72,10 +72,10 @@ export default function ReferralLinkCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#15161C',
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#292B33',
     padding: 16,
     marginBottom: 14,
   },
@@ -87,13 +87,13 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    color: '#111827',
+    color: '#A1A4AE',
     fontSize: 17,
     fontWeight: '800',
   },
 
   subtitle: {
-    color: '#6B7280',
+    color: '#70737E',
     fontSize: 12,
     marginTop: 4,
   },
@@ -102,8 +102,8 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#F9FAFB',
+    borderColor: '#292B33',
+    backgroundColor: '#15161C',
     flexDirection: 'row',
     alignItems: 'center',
     overflow: 'hidden',
@@ -112,14 +112,14 @@ const styles = StyleSheet.create({
   link: {
     flex: 1,
     paddingHorizontal: 12,
-    color: '#374151',
+    color: '#70737E',
     fontSize: 13,
   },
 
   copy: {
     width: 48,
     height: 48,
-    backgroundColor: '#FBBF24',
+    backgroundColor: '#FF7A18',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
     height: 42,
     marginTop: 10,
     borderRadius: 11,
-    backgroundColor: '#FFF7E0',
+    backgroundColor: '#2A190D',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
   },
 
   shareText: {
-    color: '#111827',
+    color: '#A1A4AE',
     fontWeight: '700',
     fontSize: 13,
   },

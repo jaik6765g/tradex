@@ -14,9 +14,11 @@ import { BotWallet } from '../bot/entities/bot-wallet.entity';
 import { BotActivation } from '../bot/entities/bot-activation.entity';
 import { BotWalletTransaction } from '../bot/entities/bot-wallet-transaction.entity';
 import { AdminPool } from '../modules/lotto/entities/admin-pool.entity';
+import { AdminAuthModule } from '../auth/admin-auth.module';
 
 @Module({
   imports: [
+    AdminAuthModule,
     TypeOrmModule.forFeature([
       AdminAuditLog,
       AdminSetting,

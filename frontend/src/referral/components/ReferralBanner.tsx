@@ -47,7 +47,7 @@ export default function ReferralBanner({
               <Ionicons
                   name="copy-outline"
                   size={16}
-                  color="#111827"
+                  color="#292B33"
               />
             </Pressable>
           </View>
@@ -95,7 +95,7 @@ export default function ReferralBanner({
             <Ionicons
                 name="gift"
                 size={48}
-                color="#FBBF24"
+                color="#FF7A18"
             />
           </View>
         </View>
@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
     minHeight: 140,
     borderRadius: 18,
     overflow: 'hidden',
-    backgroundColor: '#0D1B2A',
+    backgroundColor: '#211810',
     flexDirection: 'row',
     marginBottom: 10,
     borderWidth: 1,
@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
     width: 150,
     height: 150,
     borderRadius: 75,
-    backgroundColor: 'rgba(251,191,36,0.08)',
+    backgroundColor: 'rgba(255,122,24,0.08)',
     top: -40,
     right: -40,
   },
@@ -144,11 +144,11 @@ const styles = StyleSheet.create({
   },
 
   yellow: {
-    color: '#FBBF24',
+    color: '#FF7A18',
   },
 
   description: {
-    color: '#D0D5DD',
+    color: '#34343E',
     fontSize: 11,
     lineHeight: 15,
     marginBottom: 10,
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
   linkBox: {
     height: 36,
     borderWidth: 1,
-    borderColor: 'rgba(251,191,36,0.2)',
+    borderColor: 'rgba(255,122,24,0.2)',
     borderRadius: 8,
     backgroundColor: 'rgba(16,28,45,0.8)',
     flexDirection: 'row',
@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
   copyButton: {
     width: 36,
     height: 36,
-    backgroundColor: '#FBBF24',
+    backgroundColor: '#FF7A18',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
   },
 
   shareLabel: {
-    color: '#94A3B8',
+    color: '#A1A4AE',
     fontSize: 10,
     fontWeight: '600',
     marginRight: 2,
@@ -207,11 +207,11 @@ const styles = StyleSheet.create({
   },
 
   telegram: {
-    backgroundColor: '#229ED9',
+    backgroundColor: '#FF8F3D',
   },
 
   other: {
-    backgroundColor: '#475569',
+    backgroundColor: '#4F525C',
   },
 
   giftArea: {
@@ -227,8 +227,8 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(251,191,36,0.10)',
+    backgroundColor: 'rgba(255,122,24,0.10)',
     borderWidth: 1,
-    borderColor: 'rgba(251,191,36,0.2)',
+    borderColor: 'rgba(255,122,24,0.2)',
   },
 });

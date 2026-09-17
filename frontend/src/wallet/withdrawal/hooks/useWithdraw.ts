@@ -9,7 +9,6 @@
 // ============================================================
 
 import { useEffect, useRef, useState } from 'react';
-import { useAccount } from 'wagmi';
 import { WithdrawalService } from '../services/withdrawal.service';
 import { WithdrawResult, WithdrawStatus } from '../types/withdrawal.types';
 import {
@@ -18,7 +17,6 @@ import {
 } from '../../statusMappings';
 
 export function useWithdraw(_userId: string, onSuccess?: (result: WithdrawResult) => void) {
-  const { address, isConnected } = useAccount();
   const [status, setStatus] = useState<WithdrawStatus>('idle');
   const [error, setError] = useState<string | null>(null);
   const [withdrawalId, setWithdrawalId] = useState<string | null>(null);
@@ -86,12 +84,8 @@ export function useWithdraw(_userId: string, onSuccess?: (result: WithdrawResult
   };
 
   const withdraw = async (tdxAmountStr: string, walletAddress: string): Promise<WithdrawResult> => {
-    // Validation
-    if (!address || !isConnected) {
-      setError('Please connect wallet first');
-      return { success: false, error: 'Wallet not connected' };
-    }
-
+    // Validation — the payout address is supplied by the caller (typed by
+    // the user); no wallet connection is required.
     const amountNum = parseFloat(tdxAmountStr);
     if (isNaN(amountNum) || amountNum <= 0) {
       setError('Please enter a valid amount');

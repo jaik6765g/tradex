@@ -1,19 +1,27 @@
 // src/marketplace/games/lotto/components/LottoGameHistory.jsx
-// Public game history — recent draws shown as period + number chip with
-// color tone. Read-only presentation from `recentResults`.
+// Public game history — recent draws shown as a compact table:
+//   Period | Number | Even/Odd | Colour
+// Date removed. Colour shows BOTH overlapping groups (primary + secondary)
+// as compact rounded dice chips — same two-colour look as before, but tight
+// spacing so everything fits on one screen without scrolling.
 
 import React from 'react';
 
 import { Gamepad2, RefreshCw } from 'lucide-react';
 
-import { formatDateTime } from '../utils/lottoPresentation';
 import {
   DOT_PATTERNS_2x2,
   getNumberGroups,
   GROUP_TONE,
-  resultDotToneClassName,
   symbolToneClassName,
 } from '../utils/lottoUi';
+
+/** Result symbol → 'Even' | 'Odd' (hex: A=10 … F=15). */
+const toEvenOdd = (value) => {
+  const normalized = String(value ?? '').trim().toUpperCase();
+  if (!/^[0-9A-F]$/.test(normalized)) return null;
+  return parseInt(normalized, 16) % 2 === 0 ? 'Even' : 'Odd';
+};
 
 const LottoGameHistory = ({
   recentResults,
@@ -24,7 +32,6 @@ const LottoGameHistory = ({
   pagination,
 }) => {
   const allDraws = Array.isArray(recentResults) ? recentResults : [];
-  // Filter bylthe selected timer category (30 Sec → only 30-sec draws, etc.)
   const draws = category
     ? allDraws.filter((draw) => draw.category === category)
     : allDraws;
@@ -32,9 +39,8 @@ const LottoGameHistory = ({
 
   return (
     <section className={`lotto-rise lotto-rise--d4 ${embedded ? '' : 'lotto-card lotto-card--pad'}`}>
-      {/* Header */}
       <div className="flex items-center justify-between gap-2">
-        <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-wider text-[#111827]">
+        <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-wider text-[#F5F5F7]">
           <Gamepad2 size={15} strokeWidth={2.4} className="text-[#7C3AED]" />
           Game History
         </h3>
@@ -44,7 +50,7 @@ const LottoGameHistory = ({
             type="button"
             onClick={onRefresh}
             disabled={loading}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-[#E5E7EB] bg-white px-2.5 py-1.5 text-[10px] font-bold text-[#475467] transition-colors hover:bg-[#F9FAFB] disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-[#26262E] bg-[#16161C] px-2.5 py-1.5 text-[10px] font-bold text-[#B9BAC6] transition-colors hover:bg-[#16161C] disabled:opacity-50"
           >
             <RefreshCw size={11} className={loading ? 'animate-spin' : ''} />
             Refresh
@@ -52,91 +58,111 @@ const LottoGameHistory = ({
         )}
       </div>
 
-      {/* Draws list — each row is a period + number chip */}
       {hasDraws ? (
-        <div className="mt-3 space-y-1.5">
-          {draws.map((draw) => {
-            const periodLabel =
-              draw.roundNumber ?? draw.period ?? draw.id ?? '—';
-            const resultValue = draw.result ?? '·';
-            const drawDate =
-              draw.drawAt ?? draw.generatedAt ?? draw.finalizedAt ?? null;
-            const groups = getNumberGroups(resultValue);
+        <div className="mt-2 overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="border-y border-[#1C1C24] bg-[#101014] text-left text-[10px] font-black uppercase tracking-wider text-[#7C7D8A]">
+                <th className="px-2 py-1">Period</th>
+                <th className="px-2 py-1">Number</th>
+                <th className="px-1.5 py-1">Even/Odd</th>
+                <th className="px-1.5 py-1">Colour</th>
+              </tr>
+            </thead>
+            <tbody>
+              {draws.map((draw) => {
+                const periodLabel = draw.roundNumber ?? draw.period ?? draw.id ?? '—';
+                const resultValue = String(draw.result ?? '').trim().toUpperCase();
+                const isValidSymbol = /^[0-9A-F]$/.test(resultValue);
+                const evenOdd = toEvenOdd(resultValue);
+                const groups = getNumberGroups(resultValue);
 
-            return (
-              <div
-                key={draw.id ?? draw.roundNumber ?? draw.drawAt ?? resultValue}
-                className="flex items-center justify-between gap-3 rounded-xl border border-[#E5E7EB] bg-white px-3 py-2.5 transition-colors hover:bg-[#F9FAFB]"
-              >
-                <div className="flex min-w-0 items-center gap-2.5">
-                  <span className="text-xs font-black text-[#7C3AED] tabular-nums">
-                    #{periodLabel}
-                  </span>
-                  {drawDate && (
-                    <span className="text-[10px] font-medium text-[#98A2B3]">
-                      {formatDateTime(drawDate)}
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex shrink-0 items-center gap-2.5">
-                  <span
-                    className={`inline-flex h-7 w-7 items-center justify-center rounded-lg border border-[#E5E7EB] bg-[#F8FAFC] text-[11px] font-black ${symbolToneClassName(
-                      resultValue,
-                    )}`}
-                    title={`Result: ${resultValue}`}
+                return (
+                  <tr
+                    key={draw.id ?? draw.roundNumber ?? draw.drawAt ?? resultValue}
+                    className="border-b border-[#1C1C24] transition-colors hover:bg-[#16161C]"
                   >
-                    {resultValue}
-                  </span>
+                    <td className="py-1 pl-1 pr-2 text-xs font-black text-[#7C3AED] tabular-nums">
+                      {periodLabel}
+                    </td>
 
-                  {groups && (
-                    <div
-                      className="flex items-center gap-1.5"
-                      title={`${groups.primary} + ${groups.secondary}`}
-                      aria-label={`${groups.primary} + ${groups.secondary}`}
-                    >
-                      {[groups.primary, groups.secondary].map((group) => (
-                        <div
-                          key={group}
-                          className="grid grid-cols-2 gap-0.5 place-content-center place-items-center"
-                          style={{ width: 14, height: 14 }}
+                    <td className="px-2 py-1">
+                      {isValidSymbol ? (
+                        <span
+                          className={`inline-flex h-5 w-5 items-center justify-center rounded-md border border-[#26262E] bg-[#101014] text-[10px] font-black ${symbolToneClassName(resultValue)}`}
+                          title={`Result: ${resultValue}`}
                         >
-                          {DOT_PATTERNS_2x2[group].map((dot, i) => (
-                            <span
-                              key={i}
-                              className="block rounded-full"
-                              style={{
-                                width: 5,
-                                height: 5,
-                                backgroundColor: dot.filled
-                                  ? GROUP_TONE[group]
-                                  : 'transparent',
-                                border: dot.filled
-                                  ? 'none'
-                                  : `1.5px solid ${GROUP_TONE[group]}`,
-                                boxSizing: 'border-box',
-                              }}
-                            />
-                          ))}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+                          {resultValue}
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-[#7C7D8A]">—</span>
+                      )}
+                    </td>
 
-          {/* Pagination */}
+                    <td className="px-1.5 py-1">
+                      {evenOdd ? (
+                        <span
+                          className={`text-[10px] font-bold ${evenOdd === 'Even' ? 'text-[#4ADE80]' : 'text-[#F87171]'}`}
+                        >
+                          {evenOdd}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-[#7C7D8A]">—</span>
+                      )}
+                    </td>
+
+                    {/* Colour — two compact dice chips (primary + secondary), no text names */}
+                    <td className="whitespace-nowrap px-1.5 py-1">
+                      {groups ? (
+                        <span className="inline-flex items-center gap-0.5">
+                          {[groups.primary, groups.secondary].map((group) => (
+                            <span
+                              key={group}
+                              className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-[#26262E] bg-[#101014]"
+                              title={`${group.charAt(0)}${group.slice(1).toLowerCase()} group`}
+                            >
+                              <span
+                                className="grid grid-cols-2 gap-0.5 place-content-center place-items-center"
+                                style={{ width: 11, height: 11 }}
+                              >
+                                {DOT_PATTERNS_2x2[group].map((dot, i) => (
+                                  <span
+                                    key={i}
+                                    className="block rounded-full"
+                                    style={{
+                                      width: 4,
+                                      height: 4,
+                                      backgroundColor: dot.filled
+                                        ? GROUP_TONE[group]
+                                        : 'transparent',
+                                      border: dot.filled
+                                        ? 'none'
+                                        : `1.5px solid ${GROUP_TONE[group]}`,
+                                      boxSizing: 'border-box',
+                                    }}
+                                  />
+                                ))}
+                              </span>
+                            </span>
+                          ))}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-[#7C7D8A]">—</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+
           {pagination}
         </div>
       ) : (
-        <div className="mt-3 flex flex-col items-center justify-center rounded-xl border border-dashed border-[#D0D5DD] py-8 text-center">
-          <Gamepad2 size={26} strokeWidth={1.6} className="text-[#98A2B3]" />
-          <p className="mt-2 text-xs font-bold text-[#667085]">
-            No draws yet
-          </p>
-          <p className="mt-1 text-[10px] text-[#98A2B3]">
+        <div className="mt-3 flex flex-col items-center justify-center rounded-xl border border-dashed border-[#34343E] py-8 text-center">
+          <Gamepad2 size={26} strokeWidth={1.6} className="text-[#7C7D8A]" />
+          <p className="mt-2 text-xs font-bold text-[#9A9BA8]">No draws yet</p>
+          <p className="mt-1 text-[10px] text-[#7C7D8A]">
             {category ? 'No results for this period yet' : 'Recent results will appear here'}
           </p>
         </div>

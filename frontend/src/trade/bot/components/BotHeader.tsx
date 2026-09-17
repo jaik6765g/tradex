@@ -25,31 +25,31 @@ export default function BotHeader({
     active: {
       badge: 'success' as const,
       dotColor: '#22C55E',
-      bgSoft: '#F0FDF4',
+      bgSoft: '#10251A',
       label: 'ACTIVE',
     },
     suspended: {
       badge: 'warning' as const,
-      dotColor: '#F59E0B',
-      bgSoft: '#FFFBEB',
+      dotColor: '#FF8F3D',
+      bgSoft: '#2A190D',
       label: 'SUSPENDED',
     },
     closed: {
       badge: 'error' as const,
       dotColor: '#EF4444',
-      bgSoft: '#FEF2F2',
+      bgSoft: '#281313',
       label: 'CLOSED',
     },
     inactive: {
       badge: 'neutral' as const,
-      dotColor: '#94A3B8',
-      bgSoft: '#F1F5F9',
+      dotColor: '#A1A4AE',
+      bgSoft: '#1B1917',
       label: 'INACTIVE',
     },
     pending: {
       badge: 'neutral' as const,
-      dotColor: '#64748B',
-      bgSoft: '#F8FAFC',
+      dotColor: '#70737E',
+      bgSoft: '#111217',
       label: 'PENDING',
     },
   };
@@ -57,9 +57,9 @@ export default function BotHeader({
   const config = statusConfig[status] || statusConfig.pending;
 
   return (
-      <div className="relative overflow-hidden rounded-[20px] bg-white border border-[#E5E7EB] shadow-sm">
+      <div className="relative overflow-hidden rounded-[20px] bg-[#15161C] border border-[#292B33] shadow-sm">
         {/* Subtle top accent line */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-[#FBBF24] opacity-60" />
+        <div className="absolute top-0 left-0 right-0 h-1 bg-[#FF7A18] opacity-60" />
 
         <div className="relative p-5 sm:p-6 pt-6">
           {/* Top Row: Title + Status */}
@@ -71,16 +71,16 @@ export default function BotHeader({
                   className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-[16px]"
                   style={{
                     background: isActive
-                        ? 'linear-gradient(135deg, #FFF7E0 0%, #FEF3C7 100%)'
-                        : '#F8FAFC',
+                        ? 'linear-gradient(135deg, #2A190D 0%, #2A190D 100%)'
+                        : '#111217',
                     border: isActive
-                        ? '1.5px solid #FDE68A'
-                        : '1.5px solid #E2E8F0',
+                        ? '1.5px solid #3A281C'
+                        : '1.5px solid #292B33',
                   }}
               >
-                <Bot size={26} className={isActive ? 'text-[#D97706]' : 'text-[#94A3B8]'} />
+                <Bot size={26} className={isActive ? 'text-[#FF7A18]' : 'text-[#70737E]'} />
                 {isActive && (
-                    <div className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-white border border-[#22C55E] shadow-sm">
+                    <div className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#15161C] border border-[#22C55E] shadow-sm">
                       <div className="h-2 w-2 rounded-full bg-[#22C55E]" />
                     </div>
                 )}
@@ -88,26 +88,26 @@ export default function BotHeader({
 
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-[22px] font-black tracking-tight text-[#101828] sm:text-[26px]">
+                  <h1 className="text-[22px] font-black tracking-tight text-[#F5F5F7] sm:text-[26px]">
                     Bot Trading
                   </h1>
-                  <div className="flex items-center gap-1.5 rounded-full bg-[#FFF7E0] border border-[#FDE68A] px-2.5 py-0.5">
-                    <Zap size={11} className="text-[#D97706]" />
-                    <span className="text-[10px] font-extrabold text-[#B45309] tracking-wider">
+                  <div className="flex items-center gap-1.5 rounded-full bg-[#2A190D] border border-[#3A281C] px-2.5 py-0.5">
+                    <Zap size={11} className="text-[#FF7A18]" />
+                    <span className="text-[10px] font-extrabold text-[#FF8F3D] tracking-wider">
                     AI POWERED
                   </span>
                   </div>
                 </div>
 
-                <p className="mt-1 text-sm font-medium text-[#667085]">
+                <p className="mt-1 text-sm font-medium text-[#A1A4AE]">
                   Automated trading with smart algorithms
                 </p>
 
                 <div className="mt-2 flex items-center gap-2">
-                <span className="text-xs font-bold text-[#475569]">
+                <span className="text-xs font-bold text-[#A1A4AE]">
                   {accountId}
                 </span>
-                  <span className="h-3 w-px bg-[#E2E8F0]" />
+                  <span className="h-3 w-px bg-[#292B33]" />
                   <div className="flex items-center gap-1.5">
                     <div
                         className="h-2 w-2 rounded-full"
@@ -134,14 +134,14 @@ export default function BotHeader({
 
           {/* Stats Row */}
           <div className="mt-6 grid grid-cols-3 gap-3 sm:gap-4">
-            <div className="rounded-[14px] bg-[#F8FAFC] border border-[#E2E8F0] p-3 sm:p-4">
+            <div className="rounded-[14px] bg-[#111217] border border-[#292B33] p-3 sm:p-4">
               <div className="flex items-center gap-1.5 mb-2">
                 <TrendingUp size={13} className="text-[#22C55E]" />
-                <span className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider">
+                <span className="text-[10px] font-bold text-[#A1A4AE] uppercase tracking-wider">
                 Total Profit
               </span>
               </div>
-              <p className="text-[16px] font-black text-[#101828] sm:text-[18px]">
+              <p className="text-[16px] font-black text-[#F5F5F7] sm:text-[18px]">
                 {Number(totalProfit).toLocaleString('en-US', {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
@@ -150,39 +150,39 @@ export default function BotHeader({
               </p>
             </div>
 
-            <div className="rounded-[14px] bg-[#F8FAFC] border border-[#E2E8F0] p-3 sm:p-4">
+            <div className="rounded-[14px] bg-[#111217] border border-[#292B33] p-3 sm:p-4">
               <div className="flex items-center gap-1.5 mb-2">
-                <Zap size={13} className="text-[#F59E0B]" />
-                <span className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider">
+                <Zap size={13} className="text-[#FF8F3D]" />
+                <span className="text-[10px] font-bold text-[#A1A4AE] uppercase tracking-wider">
                 Today
               </span>
               </div>
-              <p className="text-[16px] font-black text-[#101828] sm:text-[18px]">
+              <p className="text-[16px] font-black text-[#F5F5F7] sm:text-[18px]">
                 +{Number(todayProfit).toLocaleString('en-US', {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
               })}
-                <span className="ml-1 text-[11px] font-bold text-[#F59E0B]">TDX</span>
+                <span className="ml-1 text-[11px] font-bold text-[#FF8F3D]">TDX</span>
               </p>
             </div>
 
-            <div className="rounded-[14px] bg-[#F8FAFC] border border-[#E2E8F0] p-3 sm:p-4">
+            <div className="rounded-[14px] bg-[#111217] border border-[#292B33] p-3 sm:p-4">
               <div className="flex items-center gap-1.5 mb-2">
-                <Calendar size={13} className="text-[#3B82F6]" />
-                <span className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider">
+                <Calendar size={13} className="text-[#C99752]" />
+                <span className="text-[10px] font-bold text-[#A1A4AE] uppercase tracking-wider">
                 Active Since
               </span>
               </div>
-              <p className="text-[16px] font-black text-[#101828] sm:text-[18px]">
+              <p className="text-[16px] font-black text-[#F5F5F7] sm:text-[18px]">
                 {activeSince}
               </p>
             </div>
           </div>
 
           {/* Bottom Info Bar */}
-          <div className="mt-4 flex items-center gap-2 rounded-[10px] bg-[#FFF7E0] border border-[#FDE68A] px-3 py-2.5">
-            <Shield size={13} className="text-[#D97706] shrink-0" />
-            <p className="text-[11px] font-semibold text-[#92400E]">
+          <div className="mt-4 flex items-center gap-2 rounded-[10px] bg-[#2A190D] border border-[#3A281C] px-3 py-2.5">
+            <Shield size={13} className="text-[#FF7A18] shrink-0" />
+            <p className="text-[11px] font-semibold text-[#FDBA74]">
               Your funds are secured with automated risk management.
               <span className="font-extrabold"> 6.5% monthly returns</span> guaranteed.
             </p>

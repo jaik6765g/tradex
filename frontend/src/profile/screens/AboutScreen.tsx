@@ -21,31 +21,31 @@ export default function AboutScreen() {
   const navigate = useNavigate();
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-[#F8FAFC] via-[#F1F5F9] to-[#E2E8F0] overflow-hidden">
+    <div className="relative min-h-screen bg-gradient-to-br from-[#111217] via-[#1B1917] to-[#292B33] overflow-hidden">
       {/* Background Decorations */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute -top-20 -right-20 w-[300px] h-[300px] bg-violet-200/20 rounded-full blur-[100px]" />
-        <div className="absolute -bottom-20 -left-20 w-[300px] h-[300px] bg-blue-200/20 rounded-full blur-[100px]" />
+        <div className="absolute -top-20 -right-20 w-[300px] h-[300px] bg-[#C99752]/10 rounded-full blur-[100px]" />
+        <div className="absolute -bottom-20 -left-20 w-[300px] h-[300px] bg-[#FF7A18]/10 rounded-full blur-[100px]" />
 
         <div className="absolute inset-0 opacity-[0.02] bg-[linear-gradient(to_right,#000000_1px,transparent_1px),linear-gradient(to_bottom,#000000_1px,transparent_1px)] bg-[size:32px_32px]" />
       </div>
 
       {/* Header */}
-      <div className="sticky top-0 z-20 border-b border-gray-200/60 bg-white/80 backdrop-blur-xl">
+      <div className="sticky top-0 z-20 border-b border-[#34343E]/60 bg-[#15161C]/80 backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-[1100px] items-center px-4">
           <button
             onClick={() => navigate('/profile')}
-            className="mr-3 flex h-9 w-9 items-center justify-center rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition-colors"
+            className="mr-3 flex h-9 w-9 items-center justify-center rounded-xl border border-[#34343E] bg-[#15161C] hover:bg-[#1B1917] transition-colors"
           >
-            <ArrowLeft size={20} className="text-gray-700" />
+            <ArrowLeft size={20} className="text-[#A1A4AE]" />
           </button>
 
           <div>
-            <h1 className="text-base font-bold text-gray-900">
+            <h1 className="text-base font-bold text-[#F5F5F7]">
               About TradeX
             </h1>
 
-            <p className="text-[10px] text-gray-400">
+            <p className="text-[10px] text-[#70737E]">
               About the TradeX platform
             </p>
           </div>
@@ -58,11 +58,11 @@ export default function AboutScreen() {
         {/* BRAND */}
         {/* ========================================================= */}
 
-        <div className="relative overflow-hidden rounded-3xl border border-white/60 bg-white/70 backdrop-blur-xl p-8 text-center shadow-[0_8px_40px_rgba(16,24,40,0.08)]">
+        <div className="relative overflow-hidden rounded-3xl border border-[#34343E] bg-[#15161C]/70 backdrop-blur-xl p-8 text-center shadow-[0_8px_40px_rgba(16,24,40,0.08)]">
 
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-violet-500 via-purple-500 to-blue-500" />
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#C99752] via-[#C99752] to-[#8F4817]" />
 
-          <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-violet-500 to-purple-600 shadow-[0_8px_30px_rgba(139,92,246,0.3)]">
+          <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-[#C99752] to-[#8F4817] shadow-[0_8px_30px_rgba(201,151,82,0.3)]">
             <Zap
               size={38}
               className="text-white"
@@ -70,15 +70,15 @@ export default function AboutScreen() {
             />
           </div>
 
-          <h2 className="text-3xl font-black text-gray-900 tracking-tight">
+          <h2 className="text-3xl font-black text-[#F5F5F7] tracking-tight">
             TradeX
           </h2>
 
-          <p className="mt-2 text-sm text-gray-500">
+          <p className="mt-2 text-sm text-[#A1A4AE]">
             Web3 Trading & Gaming Platform
           </p>
 
-          <div className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-violet-50 to-purple-50 border border-violet-100 px-4 py-1.5 text-[11px] font-semibold text-violet-700">
+          <div className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#211810] to-[#211810] border border-[#34261C] px-4 py-1.5 text-[11px] font-semibold text-[#C99752]">
             <Sparkles size={12} />
             Version 1.0.0
           </div>
@@ -89,23 +89,23 @@ export default function AboutScreen() {
         {/* ABOUT */}
         {/* ========================================================= */}
 
-        <div className="mt-5 rounded-3xl border border-white/60 bg-white/70 backdrop-blur-xl p-6 shadow-[0_8px_40px_rgba(16,24,40,0.06)]">
+        <div className="mt-5 rounded-3xl border border-[#34343E] bg-[#15161C]/70 backdrop-blur-xl p-6 shadow-[0_8px_40px_rgba(16,24,40,0.06)]">
 
-          <h3 className="text-lg font-black text-gray-900">
+          <h3 className="text-lg font-black text-[#F5F5F7]">
             About TradeX
           </h3>
 
-          <p className="mt-3 text-sm leading-7 text-gray-600">
-            TradeX is a Web3 platform built around a wallet-first
-            experience. It brings digital asset trading, wallet services,
-            account activity and gaming experiences together within a
-            single platform.
+          <p className="mt-3 text-sm leading-7 text-[#A1A4AE]">
+            TradeX is a Web3 platform built around a mobile-first
+            account experience. It brings digital asset trading, wallet
+            services, account activity and gaming experiences together
+            within a single platform.
           </p>
 
-          <p className="mt-3 text-sm leading-7 text-gray-600">
-            Users can connect their supported Web3 wallet and interact
-            with available TradeX services while maintaining visibility
-            over balances, transactions, trading activity and platform
+          <p className="mt-3 text-sm leading-7 text-[#A1A4AE]">
+            Users sign in with their mobile number and interact with
+            available TradeX services while maintaining visibility over
+            balances, transactions, trading activity and platform
             operations.
           </p>
         </div>
@@ -115,26 +115,26 @@ export default function AboutScreen() {
         {/* TRADING */}
         {/* ========================================================= */}
 
-        <div className="mt-5 rounded-3xl border border-white/60 bg-white/70 backdrop-blur-xl p-6 shadow-[0_8px_40px_rgba(16,24,40,0.06)]">
+        <div className="mt-5 rounded-3xl border border-[#34343E] bg-[#15161C]/70 backdrop-blur-xl p-6 shadow-[0_8px_40px_rgba(16,24,40,0.06)]">
 
           <div className="flex items-center gap-2">
             <TrendingUp
               size={19}
-              className="text-violet-600"
+              className="text-[#C99752]"
             />
 
-            <h3 className="text-lg font-black text-gray-900">
+            <h3 className="text-lg font-black text-[#F5F5F7]">
               Trading on TradeX
             </h3>
           </div>
 
-          <p className="mt-3 text-sm leading-7 text-gray-600">
+          <p className="mt-3 text-sm leading-7 text-[#A1A4AE]">
             TradeX provides a dedicated trading environment designed
             to give users access to market activity, trading operations
             and portfolio information from one interface.
           </p>
 
-          <p className="mt-3 text-sm leading-7 text-gray-600">
+          <p className="mt-3 text-sm leading-7 text-[#A1A4AE]">
             The trading architecture separates market data, order
             processing, positions and portfolio information so that
             different parts of the trading experience can operate
@@ -151,16 +151,16 @@ export default function AboutScreen() {
               icon={BarChart3}
               title="Market Data"
               text="View supported market prices and trading information through the TradeX trading interface."
-              gradient="from-blue-50 to-blue-100"
-              iconColor="text-blue-600"
+              gradient="from-[#211810] to-[#211810]"
+              iconColor="text-[#C99752]"
             />
 
             <TradingFeature
               icon={Activity}
               title="Pulse Trading"
               text="TradeX includes a Pulse Trading environment for active trading workflows and market operations."
-              gradient="from-violet-50 to-violet-100"
-              iconColor="text-violet-600"
+              gradient="from-[#211810] to-[#211810]"
+              iconColor="text-[#C99752]"
             />
 
             <TradingFeature
@@ -175,24 +175,24 @@ export default function AboutScreen() {
               icon={TrendingUp}
               title="Positions"
               text="Track open trading positions and monitor their current state from the trading experience."
-              gradient="from-orange-50 to-orange-100"
-              iconColor="text-orange-600"
+              gradient="from-[#2A190D] to-[#2A190D]"
+              iconColor="text-[#FF8F3D]"
             />
 
             <TradingFeature
               icon={CircleDollarSign}
               title="Portfolio"
               text="Portfolio information brings trading-related account activity together for easier monitoring."
-              gradient="from-cyan-50 to-cyan-100"
-              iconColor="text-cyan-600"
+              gradient="from-[#2A190D] to-[#211810]"
+              iconColor="text-[#C99752]"
             />
 
             <TradingFeature
               icon={Gauge}
               title="Risk & Liquidity"
               text="TradeX includes platform-level risk and liquidity services supporting the trading infrastructure."
-              gradient="from-amber-50 to-amber-100"
-              iconColor="text-amber-600"
+              gradient="from-[#2A190D] to-[#2A190D]"
+              iconColor="text-[#FF8F3D]"
             />
 
           </div>
@@ -203,15 +203,15 @@ export default function AboutScreen() {
         {/* HOW TRADING WORKS */}
         {/* ========================================================= */}
 
-        <div className="mt-5 rounded-3xl border border-white/60 bg-white/70 backdrop-blur-xl p-6 shadow-[0_8px_40px_rgba(16,24,40,0.06)]">
+        <div className="mt-5 rounded-3xl border border-[#34343E] bg-[#15161C]/70 backdrop-blur-xl p-6 shadow-[0_8px_40px_rgba(16,24,40,0.06)]">
 
           <div className="flex items-center gap-2">
             <Rocket
               size={18}
-              className="text-violet-600"
+              className="text-[#C99752]"
             />
 
-            <h3 className="text-lg font-black text-gray-900">
+            <h3 className="text-lg font-black text-[#F5F5F7]">
               Trading Experience
             </h3>
           </div>
@@ -220,8 +220,8 @@ export default function AboutScreen() {
 
             <Step
               number="01"
-              title="Connect Wallet"
-              text="Connect a supported Web3 wallet and authenticate your TradeX account."
+              title="Create Account"
+              text="Sign up with your mobile number to activate your TradeX account."
             />
 
             <Step
@@ -256,16 +256,16 @@ export default function AboutScreen() {
         {/* PLATFORM */}
         {/* ========================================================= */}
 
-        <div className="mt-5 rounded-3xl border border-white/60 bg-white/70 backdrop-blur-xl p-6 shadow-[0_8px_40px_rgba(16,24,40,0.06)]">
+        <div className="mt-5 rounded-3xl border border-[#34343E] bg-[#15161C]/70 backdrop-blur-xl p-6 shadow-[0_8px_40px_rgba(16,24,40,0.06)]">
 
           <div className="flex items-center gap-2">
 
             <Rocket
               size={18}
-              className="text-violet-600"
+              className="text-[#C99752]"
             />
 
-            <h3 className="text-lg font-black text-gray-900">
+            <h3 className="text-lg font-black text-[#F5F5F7]">
               Platform
             </h3>
 
@@ -275,18 +275,18 @@ export default function AboutScreen() {
 
             <Feature
               icon={Wallet}
-              title="Wallet Based"
-              text="Connect and manage your supported Web3 wallet through the platform."
-              gradient="from-blue-50 to-blue-100"
-              iconColor="text-blue-600"
+              title="TDX Wallet"
+              text="Manage your TradeX TDX wallet, deposits, withdrawals and full history."
+              gradient="from-[#211810] to-[#211810]"
+              iconColor="text-[#C99752]"
             />
 
             <Feature
               icon={Zap}
               title="Trading"
               text="Access the TradeX trading environment and supported market services."
-              gradient="from-violet-50 to-violet-100"
-              iconColor="text-violet-600"
+              gradient="from-[#211810] to-[#211810]"
+              iconColor="text-[#C99752]"
             />
 
             <Feature
@@ -300,9 +300,9 @@ export default function AboutScreen() {
             <Feature
               icon={ShieldCheck}
               title="Security"
-              text="Authentication and account access are connected to your wallet."
-              gradient="from-amber-50 to-amber-100"
-              iconColor="text-amber-600"
+              text="Account access is protected by mobile-number login and secure sessions."
+              gradient="from-[#2A190D] to-[#2A190D]"
+              iconColor="text-[#FF8F3D]"
             />
 
           </div>
@@ -313,32 +313,32 @@ export default function AboutScreen() {
         {/* WALLET & ACCOUNT */}
         {/* ========================================================= */}
 
-        <div className="mt-5 rounded-3xl border border-white/60 bg-white/70 backdrop-blur-xl p-6 shadow-[0_8px_40px_rgba(16,24,40,0.06)]">
+        <div className="mt-5 rounded-3xl border border-[#34343E] bg-[#15161C]/70 backdrop-blur-xl p-6 shadow-[0_8px_40px_rgba(16,24,40,0.06)]">
 
           <div className="flex items-center gap-2">
 
             <LockKeyhole
               size={18}
-              className="text-violet-600"
+              className="text-[#C99752]"
             />
 
-            <h3 className="text-lg font-black text-gray-900">
+            <h3 className="text-lg font-black text-[#F5F5F7]">
               Account & Wallet
             </h3>
 
           </div>
 
-          <div className="mt-4 space-y-3 text-sm text-gray-600">
+          <div className="mt-4 space-y-3 text-sm text-[#A1A4AE]">
 
             <p>
-              TradeX uses wallet-based authentication for account access
-              and identity verification.
+              TradeX accounts are created and accessed with mobile-number
+              login, keeping account access simple and secure.
             </p>
 
             <p>
-              Wallet balances, deposits, withdrawals and transaction
-              activity are handled through the platform's supported
-              wallet infrastructure.
+              TDX balances, deposits, withdrawals and transaction
+              activity are handled through the platform's wallet
+              infrastructure.
             </p>
 
             <p>
@@ -358,11 +358,11 @@ export default function AboutScreen() {
 
           <div className="mx-auto mb-4 h-px w-24 bg-gradient-to-r from-transparent via-gray-300 to-transparent" />
 
-          <p className="text-xs font-medium text-gray-500">
+          <p className="text-xs font-medium text-[#A1A4AE]">
             © {new Date().getFullYear()} TradeX
           </p>
 
-          <p className="mt-1 text-[10px] text-gray-400">
+          <p className="mt-1 text-[10px] text-[#70737E]">
             Built for the Web3 ecosystem
           </p>
 
@@ -392,7 +392,7 @@ function TradingFeature({
   iconColor: string;
 }) {
   return (
-    <div className="flex items-start gap-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm hover:shadow-md transition-shadow">
+    <div className="flex items-start gap-4 rounded-2xl border border-[#292B33] bg-[#15161C] p-4 shadow-sm hover:shadow-md transition-shadow">
 
       <div
         className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${gradient}`}
@@ -405,11 +405,11 @@ function TradingFeature({
 
       <div className="flex-1">
 
-        <div className="text-sm font-bold text-gray-900">
+        <div className="text-sm font-bold text-[#F5F5F7]">
           {title}
         </div>
 
-        <div className="mt-1 text-xs leading-5 text-gray-500">
+        <div className="mt-1 text-xs leading-5 text-[#A1A4AE]">
           {text}
         </div>
 
@@ -437,7 +437,7 @@ function Feature({
   iconColor: string;
 }) {
   return (
-    <div className="flex items-start gap-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm hover:shadow-md transition-shadow">
+    <div className="flex items-start gap-4 rounded-2xl border border-[#292B33] bg-[#15161C] p-4 shadow-sm hover:shadow-md transition-shadow">
 
       <div
         className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${gradient}`}
@@ -450,11 +450,11 @@ function Feature({
 
       <div className="flex-1">
 
-        <div className="text-sm font-bold text-gray-900">
+        <div className="text-sm font-bold text-[#F5F5F7]">
           {title}
         </div>
 
-        <div className="mt-1 text-xs leading-5 text-gray-500">
+        <div className="mt-1 text-xs leading-5 text-[#A1A4AE]">
           {text}
         </div>
 
@@ -480,17 +480,17 @@ function Step({
   return (
     <div className="flex items-start gap-4">
 
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 text-[11px] font-bold text-white shadow-sm">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#C99752] to-[#8F4817] text-[11px] font-bold text-white shadow-sm">
         {number}
       </div>
 
       <div>
 
-        <div className="text-sm font-bold text-gray-900">
+        <div className="text-sm font-bold text-[#F5F5F7]">
           {title}
         </div>
 
-        <div className="mt-1 text-xs leading-5 text-gray-500">
+        <div className="mt-1 text-xs leading-5 text-[#A1A4AE]">
           {text}
         </div>
 

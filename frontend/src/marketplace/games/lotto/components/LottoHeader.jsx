@@ -27,7 +27,7 @@ const LottoHeader = ({ balance, loading, onBack }) => {
             <button
               type="button"
               onClick={onBack}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/10 text-white backdrop-blur-sm transition-colors hover:bg-white/20 border border-white/10"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/10 text-white backdrop-blur-sm transition-colors hover:bg-[#20202A]/20 border border-white/10"
               aria-label="Back to marketplace"
             >
               <ArrowLeft size={15} strokeWidth={2.4} />
@@ -50,7 +50,7 @@ const LottoHeader = ({ balance, loading, onBack }) => {
 
         {/* Balance pill */}
         <div className="flex items-center gap-1.5 rounded-xl bg-white/10 backdrop-blur-sm px-3 py-1.5 border border-white/10 shrink-0">
-          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-[#FBBF24] to-[#F59E0B]">
+          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-[#F97316] to-[#FB923C]">
             <Zap size={11} className="text-white" strokeWidth={2.5} />
           </div>
           {loading ? (

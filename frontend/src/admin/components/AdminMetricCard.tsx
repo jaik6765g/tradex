@@ -49,69 +49,69 @@ type StatusConfig = {
 const STATUS_CONFIG: Record<StatusConfigKey, StatusConfig> = {
   loading: {
     label: 'Loading',
-    borderClass: 'border-[#D0D5DD]',
-    bgClass: 'bg-[#F9FAFB]',
-    textClass: 'text-[#475467]',
+    borderClass: 'border-[#34343E]',
+    bgClass: 'bg-[#15161C]',
+    textClass: 'text-[#A1A4AE]',
     icon: RefreshCw,
-    iconClass: 'text-[#667085]',
+    iconClass: 'text-[#A1A4AE]',
     animate: true,
   },
   success: {
     label: 'Normal',
-    borderClass: 'border-[#D1FADF]',
-    bgClass: 'bg-[#ECFDF3]',
-    textClass: 'text-[#027A48]',
+    borderClass: 'border-[#123A24]',
+    bgClass: 'bg-[#10251A]',
+    textClass: 'text-[#6EE7B7]',
     icon: CheckCircle2,
-    iconClass: 'text-[#027A48]',
+    iconClass: 'text-[#6EE7B7]',
   },
   error: {
     label: 'Error',
-    borderClass: 'border-[#FECACA]',
-    bgClass: 'bg-[#FEF2F2]',
-    textClass: 'text-[#B42318]',
+    borderClass: 'border-[#4A2323]',
+    bgClass: 'bg-[#281313]',
+    textClass: 'text-[#F87171]',
     icon: XCircle,
-    iconClass: 'text-[#B42318]',
+    iconClass: 'text-[#F87171]',
   },
   empty: {
     label: 'N/A',
-    borderClass: 'border-[#E4E7EC]',
-    bgClass: 'bg-[#F8FAFC]',
-    textClass: 'text-[#475467]',
+    borderClass: 'border-[#292B33]',
+    bgClass: 'bg-[#111217]',
+    textClass: 'text-[#A1A4AE]',
     icon: Info,
-    iconClass: 'text-[#667085]',
+    iconClass: 'text-[#A1A4AE]',
   },
   warning: {
     label: 'Warning',
-    borderClass: 'border-[#F5B800]/50',
-    bgClass: 'bg-[#FFFBEB]',
-    textClass: 'text-[#B54708]',
+    borderClass: 'border-[#FF7A18]/50',
+    bgClass: 'bg-[#2A190D]',
+    textClass: 'text-[#FF8F3D]',
     icon: AlertTriangle,
-    iconClass: 'text-[#B54708]',
+    iconClass: 'text-[#FF8F3D]',
   },
   danger: {
     label: 'Critical',
-    borderClass: 'border-[#FECACA]',
-    bgClass: 'bg-[#FEF2F2]',
-    textClass: 'text-[#B42318]',
+    borderClass: 'border-[#4A2323]',
+    bgClass: 'bg-[#281313]',
+    textClass: 'text-[#F87171]',
     icon: XCircle,
-    iconClass: 'text-[#B42318]',
+    iconClass: 'text-[#F87171]',
   },
   info: {
     label: 'Info',
-    borderClass: 'border-[#B2DDFF]',
-    bgClass: 'bg-[#F0F9FF]',
-    textClass: 'text-[#175CD3]',
+    borderClass: 'border-[#1E3A5F]',
+    bgClass: 'bg-[#0F1B2E]',
+    textClass: 'text-[#60A5FA]',
     icon: Info,
-    iconClass: 'text-[#175CD3]',
+    iconClass: 'text-[#60A5FA]',
   },
 } as const;
 
 const TONE_CLASSES = {
-  default: 'border-[#E5E7EB] bg-white',
-  warning: 'border-[#F5B800]/50 bg-[#FFFBEB]/30',
-  danger: 'border-[#FECACA] bg-[#FEF2F2]/30',
-  success: 'border-[#D1FADF] bg-[#ECFDF3]/30',
-  info: 'border-[#B2DDFF] bg-[#F0F9FF]/30',
+  default: 'border-[#292B33] bg-[#15161C]',
+  warning: 'border-[#FF7A18]/50 bg-[#2A190D]/30',
+  danger: 'border-[#4A2323] bg-[#281313]/30',
+  success: 'border-[#123A24] bg-[#10251A]/30',
+  info: 'border-[#1E3A5F] bg-[#0F1B2E]/30',
 } as const;
 
 // ============ HELPER FUNCTIONS ============
@@ -241,14 +241,14 @@ const ErrorState: React.FC<{
   onRetry?: () => void;
 }> = ({ errorMessage, onRetry }) => (
   <div className="mt-1 space-y-2">
-    <p className="text-sm text-[#B42318] break-words">
+    <p className="text-sm text-[#F87171] break-words">
       {errorMessage || 'Failed to load data'}
     </p>
     {onRetry && (
       <button
         type="button"
         onClick={onRetry}
-        className="inline-flex items-center gap-1.5 rounded-md border border-[#FECACA] bg-white px-3 py-1.5 text-xs font-semibold text-[#B42318] transition-colors hover:bg-[#FFF5F4] hover:border-[#FCA5A5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F97066] focus-visible:ring-offset-2 active:scale-[0.98]"
+        className="inline-flex items-center gap-1.5 rounded-md border border-[#4A2323] bg-[#15161C] px-3 py-1.5 text-xs font-semibold text-[#F87171] transition-colors hover:bg-[#281313] hover:border-[#5C2B2B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F87171] focus-visible:ring-offset-2 active:scale-[0.98]"
         aria-label="Retry loading data"
       >
         <RefreshCw size={12} className="animate-spin" aria-hidden="true" />
@@ -295,7 +295,7 @@ export default function AdminMetricCard({
       <div className="flex h-full flex-col">
         {/* Header */}
         <div className="flex items-start justify-between gap-2">
-          <h3 className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#667085]">
+          <h3 className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#A1A4AE]">
             {title}
           </h3>
           {showStatusBadge && (
@@ -310,7 +310,7 @@ export default function AdminMetricCard({
           ) : status === 'error' ? (
             <ErrorState errorMessage={errorMessage || subtitle} onRetry={onRetry} />
           ) : (
-            <p className="text-xl font-black leading-tight text-[#101828] break-words">
+            <p className="text-xl font-black leading-tight text-[#F5F5F7] break-words">
               {displayValue}
             </p>
           )}
@@ -319,8 +319,8 @@ export default function AdminMetricCard({
         {/* Footer */}
         <div className="mt-auto pt-1">
           {status !== 'error' && status !== 'loading' && (
-            <p className="text-xs text-[#667085] break-words">
-              {description || <span className="text-[#98A2B3]">&nbsp;</span>}
+            <p className="text-xs text-[#A1A4AE] break-words">
+              {description || <span className="text-[#70737E]">&nbsp;</span>}
             </p>
           )}
         </div>

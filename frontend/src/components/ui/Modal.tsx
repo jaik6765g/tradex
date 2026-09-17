@@ -54,13 +54,13 @@ export default function Modal({
         aria-modal="true"
         aria-label={title || 'Modal'}
         className={cx(
-          'relative w-full max-w-xl rounded-[24px] border border-[#E5E7EB] bg-white p-4 shadow-[0_16px_40px_rgba(15,23,42,0.2)] sm:p-5',
+          'relative w-full max-w-xl rounded-[24px] border border-[#292B33] bg-[#15161C] p-4 shadow-[0_16px_40px_rgba(0,0,0,0.2)] sm:p-5',
           className,
         )}
       >
         <header className="mb-3 flex items-center justify-between gap-3">
           {title ? (
-            <h2 className="text-base font-black text-[#111827]">
+            <h2 className="text-base font-black text-[#F5F5F7]">
               {title}
             </h2>
           ) : (
@@ -70,7 +70,7 @@ export default function Modal({
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-[10px] border border-[#E4E7EC] text-[#475467] hover:bg-[#F9FAFB]"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-[10px] border border-[#292B33] text-[#A1A4AE] hover:bg-[#15161C]"
             aria-label="Close modal"
           >
             <X size={16} />

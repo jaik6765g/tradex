@@ -13,7 +13,7 @@ export default function ReferralStats({ stats }: Props) {
     <View style={styles.card}>
       <Stat
         icon="people"
-        iconColor="#7C3AED"
+        iconColor="#C99752"
         title="Total Network"
         value={formatReferralNumber(stats.totalNetwork)}
       />
@@ -22,7 +22,7 @@ export default function ReferralStats({ stats }: Props) {
 
       <Stat
         icon="person"
-        iconColor="#16A34A"
+        iconColor="#4ADE80"
         title="Total Active"
         value={formatReferralNumber(stats.totalActive)}
       />
@@ -31,7 +31,7 @@ export default function ReferralStats({ stats }: Props) {
 
       <Stat
         icon="logo-bitcoin"
-        iconColor="#F59E0B"
+        iconColor="#FF8F3D"
         title="Total Earned"
         value={formatTDX(stats.totalEarned)}
       />
@@ -75,10 +75,10 @@ function Stat({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#15161C',
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#292B33',
     paddingVertical: 16,
     flexDirection: 'row',
     alignItems: 'center',
@@ -104,13 +104,13 @@ const styles = StyleSheet.create({
   },
 
   statTitle: {
-    color: '#64748B',
+    color: '#70737E',
     fontSize: 12,
     marginBottom: 4,
   },
 
   value: {
-    color: '#111827',
+    color: '#A1A4AE',
     fontSize: 18,
     fontWeight: '900',
   },
@@ -118,6 +118,6 @@ const styles = StyleSheet.create({
   divider: {
     width: 1,
     height: 54,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: '#292B33',
   },
 });

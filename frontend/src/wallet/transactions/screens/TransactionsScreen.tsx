@@ -60,7 +60,7 @@ interface Transaction {
 // ============================================================
 
 export default function TransactionsScreen() {
-  const { userId, isConnected, address } = useWalletContext();
+  const { userId, isAuthenticated } = useWalletContext();
   const [filterType, setFilterType] = useState<'all' | 'deposit' | 'withdraw' | 'bonus'>('all');
   const [filterStatus, setFilterStatus] = useState<'all' | TransactionStatus>('all');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -102,93 +102,93 @@ export default function TransactionsScreen() {
     const map: Record<TransactionStatus, { label: string; className: string; icon: React.ReactNode }> = {
       pending: {
         label: 'Pending',
-        className: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-        icon: <Clock size={12} className="text-yellow-600" />,
+        className: 'bg-[#2A190D] text-[#F59E0B] border-[#3A281C]',
+        icon: <Clock size={12} className="text-[#F59E0B]" />,
       },
       processing: {
         label: 'Processing',
-        className: 'bg-blue-100 text-blue-700 border-blue-200',
-        icon: <Clock size={12} className="text-blue-600" />,
+        className: 'bg-[#211810] text-[#C99752] border-[#34261C]',
+        icon: <Clock size={12} className="text-[#C99752]" />,
       },
       verifying: {
         label: 'Verifying',
-        className: 'bg-purple-100 text-purple-700 border-purple-200',
-        icon: <Clock size={12} className="text-purple-600" />,
+        className: 'bg-[#211810] text-[#C99752] border-[#34261C]',
+        icon: <Clock size={12} className="text-[#C99752]" />,
       },
       confirmed: {
         label: 'Confirmed',
-        className: 'bg-blue-100 text-blue-700 border-blue-200',
-        icon: <CheckCircle size={12} className="text-blue-600" />,
+        className: 'bg-[#211810] text-[#C99752] border-[#34261C]',
+        icon: <CheckCircle size={12} className="text-[#C99752]" />,
       },
       approved: {
         label: 'Approved',
-        className: 'bg-blue-100 text-blue-700 border-blue-200',
-        icon: <CheckCircle size={12} className="text-blue-600" />,
+        className: 'bg-[#211810] text-[#C99752] border-[#34261C]',
+        icon: <CheckCircle size={12} className="text-[#C99752]" />,
       },
       completed: {
         label: 'Completed',
-        className: 'bg-green-100 text-green-700 border-green-200',
-        icon: <CheckCircle size={12} className="text-green-600" />,
+        className: 'bg-[#10251A] text-[#6EE7B7] border-[#123A24]',
+        icon: <CheckCircle size={12} className="text-[#4ADE80]" />,
       },
       failed: {
         label: 'Failed',
-        className: 'bg-red-100 text-red-700 border-red-200',
-        icon: <XCircle size={12} className="text-red-600" />,
+        className: 'bg-[#281313] text-[#F87171] border-[#4A2323]',
+        icon: <XCircle size={12} className="text-[#F87171]" />,
       },
       rejected: {
         label: 'Rejected',
-        className: 'bg-red-100 text-red-700 border-red-200',
-        icon: <XCircle size={12} className="text-red-600" />,
+        className: 'bg-[#281313] text-[#F87171] border-[#4A2323]',
+        icon: <XCircle size={12} className="text-[#F87171]" />,
       },
       cancelled: {
         label: 'Cancelled',
-        className: 'bg-gray-100 text-gray-700 border-gray-200',
-        icon: <AlertCircle size={12} className="text-gray-600" />,
+        className: 'bg-[#202229] text-[#A1A4AE] border-[#34343E]',
+        icon: <AlertCircle size={12} className="text-[#A1A4AE]" />,
       },
     };
     return map[status] || {
       label: status || 'Unknown',
-      className: 'bg-gray-100 text-gray-700 border-gray-200',
-      icon: <AlertCircle size={12} className="text-gray-600" />,
+      className: 'bg-[#202229] text-[#A1A4AE] border-[#34343E]',
+      icon: <AlertCircle size={12} className="text-[#A1A4AE]" />,
     };
   };
 
   const getTypeIcon = (type: TransactionType) => {
     const map: Record<TransactionType, { icon: React.ReactNode; className: string; label: string }> = {
       deposit: {
-        icon: <ArrowDownToLine size={14} className="text-green-600" />,
-        className: 'bg-green-100',
+        icon: <ArrowDownToLine size={14} className="text-[#4ADE80]" />,
+        className: 'bg-[#10251A]',
         label: 'Deposit',
       },
       withdraw: {
-        icon: <ArrowUpFromLine size={14} className="text-red-600" />,
-        className: 'bg-red-100',
+        icon: <ArrowUpFromLine size={14} className="text-[#F87171]" />,
+        className: 'bg-[#281313]',
         label: 'Withdrawal',
       },
       trade: {
-        icon: <History size={14} className="text-blue-600" />,
-        className: 'bg-blue-100',
+        icon: <History size={14} className="text-[#C99752]" />,
+        className: 'bg-[#211810]',
         label: 'Trade',
       },
       game: {
-        icon: <Gamepad2 size={14} className="text-purple-600" />,
-        className: 'bg-purple-100',
+        icon: <Gamepad2 size={14} className="text-[#C99752]" />,
+        className: 'bg-[#211810]',
         label: 'Game',
       },
       bonus: {
-        icon: <Gift size={14} className="text-violet-600" />,
-        className: 'bg-violet-100',
+        icon: <Gift size={14} className="text-[#C99752]" />,
+        className: 'bg-[#211810]',
         label: 'Bonus',
       },
       other: {
-        icon: <Wallet size={14} className="text-gray-600" />,
-        className: 'bg-gray-100',
+        icon: <Wallet size={14} className="text-[#A1A4AE]" />,
+        className: 'bg-[#202229]',
         label: 'Other',
       },
     };
     return map[type] || {
-      icon: <Wallet size={14} className="text-gray-600" />,
-      className: 'bg-gray-100',
+      icon: <Wallet size={14} className="text-[#A1A4AE]" />,
+      className: 'bg-[#202229]',
       label: 'Unknown',
     };
   };
@@ -245,7 +245,7 @@ export default function TransactionsScreen() {
   );
 
   useEffect(() => {
-    if (isConnected && userId) {
+    if (isAuthenticated && userId) {
       fetchTransactions(true);
     } else {
       setIsLoading(false);
@@ -253,7 +253,7 @@ export default function TransactionsScreen() {
       setTotal(0);
       setHasMore(false);
     }
-  }, [isConnected, userId]);
+  }, [isAuthenticated, userId]);
 
   const refresh = () => {
     fetchTransactions(true);
@@ -285,31 +285,26 @@ export default function TransactionsScreen() {
     );
   }, [transactions, filterType, filterStatus]);
 
-  const showConnectState = !isConnected && !isLoading && filteredTransactions.length === 0;
+  const showConnectState = !isAuthenticated && !isLoading && filteredTransactions.length === 0;
 
   // ============================================================
   // RENDER
   // ============================================================
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] pb-28">
+    <div className="min-h-screen bg-[#111217] pb-28">
       <main className="mx-auto w-full max-w-[1200px] px-4 py-4">
         <div className="space-y-4">
           {/* Header */}
-          <section className="rounded-[20px] border border-[#E5E7EB] bg-white p-4">
+          <section className="rounded-[20px] border border-[#292B33] bg-[#15161C] p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h1 className="text-[21px] font-black text-[#111827]">Transactions</h1>
-                <p className="mt-1 text-xs text-[#64748B]">
+                <h1 className="text-[21px] font-black text-[#F5F5F7]">Transactions</h1>
+                <p className="mt-1 text-xs text-[#A1A4AE]">
                   Your latest wallet activity across deposits, withdrawals, trades, and games.
                 </p>
-                {isConnected && address && (
-                  <p className="mt-1 text-[10px] font-mono text-[#98A2B3]">
-                    {formatAddress(address)}
-                  </p>
-                )}
                 {total > 0 && (
-                  <p className="mt-1 text-[10px] text-[#667085]">
+                  <p className="mt-1 text-[10px] text-[#A1A4AE]">
                     {total} total transaction{total > 1 ? 's' : ''}
                   </p>
                 )}
@@ -319,7 +314,7 @@ export default function TransactionsScreen() {
                 type="button"
                 onClick={refresh}
                 disabled={isLoading}
-                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-[#E4E7EC] px-3 text-xs font-extrabold text-[#475467] hover:bg-[#F9FAFB] disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-[#292B33] px-3 text-xs font-extrabold text-[#A1A4AE] hover:bg-[#15161C] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
                 Refresh
@@ -328,16 +323,16 @@ export default function TransactionsScreen() {
           </section>
 
           {/* Filters */}
-          {isConnected && !isLoading && filteredTransactions.length > 0 && (
-            <section className="rounded-[20px] border border-[#E5E7EB] bg-white p-3">
+          {isAuthenticated && !isLoading && filteredTransactions.length > 0 && (
+            <section className="rounded-[20px] border border-[#292B33] bg-[#15161C] p-3">
               <div className="flex flex-wrap items-center gap-2">
-                <Filter size={14} className="text-[#98A2B3] mr-1" />
+                <Filter size={14} className="text-[#70737E] mr-1" />
                 <button
                   onClick={() => setFilterType('all')}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
                     filterType === 'all'
-                      ? 'bg-[#111827] text-white'
-                      : 'bg-[#F8FAFC] text-[#475467] hover:bg-[#F1F5F9]'
+                      ? 'bg-[#FF7A18] text-white'
+                      : 'bg-[#111217] text-[#A1A4AE] hover:bg-[#1B1917]'
                   }`}
                 >
                   All
@@ -347,7 +342,7 @@ export default function TransactionsScreen() {
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
                     filterType === 'deposit'
                       ? 'bg-green-600 text-white'
-                      : 'bg-[#F8FAFC] text-[#475467] hover:bg-[#F1F5F9]'
+                      : 'bg-[#111217] text-[#A1A4AE] hover:bg-[#1B1917]'
                   }`}
                 >
                   <ArrowDownToLine size={12} className="inline mr-1" />
@@ -358,7 +353,7 @@ export default function TransactionsScreen() {
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
                     filterType === 'withdraw'
                       ? 'bg-red-600 text-white'
-                      : 'bg-[#F8FAFC] text-[#475467] hover:bg-[#F1F5F9]'
+                      : 'bg-[#111217] text-[#A1A4AE] hover:bg-[#1B1917]'
                   }`}
                 >
                   <ArrowUpFromLine size={12} className="inline mr-1" />
@@ -368,20 +363,20 @@ export default function TransactionsScreen() {
                   onClick={() => setFilterType('bonus')}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
                     filterType === 'bonus'
-                      ? 'bg-violet-600 text-white'
-                      : 'bg-[#F8FAFC] text-[#475467] hover:bg-[#F1F5F9]'
+                      ? 'bg-[#FF7A18] text-white'
+                      : 'bg-[#111217] text-[#A1A4AE] hover:bg-[#1B1917]'
                   }`}
                 >
                   <Gift size={12} className="inline mr-1" />
                   Bonus
                 </button>
 
-                <div className="w-px h-6 bg-[#E4E7EC] mx-1" />
+                <div className="w-px h-6 bg-[#292B33] mx-1" />
 
                 <select
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value as 'all' | TransactionStatus)}
-                  className="rounded-lg border border-[#E4E7EC] bg-[#F8FAFC] px-2 py-1.5 text-xs font-medium text-[#475467] outline-none focus:ring-2 focus:ring-[#111827]"
+                  className="rounded-lg border border-[#292B33] bg-[#111217] px-2 py-1.5 text-xs font-medium text-[#A1A4AE] outline-none focus:ring-2 focus:ring-[#292B33]"
                 >
                   <option value="all">All Status</option>
                   <option value="pending">Pending</option>
@@ -396,16 +391,16 @@ export default function TransactionsScreen() {
             </section>
           )}
 
-          {/* Connect Wallet State */}
+          {/* Logged-out State */}
           {showConnectState && (
-            <section className="rounded-[20px] border border-[#E5E7EB] bg-white p-8">
+            <section className="rounded-[20px] border border-[#292B33] bg-[#15161C] p-8">
               <div className="flex flex-col items-center justify-center text-center">
-                <Wallet size={48} className="text-[#D0D5DD]" />
-                <div className="mt-3 text-base font-bold text-[#475467]">
-                  Connect your wallet
+                <Wallet size={48} className="text-[#34343E]" />
+                <div className="mt-3 text-base font-bold text-[#A1A4AE]">
+                  Log in required
                 </div>
-                <div className="mt-1 text-xs text-[#667085]">
-                  Connect your wallet to view your transaction history.
+                <div className="mt-1 text-xs text-[#A1A4AE]">
+                  Log in to view your transaction history.
                 </div>
               </div>
             </section>
@@ -413,10 +408,10 @@ export default function TransactionsScreen() {
 
           {/* Loading State */}
           {!showConnectState && isLoading && filteredTransactions.length === 0 && (
-            <section className="rounded-[20px] border border-[#E5E7EB] bg-white p-8">
+            <section className="rounded-[20px] border border-[#292B33] bg-[#15161C] p-8">
               <div className="flex flex-col items-center justify-center text-center">
-                <Loader2 size={34} className="animate-spin text-[#475467]" />
-                <div className="mt-3 text-sm font-bold text-[#344054]">
+                <Loader2 size={34} className="animate-spin text-[#A1A4AE]" />
+                <div className="mt-3 text-sm font-bold text-[#E4E5E8]">
                   Loading transactions...
                 </div>
               </div>
@@ -425,9 +420,9 @@ export default function TransactionsScreen() {
 
           {/* Error State */}
           {!showConnectState && !isLoading && error && (
-            <section className="rounded-[20px] border border-[#FECACA] bg-[#FEF2F2] p-4">
+            <section className="rounded-[20px] border border-[#4A2323] bg-[#281313] p-4">
               <div className="flex items-start gap-3">
-                <AlertCircle size={20} className="mt-0.5 text-[#B91C1C]" />
+                <AlertCircle size={20} className="mt-0.5 text-[#F87171]" />
                 <div>
                   <div className="text-sm font-extrabold text-[#991B1B]">
                     Failed to load transactions
@@ -440,13 +435,13 @@ export default function TransactionsScreen() {
 
           {/* Empty State */}
           {!showConnectState && !isLoading && !error && filteredTransactions.length === 0 && (
-            <section className="rounded-[20px] border border-[#E5E7EB] bg-white p-8">
+            <section className="rounded-[20px] border border-[#292B33] bg-[#15161C] p-8">
               <div className="flex flex-col items-center justify-center text-center">
-                <FileText size={42} className="text-[#D0D5DD]" />
-                <div className="mt-3 text-base font-bold text-[#475467]">
+                <FileText size={42} className="text-[#34343E]" />
+                <div className="mt-3 text-base font-bold text-[#A1A4AE]">
                   No transactions found
                 </div>
-                <div className="mt-1 text-xs text-[#667085]">
+                <div className="mt-1 text-xs text-[#A1A4AE]">
                   {filterType !== 'all' || filterStatus !== 'all'
                     ? 'Try changing your filters'
                     : 'Your wallet activity will appear here.'}
@@ -457,8 +452,8 @@ export default function TransactionsScreen() {
 
           {/* Transactions List */}
           {!showConnectState && filteredTransactions.length > 0 && (
-            <section className="overflow-hidden rounded-[20px] border border-[#E5E7EB] bg-white">
-              <div className="divide-y divide-[#F2F4F7]">
+            <section className="overflow-hidden rounded-[20px] border border-[#292B33] bg-[#15161C]">
+              <div className="divide-y divide-[#1B1917]">
                 {filteredTransactions.map((transaction) => {
                   const statusBadge = getStatusBadge(transaction.status);
                   const typeIcon = getTypeIcon(transaction.type);
@@ -469,7 +464,7 @@ export default function TransactionsScreen() {
                   return (
                     <div
                       key={transaction.id}
-                      className="flex items-center justify-between px-4 py-3 hover:bg-[#F8FAFC] transition-colors cursor-pointer"
+                      className="flex items-center justify-between px-4 py-3 hover:bg-[#111217] transition-colors cursor-pointer"
                       onClick={() => {
                         // Toggle selection
                       }}
@@ -480,7 +475,7 @@ export default function TransactionsScreen() {
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <p className="text-xs font-bold text-[#111827] capitalize">
+                            <p className="text-xs font-bold text-[#F5F5F7] capitalize">
                               {typeIcon.label}
                             </p>
                             <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold border ${statusBadge.className}`}>
@@ -489,11 +484,11 @@ export default function TransactionsScreen() {
                             </span>
                           </div>
                           {transaction.txHash && (
-                            <p className="text-[10px] text-[#98A2B3] font-mono mt-0.5">
+                            <p className="text-[10px] text-[#70737E] font-mono mt-0.5">
                               {transaction.txHash.slice(0, 10)}...{transaction.txHash.slice(-6)}
                             </p>
                           )}
-                          <p className="text-[10px] text-[#98A2B3] mt-0.5">
+                          <p className="text-[10px] text-[#70737E] mt-0.5">
                             {formatRelativeTime(transaction.timestamp)}
                           </p>
                           {transaction.rejectionReason && transaction.status === 'rejected' && (
@@ -507,7 +502,7 @@ export default function TransactionsScreen() {
                             </p>
                           )}
                           {transaction.type === 'bonus' && (
-                            <p className="mt-1 max-w-[260px] whitespace-normal break-words rounded-md bg-violet-50 px-2 py-1 text-[10px] font-medium text-[#475467]">
+                            <p className="mt-1 max-w-[260px] whitespace-normal break-words rounded-md bg-[#211810] px-2 py-1 text-[10px] font-medium text-[#A1A4AE]">
                               {transaction.description?.replace(/^admin bonus:\s*/i, '').trim() || ''}
                             </p>
                           )}
@@ -517,19 +512,19 @@ export default function TransactionsScreen() {
                       <div className="text-right shrink-0">
                         <p
                           className={`text-xs font-bold ${
-                            isPositive ? 'text-green-600' : 'text-red-600'
+                            isPositive ? 'text-[#4ADE80]' : 'text-[#F87171]'
                           }`}
                         >
                           {isPositive ? '+' : '-'}
                           {formatAmount(transaction.tdxAmount || transaction.amount || '0')} TDX
                         </p>
                         {transaction.usdtAmount && (
-                          <p className="text-[10px] text-[#98A2B3]">
+                          <p className="text-[10px] text-[#70737E]">
                             {formatAmount(transaction.usdtAmount)} USDT
                           </p>
                         )}
                         {transaction.walletAddress && (
-                          <p className="text-[10px] text-[#98A2B3] font-mono mt-0.5">
+                          <p className="text-[10px] text-[#70737E] font-mono mt-0.5">
                             {formatAddress(transaction.walletAddress)}
                           </p>
                         )}
@@ -540,12 +535,12 @@ export default function TransactionsScreen() {
               </div>
 
               {hasMore && (
-                <div className="border-t border-[#F2F4F7] p-3 text-center">
+                <div className="border-t border-[#1B1917] p-3 text-center">
                   <button
                     type="button"
                     onClick={loadMore}
                     disabled={isLoading}
-                    className="text-xs font-bold text-[#2563EB] hover:text-[#1D4ED8] disabled:cursor-not-allowed disabled:text-[#98A2B3] transition"
+                    className="text-xs font-bold text-[#C99752] hover:text-[#C99752] disabled:cursor-not-allowed disabled:text-[#70737E] transition"
                   >
                     {isLoading ? (
                       <span className="flex items-center justify-center gap-2">
@@ -563,7 +558,7 @@ export default function TransactionsScreen() {
 
           {/* Total Count */}
           {!showConnectState && filteredTransactions.length > 0 && (
-            <div className="text-center text-[10px] text-[#98A2B3]">
+            <div className="text-center text-[10px] text-[#70737E]">
               Showing {filteredTransactions.length} transaction{filteredTransactions.length > 1 ? 's' : ''}
               {total > 0 && ` of ${total}`}
             </div>

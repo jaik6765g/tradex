@@ -26,13 +26,19 @@ export class Deposit {
   @Column({ name: 'user_id' })
   userId: string;
 
-  @Column({ name: 'wallet_id' })
-  walletId: string;
+  @Column({ name: 'wallet_id', type: 'uuid', nullable: true })
+  walletId: string | null;
+
+  @Column({ name: 'order_id', type: 'uuid', nullable: true })
+  orderId: string | null;
+
+  @Column({ name: 'deposit_address', type: 'varchar', length: 64, nullable: true })
+  depositAddress: string | null;
 
   @Column({ name: 'chain_id' })
   chainId: number;
 
-  @Column({ name: 'transaction_hash', length: 66, unique: true })
+  @Column({ name: 'transaction_hash', length: 128, unique: true })
   transactionHash: string;
 
   @Column({ name: 'block_number', type: 'bigint' })
@@ -41,10 +47,10 @@ export class Deposit {
   @Column({ name: 'block_timestamp', type: 'timestamp' })
   blockTimestamp: Date;
 
-  @Column({ name: 'vault_address', length: 42 })
+  @Column({ name: 'vault_address', length: 64 })
   vaultAddress: string;
 
-  @Column({ name: 'sender_address', length: 42 })
+  @Column({ name: 'sender_address', length: 64 })
   senderAddress: string;
 
   @Column({ name: 'amount', length: 78 })
@@ -91,7 +97,7 @@ export class Deposit {
   @JoinColumn({ name: 'user_id' })
   user: User;
 
-  @ManyToOne(() => Wallet)
+  @ManyToOne(() => Wallet, { nullable: true })
   @JoinColumn({ name: 'wallet_id' })
-  wallet: Wallet;
+  wallet: Wallet | null;
 }

@@ -19,21 +19,21 @@ const tabs = [
     title: 'Game Referral',
     subtitle: 'Earn from Game',
     icon: 'game-controller',
-    color: '#7C3AED',
+    color: '#C99752',
   },
   {
     id: 'trade' as ReferralType,
     title: 'Trade Referral',
     subtitle: 'Earn from Trade',
     icon: 'stats-chart',
-    color: '#2563EB',
+    color: '#C99752',
   },
   {
     id: 'bot' as ReferralType,
     title: 'Bot Referral',
     subtitle: 'Earn from Bot',
     icon: 'hardware-chip',
-    color: '#F59E0B',
+    color: '#FF8F3D',
   },
 ];
 
@@ -90,10 +90,10 @@ export default function ReferralTypeTabs({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#15161C',
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#292B33',
     flexDirection: 'row',
     overflow: 'hidden',
     marginBottom: 14,
@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
   },
 
   activeTab: {
-    backgroundColor: '#FFFDF7',
+    backgroundColor: '#2A190D',
   },
 
   iconCircle: {
@@ -127,14 +127,14 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    color: '#111827',
+    color: '#A1A4AE',
     fontSize: 11,
     fontWeight: '800',
     textAlign: 'center',
   },
 
   subtitle: {
-    color: '#64748B',
+    color: '#70737E',
     fontSize: 10,
     marginTop: 3,
   },
@@ -145,6 +145,6 @@ const styles = StyleSheet.create({
     width: 42,
     height: 3,
     borderRadius: 2,
-    backgroundColor: '#F59E0B',
+    backgroundColor: '#FF8F3D',
   },
 });

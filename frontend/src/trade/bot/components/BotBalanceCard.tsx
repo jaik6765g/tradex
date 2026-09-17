@@ -154,25 +154,25 @@ export default function BotWalletCard({
   };
 
   return (
-      <Card className="overflow-hidden rounded-[20px] border border-[#E5E7EB]">
+      <Card className="overflow-hidden rounded-[20px] border border-[#292B33]">
         {/* ─── Balance Header ─── */}
-        <section className="relative bg-[#0D1B2A] px-5 pt-5 pb-5">
-          <div className="pointer-events-none absolute right-0 top-0 h-32 w-32 rounded-full bg-[#FBBF24]/[0.05]" />
+        <section className="relative bg-[#211810] px-5 pt-5 pb-5">
+          <div className="pointer-events-none absolute right-0 top-0 h-32 w-32 rounded-full bg-[#FF7A18]/[0.05]" />
 
           <div className="relative flex items-start justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-[#FBBF24]/[0.12] ring-1 ring-[#FBBF24]/10">
-                <Wallet size={20} strokeWidth={2} className="text-[#FBBF24]" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-[#FF7A18]/[0.12] ring-1 ring-[#FF7A18]/10">
+                <Wallet size={20} strokeWidth={2} className="text-[#FF7A18]" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="text-[15px] font-black text-white">Bot Wallet</h2>
-                  <div className="flex items-center gap-1 rounded-full bg-[#FBBF24]/10 px-1.5 py-0.5">
-                    <Zap size={9} className="text-[#FBBF24]" />
-                    <span className="text-[9px] font-extrabold text-[#FBBF24]">AI</span>
+                  <div className="flex items-center gap-1 rounded-full bg-[#FF7A18]/10 px-1.5 py-0.5">
+                    <Zap size={9} className="text-[#FF7A18]" />
+                    <span className="text-[9px] font-extrabold text-[#FF7A18]">AI</span>
                   </div>
                 </div>
-                <p className="text-[10px] font-medium text-[#64748B]">Automated trading funds</p>
+                <p className="text-[10px] font-medium text-[#A1A4AE]">Automated trading funds</p>
               </div>
             </div>
 
@@ -187,7 +187,7 @@ export default function BotWalletCard({
                 <button
                     type="button"
                     onClick={onRetry}
-                    className="flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-bold text-[#FBBF24] hover:bg-[#FBBF24]/10"
+                    className="flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-bold text-[#FF7A18] hover:bg-[#FF7A18]/10"
                 >
                   <RefreshCw size={11} />
                   Retry
@@ -197,52 +197,52 @@ export default function BotWalletCard({
 
           {loading && (
               <div className="mt-4 space-y-2">
-                <Skeleton className="h-2.5 w-24 bg-[#1E293B]" />
-                <Skeleton className="h-9 w-40 bg-[#1E293B]" />
+                <Skeleton className="h-2.5 w-24 bg-[#292B33]" />
+                <Skeleton className="h-9 w-40 bg-[#292B33]" />
               </div>
           )}
 
           {!loading && errorMessage && (
               <div className="mt-4 flex items-start gap-2.5 rounded-lg border border-[#EF4444]/15 bg-[#EF4444]/[0.06] p-3">
                 <AlertCircle size={15} className="mt-0.5 shrink-0 text-[#EF4444]" />
-                <p className="text-xs font-bold text-[#FCA5A5]">{errorMessage}</p>
+                <p className="text-xs font-bold text-[#5C2B2B]">{errorMessage}</p>
               </div>
           )}
 
           {!loading && !errorMessage && isAccountMissing && (
-              <div className="mt-4 rounded-lg border border-[#334155] bg-[#111C2C] p-3">
-                <p className="text-xs font-bold text-[#CBD5E1]">Bot account not created yet.</p>
-                <p className="mt-0.5 text-[10px] text-[#64748B]">Transfer funds to activate.</p>
+              <div className="mt-4 rounded-lg border border-[#292B33] bg-[#211810] p-3">
+                <p className="text-xs font-bold text-[#34343E]">Bot account not created yet.</p>
+                <p className="mt-0.5 text-[10px] text-[#A1A4AE]">Transfer funds to activate.</p>
               </div>
           )}
 
           {!loading && !errorMessage && !isAccountMissing && (
               <div className="mt-4">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-[#64748B]">Available Balance</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-[#A1A4AE]">Available Balance</p>
                 <div className="mt-1 flex items-baseline">
               <span className="text-[34px] font-black leading-none tracking-tight text-white">
                 {formatTdxAmount(availableBalance)}
               </span>
-                  <span className="ml-1.5 text-[14px] font-black text-[#FBBF24]">TDX</span>
+                  <span className="ml-1.5 text-[14px] font-black text-[#FF7A18]">TDX</span>
                 </div>
               </div>
           )}
         </section>
 
         {/* ─── Transfer Section ─── */}
-        <section className="bg-white px-5 pt-4 pb-5">
+        <section className="bg-[#15161C] px-5 pt-4 pb-5">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[#EFF6FF]">
-              <ArrowDownToLine size={16} strokeWidth={2.2} className="text-[#175CD3]" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[#211810]">
+              <ArrowDownToLine size={16} strokeWidth={2.2} className="text-[#C99752]" />
             </div>
             <div>
-              <h3 className="text-[14px] font-black text-[#101828]">Transfer</h3>
-              <p className="text-[10px] font-medium text-[#667085]">Move TDX between wallets</p>
+              <h3 className="text-[14px] font-black text-[#F5F5F7]">Transfer</h3>
+              <p className="text-[10px] font-medium text-[#A1A4AE]">Move TDX between wallets</p>
             </div>
           </div>
 
           {transferDirectionMessage && (
-              <div className="mt-2 rounded-md border border-[#FEDF89] bg-[#FFFAEB] px-2.5 py-1.5 text-[10px] font-bold text-[#B54708]">
+              <div className="mt-2 rounded-md border border-[#3A281C] bg-[#2A190D] px-2.5 py-1.5 text-[10px] font-bold text-[#FF8F3D]">
                 {transferDirectionMessage}
               </div>
           )}
@@ -250,22 +250,22 @@ export default function BotWalletCard({
           {/* Wallet Selector Row */}
           <div className="mt-3 flex items-end gap-2">
             {/* From */}
-            <div className="flex-1 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-2.5">
-              <label className="text-[9px] font-bold uppercase tracking-wide text-[#98A2B3]">From</label>
+            <div className="flex-1 rounded-xl border border-[#292B33] bg-[#111217] p-2.5">
+              <label className="text-[9px] font-bold uppercase tracking-wide text-[#70737E]">From</label>
               <div className="relative mt-1">
                 <select
                     value={fromWallet}
                     onChange={handleFromWalletChange}
                     disabled={transferLoading || !transferDirectionEnabled}
-                    className="h-9 w-full appearance-none rounded-lg border border-[#D0D5DD] bg-white px-2.5 pr-7 text-[13px] font-black text-[#344054] outline-none focus:border-[#175CD3] focus:ring-2 focus:ring-[#175CD3]/20 disabled:cursor-not-allowed disabled:bg-[#F2F4F7]"
+                    className="h-9 w-full appearance-none rounded-lg border border-[#34343E] bg-[#15161C] px-2.5 pr-7 text-[13px] font-black text-[#E4E5E8] outline-none focus:border-[#C99752] focus:ring-2 focus:ring-[#C99752]/20 disabled:cursor-not-allowed disabled:bg-[#1B1917]"
                 >
                   <option value="MAIN_WALLET" disabled={toWallet === 'MAIN_WALLET'}>Main Wallet</option>
                   <option value="BOT_WALLET" disabled={toWallet === 'BOT_WALLET'}>Bot Wallet</option>
                 </select>
-                <ChevronDown size={14} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[#667085]" />
+                <ChevronDown size={14} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[#A1A4AE]" />
               </div>
-              <div className="mt-1.5 text-[11px] font-black text-[#101828]">
-                {fromBalanceLoading ? <Skeleton className="h-3.5 w-20" /> : <>{formatTdxAmount(fromBalance.toString())} <span className="text-[#FBBF24]">TDX</span></>}
+              <div className="mt-1.5 text-[11px] font-black text-[#F5F5F7]">
+                {fromBalanceLoading ? <Skeleton className="h-3.5 w-20" /> : <>{formatTdxAmount(fromBalance.toString())} <span className="text-[#FF7A18]">TDX</span></>}
               </div>
             </div>
 
@@ -274,14 +274,14 @@ export default function BotWalletCard({
                 type="button"
                 onClick={handleSwapDirection}
                 disabled={!transferDirectionEnabled || transferLoading}
-                className="mb-5 flex h-9 w-9 items-center justify-center rounded-full border border-[#D0D5DD] bg-white text-[#175CD3] shadow-sm transition hover:border-[#175CD3] hover:bg-[#EFF6FF] disabled:opacity-50"
+                className="mb-5 flex h-9 w-9 items-center justify-center rounded-full border border-[#34343E] bg-[#15161C] text-[#C99752] shadow-sm transition hover:border-[#C99752] hover:bg-[#211810] disabled:opacity-50"
             >
               <ArrowLeftRight size={15} />
             </button>
 
             {/* To */}
-            <div className="flex-1 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-2.5">
-              <label className="text-[9px] font-bold uppercase tracking-wide text-[#98A2B3]">To</label>
+            <div className="flex-1 rounded-xl border border-[#292B33] bg-[#111217] p-2.5">
+              <label className="text-[9px] font-bold uppercase tracking-wide text-[#70737E]">To</label>
               <div className="relative mt-1">
                 <select
                     value={toWallet}
@@ -291,15 +291,15 @@ export default function BotWalletCard({
                       onDirectionChange(walletsToDirection(selectedFrom, selectedTo));
                     }}
                     disabled={transferLoading || !transferDirectionEnabled}
-                    className="h-9 w-full appearance-none rounded-lg border border-[#D0D5DD] bg-white px-2.5 pr-7 text-[13px] font-black text-[#344054] outline-none focus:border-[#175CD3] focus:ring-2 focus:ring-[#175CD3]/20 disabled:cursor-not-allowed disabled:bg-[#F2F4F7]"
+                    className="h-9 w-full appearance-none rounded-lg border border-[#34343E] bg-[#15161C] px-2.5 pr-7 text-[13px] font-black text-[#E4E5E8] outline-none focus:border-[#C99752] focus:ring-2 focus:ring-[#C99752]/20 disabled:cursor-not-allowed disabled:bg-[#1B1917]"
                 >
                   <option value="MAIN_WALLET" disabled={fromWallet === 'MAIN_WALLET'}>Main Wallet</option>
                   <option value="BOT_WALLET" disabled={fromWallet === 'BOT_WALLET'}>Bot Wallet</option>
                 </select>
-                <ChevronDown size={14} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[#667085]" />
+                <ChevronDown size={14} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[#A1A4AE]" />
               </div>
-              <div className="mt-1.5 text-[11px] font-black text-[#101828]">
-                {fromBalanceLoading ? <Skeleton className="h-3.5 w-20" /> : <>{formatTdxAmount(toBalance.toString())} <span className="text-[#FBBF24]">TDX</span></>}
+              <div className="mt-1.5 text-[11px] font-black text-[#F5F5F7]">
+                {fromBalanceLoading ? <Skeleton className="h-3.5 w-20" /> : <>{formatTdxAmount(toBalance.toString())} <span className="text-[#FF7A18]">TDX</span></>}
               </div>
             </div>
           </div>
@@ -307,12 +307,12 @@ export default function BotWalletCard({
           {/* Amount Input */}
           <div className="mt-3">
             <div className="mb-1.5 flex items-center justify-between">
-              <label className="text-[11px] font-black text-[#344054]">Amount</label>
+              <label className="text-[11px] font-black text-[#E4E5E8]">Amount</label>
               <button
                   type="button"
                   onClick={handleMaxAmount}
                   disabled={transferDisabledBecauseLoading || transferDisabledBecauseState || fromBalanceLoading}
-                  className="rounded px-1.5 py-0.5 text-[10px] font-black text-[#175CD3] transition hover:bg-[#EFF6FF] disabled:opacity-40"
+                  className="rounded px-1.5 py-0.5 text-[10px] font-black text-[#C99752] transition hover:bg-[#211810] disabled:opacity-40"
               >
                 MAX
               </button>
@@ -329,7 +329,7 @@ export default function BotWalletCard({
                   disabled={transferDisabledBecauseLoading || transferDisabledBecauseState}
                   className="h-11 pr-12 text-[15px] font-black"
               />
-              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-black text-[#98A2B3]">TDX</span>
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-black text-[#70737E]">TDX</span>
             </div>
 
             {hasTransferAmount && parsedTransferAmount == null && (
@@ -342,7 +342,7 @@ export default function BotWalletCard({
 
           {/* Quick Amounts */}
           <div className="mt-3">
-            <p className="text-[9px] font-bold uppercase tracking-wide text-[#98A2B3]">Quick Select</p>
+            <p className="text-[9px] font-bold uppercase tracking-wide text-[#70737E]">Quick Select</p>
             <div className="mt-1.5 flex gap-2">
               {QUICK_AMOUNTS.map((quickAmount) => (
                   <button
@@ -350,7 +350,7 @@ export default function BotWalletCard({
                       type="button"
                       onClick={() => handleQuickAmount(quickAmount)}
                       disabled={transferDisabledBecauseLoading || transferDisabledBecauseState}
-                      className="flex-1 rounded-lg border border-[#D0D5DD] bg-white py-2 text-[11px] font-black text-[#344054] transition hover:border-[#175CD3] hover:bg-[#EFF6FF] disabled:opacity-50"
+                      className="flex-1 rounded-lg border border-[#34343E] bg-[#15161C] py-2 text-[11px] font-black text-[#E4E5E8] transition hover:border-[#C99752] hover:bg-[#211810] disabled:opacity-50"
                   >
                     {Number(quickAmount).toLocaleString('en-US', { notation: 'compact', compactDisplay: 'short', maximumFractionDigits: 0 })}
                   </button>
@@ -359,16 +359,16 @@ export default function BotWalletCard({
           </div>
 
           {/* Summary + Button */}
-          <div className="mt-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-2.5">
+          <div className="mt-3 rounded-xl border border-[#292B33] bg-[#111217] px-3 py-2.5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[9px] font-bold uppercase tracking-wide text-[#667085]">You send</p>
-                <p className="text-lg font-black text-[#101828]">
-                  {formatTdxAmount(normalizedTransferAmount || '0')} <span className="text-[#FBBF24] text-sm">TDX</span>
+                <p className="text-[9px] font-bold uppercase tracking-wide text-[#A1A4AE]">You send</p>
+                <p className="text-lg font-black text-[#F5F5F7]">
+                  {formatTdxAmount(normalizedTransferAmount || '0')} <span className="text-[#FF7A18] text-sm">TDX</span>
                 </p>
               </div>
-              <div className="flex items-center gap-1 text-[#667085]">
-                <ArrowRight size={14} className="text-[#175CD3]" />
+              <div className="flex items-center gap-1 text-[#A1A4AE]">
+                <ArrowRight size={14} className="text-[#C99752]" />
                 <span className="text-[10px] font-bold">{WALLET_LABELS[toWallet]}</span>
               </div>
             </div>
@@ -386,8 +386,8 @@ export default function BotWalletCard({
           </Button>
 
           <div className="mt-2 flex items-center justify-center gap-1">
-            <ShieldCheck size={11} className="text-[#98A2B3]" />
-            <p className="text-[9px] font-medium text-[#98A2B3]">Secure transfer validation</p>
+            <ShieldCheck size={11} className="text-[#70737E]" />
+            <p className="text-[9px] font-medium text-[#70737E]">Secure transfer validation</p>
           </div>
         </section>
       </Card>

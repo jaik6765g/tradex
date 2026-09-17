@@ -6,9 +6,10 @@ import { UsersService } from './users.service';
 import { UsersController } from './users.controller';
 
 import { LedgerEntry } from '../ledger/ledger.entity';
+import { AdminAuthModule } from '../auth/admin-auth.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, LedgerEntry])],
+  imports: [TypeOrmModule.forFeature([User, LedgerEntry]), AdminAuthModule],
 
   controllers: [UsersController],
 

@@ -222,19 +222,19 @@ export const RealChart: React.FC<RealChartProps> = ({
       width: container.clientWidth,
       height: initialHeight > 0 ? initialHeight : 300,
       layout: {
-        background: { type: ColorType.Solid, color: '#FFFFFF' },
-        textColor: '#101828',
+        background: { type: ColorType.Solid, color: '#15161C' },
+        textColor: '#F5F5F7',
       },
       grid: {
-        vertLines: { color: '#F2F4F7' },
-        horzLines: { color: '#F2F4F7' },
+        vertLines: { color: '#1B1917' },
+        horzLines: { color: '#1B1917' },
       },
       rightPriceScale: {
-        borderColor: '#EAECF0',
+        borderColor: '#202229',
         scaleMargins: { top: 0.08, bottom: 0.08 },
       },
       timeScale: {
-        borderColor: '#EAECF0',
+        borderColor: '#202229',
         timeVisible: true,
         secondsVisible: false,
         rightOffset: 5,
@@ -244,11 +244,11 @@ export const RealChart: React.FC<RealChartProps> = ({
     });
 
     const candleSeries = chart.addSeries(CandlestickSeries, {
-      upColor: '#16A34A',
+      upColor: '#4ADE80',
       downColor: '#DC2626',
-      borderUpColor: '#16A34A',
+      borderUpColor: '#4ADE80',
       borderDownColor: '#DC2626',
-      wickUpColor: '#16A34A',
+      wickUpColor: '#4ADE80',
       wickDownColor: '#DC2626',
       priceLineVisible: true,
       lastValueVisible: true,
@@ -509,22 +509,22 @@ export const RealChart: React.FC<RealChartProps> = ({
   // PRICE COLOR
   // ==========================================================
 
-  const priceColorClass = change24h >= 0 ? 'text-[#16A34A]' : 'text-[#DC2626]';
+  const priceColorClass = change24h >= 0 ? 'text-[#4ADE80]' : 'text-[#DC2626]';
 
   // ==========================================================
   // RENDER
   // ==========================================================
 
   return (
-      <div className="overflow-hidden rounded-2xl border border-[#E9ECF2] bg-white shadow-[0_4px_20px_rgba(16,24,40,0.04)]">
+      <div className="overflow-hidden rounded-2xl border border-[#202229] bg-[#15161C] shadow-[0_4px_20px_rgba(16,24,40,0.04)]">
         {/* HEADER */}
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#EAECF0] px-3 py-2.5 sm:px-4 sm:py-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#202229] px-3 py-2.5 sm:px-4 sm:py-3">
           <div className="flex min-w-0 items-center gap-2 sm:gap-3">
             <select
                 value={selectedPair}
                 onChange={(event) => onPairChange(event.target.value)}
                 disabled={pairDisabled}
-                className="h-9 rounded-lg border border-[#D0D5DD] bg-white px-3 text-sm font-semibold text-[#101828] outline-none focus:border-[#F5B800] focus:ring-2 focus:ring-[#F5B800]/20 disabled:cursor-not-allowed disabled:opacity-60"
+                className="h-9 rounded-lg border border-[#34343E] bg-[#15161C] px-3 text-sm font-semibold text-[#F5F5F7] outline-none focus:border-[#FF7A18] focus:ring-2 focus:ring-[#FF7A18]/20 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {pairOptions.map((pair) => (
                   <option key={pair} value={pair}>
@@ -539,25 +539,25 @@ export const RealChart: React.FC<RealChartProps> = ({
             {change24h >= 0 ? '▲' : '▼'} {Math.abs(change24h).toFixed(2)}%
           </span>
           </div>
-          <div className="flex items-center gap-2 text-xs text-[#667085]">
-            <span className={`h-2 w-2 rounded-full ${isConnected ? 'bg-[#16A34A]' : 'bg-[#DC2626]'}`} />
+          <div className="flex items-center gap-2 text-xs text-[#A1A4AE]">
+            <span className={`h-2 w-2 rounded-full ${isConnected ? 'bg-[#4ADE80]' : 'bg-[#DC2626]'}`} />
             {isConnected ? 'Live' : 'Reconnecting...'}
           </div>
         </div>
 
         {/* STATS */}
-        <div className="flex flex-wrap gap-3 border-b border-[#EAECF0] bg-[#F9FAFB] px-3 py-2 text-[11px] sm:gap-4 sm:px-4 sm:text-xs">
+        <div className="flex flex-wrap gap-3 border-b border-[#202229] bg-[#15161C] px-3 py-2 text-[11px] sm:gap-4 sm:px-4 sm:text-xs">
           <div className="flex items-center gap-2">
-            <span className="text-[#667085]">24h High</span>
-            <span className="font-mono text-[#101828]">{formatUsd(high24h || 0)}</span>
+            <span className="text-[#A1A4AE]">24h High</span>
+            <span className="font-mono text-[#F5F5F7]">{formatUsd(high24h || 0)}</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[#667085]">24h Low</span>
-            <span className="font-mono text-[#101828]">{formatUsd(low24h || 0)}</span>
+            <span className="text-[#A1A4AE]">24h Low</span>
+            <span className="font-mono text-[#F5F5F7]">{formatUsd(low24h || 0)}</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[#667085]">Vol</span>
-            <span className="font-mono text-[#101828]">{volume.toFixed(2)}</span>
+            <span className="text-[#A1A4AE]">Vol</span>
+            <span className="font-mono text-[#F5F5F7]">{volume.toFixed(2)}</span>
           </div>
         </div>
 
@@ -578,17 +578,17 @@ export const RealChart: React.FC<RealChartProps> = ({
               >
                 <div
                     className={`h-full w-[2px] ${
-                        activeTrade?.direction === 'LONG' ? 'bg-[#16A34A]' : 'bg-[#DC2626]'
+                        activeTrade?.direction === 'LONG' ? 'bg-[#4ADE80]' : 'bg-[#DC2626]'
                     } opacity-70`}
                 />
                 <div
                     className={`absolute left-1/2 top-2 -translate-x-1/2 whitespace-nowrap rounded-md px-2 py-1 text-[9px] font-bold shadow-lg ${
-                        activeTrade?.direction === 'LONG' ? 'bg-[#16A34A] text-white' : 'bg-[#DC2626] text-white'
+                        activeTrade?.direction === 'LONG' ? 'bg-[#4ADE80] text-white' : 'bg-[#DC2626] text-white'
                     }`}
                 >
                   {activeTrade?.direction === 'LONG' ? '▲ LONG ENTRY' : '▼ SHORT ENTRY'}
                 </div>
-                <div className="absolute left-1/2 top-9 -translate-x-1/2 whitespace-nowrap rounded-md border border-[#EAECF0] bg-white/90 px-2 py-1 font-mono text-[9px] text-[#101828] backdrop-blur-md">
+                <div className="absolute left-1/2 top-9 -translate-x-1/2 whitespace-nowrap rounded-md border border-[#202229] bg-[#15161C]/90 px-2 py-1 font-mono text-[9px] text-[#F5F5F7] backdrop-blur-md">
                   {formatUsd(entryPrice)}
                 </div>
               </div>
@@ -600,11 +600,11 @@ export const RealChart: React.FC<RealChartProps> = ({
                   className="pointer-events-none absolute bottom-0 top-0 z-10"
                   style={{ left: `${expiryChartX}px` }}
               >
-                <div className="h-full w-[2px] bg-[#D97706] opacity-80" />
-                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-[#D97706] px-2 py-1 text-[9px] font-bold text-white shadow-lg">
+                <div className="h-full w-[2px] bg-[#FF7A18] opacity-80" />
+                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-[#FF7A18] px-2 py-1 text-[9px] font-bold text-white shadow-lg">
                   EXPIRY
                 </div>
-                <div className="absolute bottom-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md border border-[#D97706]/40 bg-white/90 px-2 py-1 font-mono text-[11px] font-bold text-[#D97706] backdrop-blur-md">
+                <div className="absolute bottom-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md border border-[#FF7A18]/40 bg-[#15161C]/90 px-2 py-1 font-mono text-[11px] font-bold text-[#FF7A18] backdrop-blur-md">
                   {timerFinished ? 'SETTLING...' : formatCountdown(remainingMs)}
                 </div>
               </div>
@@ -625,7 +625,7 @@ export const RealChart: React.FC<RealChartProps> = ({
                     onPointerMove={handleCardPointerMove}
                     onPointerUp={handleCardPointerUp}
                     onPointerCancel={handleCardPointerUp}
-                    className={`relative overflow-hidden rounded-xl border border-white/60 bg-white/80 shadow-[0_8px_32px_rgba(16,24,40,0.12)] backdrop-blur-xl backdrop-saturate-150 ${
+                    className={`relative overflow-hidden rounded-xl border border-[#34343E] bg-[#15161C]/80 shadow-[0_8px_32px_rgba(16,24,40,0.12)] backdrop-blur-xl backdrop-saturate-150 ${
                         isDragging ? 'cursor-grabbing' : 'cursor-grab'
                     }`}
                 >
@@ -635,35 +635,35 @@ export const RealChart: React.FC<RealChartProps> = ({
 
                   {/* Drag Handle */}
                   <div className="relative flex justify-center pt-1.5">
-                    <div className="grid grid-cols-3 gap-[2px] rounded-full bg-[#F2F4F7] px-1.5 py-0.5">
+                    <div className="grid grid-cols-3 gap-[2px] rounded-full bg-[#1B1917] px-1.5 py-0.5">
                       {Array.from({ length: 6 }).map((_, index) => (
-                          <span key={index} className="h-0.5 w-0.5 rounded-full bg-[#667085]/30" />
+                          <span key={index} className="h-0.5 w-0.5 rounded-full bg-[#70737E]/30" />
                       ))}
                     </div>
                   </div>
 
                   {/* Header */}
-                  <div className="relative flex items-center justify-between border-b border-[#EAECF0] px-3 py-1.5">
+                  <div className="relative flex items-center justify-between border-b border-[#202229] px-3 py-1.5">
                     <div className="flex min-w-0 items-center gap-1.5">
                   <span
                       className={`text-sm font-bold ${
-                          activeTrade?.direction === 'LONG' ? 'text-[#16A34A]' : 'text-[#DC2626]'
+                          activeTrade?.direction === 'LONG' ? 'text-[#4ADE80]' : 'text-[#DC2626]'
                       }`}
                   >
                     {activeTrade?.direction === 'LONG' ? '▲' : '▼'}
                   </span>
                       <span
                           className={`text-sm font-bold ${
-                              activeTrade?.direction === 'LONG' ? 'text-[#16A34A]' : 'text-[#DC2626]'
+                              activeTrade?.direction === 'LONG' ? 'text-[#4ADE80]' : 'text-[#DC2626]'
                           }`}
                       >
                     {activeTrade?.direction}
                   </span>
-                      <span className="truncate text-[10px] text-[#667085]">{activeTrade?.symbol}</span>
+                      <span className="truncate text-[10px] text-[#A1A4AE]">{activeTrade?.symbol}</span>
                     </div>
                     <span
                         className={`shrink-0 font-mono text-sm font-bold ${
-                            timerFinished ? 'text-[#D97706]' : 'text-[#101828]'
+                            timerFinished ? 'text-[#FF7A18]' : 'text-[#F5F5F7]'
                         }`}
                     >
                   {timerFinished ? '00:00' : formatCountdown(remainingMs)}
@@ -672,26 +672,26 @@ export const RealChart: React.FC<RealChartProps> = ({
 
                   {/* Entry / Current */}
                   <div className="relative grid grid-cols-2">
-                    <div className="border-r border-[#EAECF0] px-3 py-1.5">
-                      <p className="text-[8px] uppercase tracking-wide text-[#667085]">Entry</p>
-                      <p className="mt-0.5 font-mono text-xs font-semibold text-[#101828]">
+                    <div className="border-r border-[#202229] px-3 py-1.5">
+                      <p className="text-[8px] uppercase tracking-wide text-[#A1A4AE]">Entry</p>
+                      <p className="mt-0.5 font-mono text-xs font-semibold text-[#F5F5F7]">
                         {formatUsd(entryPrice)}
                       </p>
                     </div>
                     <div className="px-3 py-1.5">
-                      <p className="text-[8px] uppercase tracking-wide text-[#667085]">Current</p>
-                      <p className="mt-0.5 font-mono text-xs font-semibold text-[#101828]">
+                      <p className="text-[8px] uppercase tracking-wide text-[#A1A4AE]">Current</p>
+                      <p className="mt-0.5 font-mono text-xs font-semibold text-[#F5F5F7]">
                         {formatUsd(livePrice)}
                       </p>
                     </div>
                   </div>
 
                   {/* Indicative Move */}
-                  <div className="relative flex items-center justify-between border-t border-[#EAECF0] px-3 py-1.5">
-                    <span className="text-[8px] text-[#667085]">Move</span>
+                  <div className="relative flex items-center justify-between border-t border-[#202229] px-3 py-1.5">
+                    <span className="text-[8px] text-[#A1A4AE]">Move</span>
                     <span
                         className={`font-mono text-xs font-bold ${
-                            liveMovePositive ? 'text-[#16A34A]' : 'text-[#DC2626]'
+                            liveMovePositive ? 'text-[#4ADE80]' : 'text-[#DC2626]'
                         }`}
                     >
                   {liveMovePositive ? '▲' : '▼'} {Math.abs(liveMovePercent).toFixed(4)}%
@@ -699,11 +699,11 @@ export const RealChart: React.FC<RealChartProps> = ({
                   </div>
 
                   {/* Status */}
-                  <div className="relative flex items-center justify-between border-t border-[#EAECF0] px-3 py-1.5">
-                    <span className="text-[8px] text-[#667085]">Status</span>
+                  <div className="relative flex items-center justify-between border-t border-[#202229] px-3 py-1.5">
+                    <span className="text-[8px] text-[#A1A4AE]">Status</span>
                     <span
                         className={`text-[10px] font-bold ${
-                            timerFinished ? 'text-[#D97706]' : 'text-[#16A34A]'
+                            timerFinished ? 'text-[#FF7A18]' : 'text-[#4ADE80]'
                         }`}
                     >
                   {timerFinished ? 'SETTLING' : 'ACTIVE'}
@@ -711,8 +711,8 @@ export const RealChart: React.FC<RealChartProps> = ({
                   </div>
 
                   {/* Drag Footer */}
-                  <div className="relative flex items-center justify-center border-t border-[#EAECF0] px-3 py-1">
-                    <span className="text-[8px] text-[#98A2B3]">⋯ Drag</span>
+                  <div className="relative flex items-center justify-center border-t border-[#202229] px-3 py-1">
+                    <span className="text-[8px] text-[#70737E]">⋯ Drag</span>
                   </div>
                 </div>
               </div>
@@ -720,7 +720,7 @@ export const RealChart: React.FC<RealChartProps> = ({
         </div>
 
         {/* TIMEFRAMES */}
-        <div className="overflow-x-auto border-t border-[#EAECF0] bg-[#F9FAFB] px-2.5 py-1.5 sm:px-4 sm:py-2">
+        <div className="overflow-x-auto border-t border-[#202229] bg-[#15161C] px-2.5 py-1.5 sm:px-4 sm:py-2">
           <div className="flex w-max min-w-full gap-1">
             {TIMEFRAMES.map((tf) => (
                 <button
@@ -729,8 +729,8 @@ export const RealChart: React.FC<RealChartProps> = ({
                     onClick={() => setActiveInterval(tf)}
                     className={`whitespace-nowrap rounded-lg px-2 py-1 text-[11px] font-medium transition-colors sm:px-3 sm:text-xs ${
                         activeInterval === tf
-                            ? 'bg-[#F5B800] text-[#101828] shadow-[0_2px_8px_rgba(245,184,0,0.3)]'
-                            : 'text-[#667085] hover:bg-[#EAECF0] hover:text-[#101828]'
+                            ? 'bg-[#FF7A18] text-[#F5F5F7] shadow-[0_2px_8px_rgba(255,122,24,0.3)]'
+                            : 'text-[#A1A4AE] hover:bg-[#202229] hover:text-[#F5F5F7]'
                     }`}
                 >
                   {tf}

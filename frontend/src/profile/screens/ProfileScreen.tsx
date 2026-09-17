@@ -6,7 +6,7 @@ import ProfileMenu from '../components/ProfileMenu';
 
 export default function Profile() {
   return (
-    <div className="min-h-screen bg-[#F8FAFC] pb-28">
+    <div className="min-h-screen bg-[#111217] pb-28">
 
       <main className="mx-auto w-full max-w-[1200px] px-4 py-4">
         <div className="space-y-4">

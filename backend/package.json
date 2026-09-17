@@ -22,7 +22,11 @@
     "migration:run": "npm run typeorm migration:run -- -d src/data-source.ts",
     "migration:revert": "npm run typeorm migration:revert -- -d src/data-source.ts",
     "migration:create": "npm run typeorm migration:create -- -n",
-    "migration:generate": "npm run typeorm migration:generate -- -d src/data-source.ts -n"
+    "migration:generate": "npm run typeorm migration:generate -- -d src/data-source.ts -n",
+    "tron:e2e": "ts-node -T src/deposit-gateway/chains/tron/tron-e2e.runner.ts",
+    "admin:grant": "ADMIN_ACTION=grant bash scripts/admin-role.sh grant",
+    "admin:revoke": "ADMIN_ACTION=revoke bash scripts/admin-role.sh revoke",
+    "admin:mfa-recovery": "bash scripts/admin-mfa-recovery.sh"
   },
   "dependencies": {
     "@nestjs/bull": "^11.0.5",
@@ -37,6 +41,9 @@
     "@nestjs/swagger": "^11.4.7",
     "@nestjs/typeorm": "^11.0.3",
     "@nestjs/websockets": "^11.2.1",
+    "@solana/spl-token": "^0.4.15",
+    "@solana/web3.js": "^1.99.0",
+    "@supabase/supabase-js": "^2.116.0",
     "bull": "^4.16.5",
     "bullmq": "^6.1.2",
     "class-transformer": "^0.5.1",
@@ -50,6 +57,7 @@
     "pg": "^8.23.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "tronweb": "^6.5.0",
     "typeorm": "^1.1.0",
     "uuid": "^14.0.2"
   },

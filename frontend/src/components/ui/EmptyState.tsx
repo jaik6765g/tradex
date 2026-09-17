@@ -17,18 +17,18 @@ export default function EmptyState({
   return (
     <div
       className={cx(
-        'rounded-[18px] border border-[#E5E7EB] bg-white p-8 text-center',
+        'rounded-[18px] border border-[#292B33] bg-[#15161C] p-8 text-center',
         className,
       )}
     >
-      <div className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#F2F4F7] text-[#98A2B3]">
+      <div className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#1B1917] text-[#70737E]">
         <Inbox size={22} />
       </div>
 
-      <p className="mt-3 text-base font-bold text-[#475467]">{title}</p>
+      <p className="mt-3 text-base font-bold text-[#A1A4AE]">{title}</p>
 
       {description ? (
-        <p className="mt-1 text-sm text-[#667085]">{description}</p>
+        <p className="mt-1 text-sm text-[#A1A4AE]">{description}</p>
       ) : null}
     </div>
   );

@@ -14,7 +14,7 @@ export default function Marketplace() {
   >('All');
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
+    <div className="min-h-screen bg-[#111217]">
 
       <main className="mx-auto w-full max-w-[1200px] px-0 pb-28 pt-4">
         <MarketBanner />

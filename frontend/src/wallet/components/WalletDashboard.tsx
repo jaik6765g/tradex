@@ -23,7 +23,7 @@ export function WalletDashboard() {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FF7A18]"></div>
       </div>
     );
   }
@@ -32,7 +32,7 @@ export function WalletDashboard() {
     return (
       <div className="p-6 text-center">
         <p className="text-red-500">{error}</p>
-        <button onClick={refresh} className="mt-3 text-blue-600 hover:underline">
+        <button onClick={refresh} className="mt-3 text-[#C99752] hover:underline">
           Retry
         </button>
       </div>

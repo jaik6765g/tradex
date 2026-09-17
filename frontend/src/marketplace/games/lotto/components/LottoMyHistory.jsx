@@ -21,14 +21,14 @@ import {
 } from '../utils/lottoUi';
 
 const STATUS_CONFIG = {
-  WIN: { label: 'WIN', tone: 'bg-[#ECFDF3] text-[#067647] border-[#ABEFC6]', Icon: CheckCircle2 },
-  LOSS: { label: 'LOSS', tone: 'bg-[#FEF3F2] text-[#B42318] border-[#FECDCA]', Icon: XCircle },
-  SETTLED: { label: 'SETTLED', tone: 'bg-[#F2F4F7] text-[#344054] border-[#D0D5DD]', Icon: CheckCircle2 },
-  REFUNDED: { label: 'REFUNDED', tone: 'bg-[#FFF6ED] text-[#C4320A] border-[#FDDCAB]', Icon: RefreshCw },
-  CANCELLED: { label: 'CANCELLED', tone: 'bg-[#FEF3F2] text-[#B42318] border-[#FECDCA]', Icon: XCircle },
-  ACTIVE: { label: 'ACTIVE', tone: 'bg-[#EEF4FF] text-[#3538CD] border-[#C7D7FE]', Icon: Clock },
-  CUTOFF: { label: 'CUTOFF', tone: 'bg-[#FFFAEB] text-[#B54708] border-[#FEDF89]', Icon: Clock },
-  PENDING: { label: 'PENDING', tone: 'bg-[#EEF4FF] text-[#3538CD] border-[#C7D7FE]', Icon: Clock },
+  WIN: { label: 'WIN', tone: 'bg-[#0C2417] text-[#4ADE80] border-[#1E4A32]', Icon: CheckCircle2 },
+  LOSS: { label: 'LOSS', tone: 'bg-[#2A1515] text-[#F87171] border-[#4A2323]', Icon: XCircle },
+  SETTLED: { label: 'SETTLED', tone: 'bg-[#1C1C24] text-[#C5C6D0] border-[#34343E]', Icon: CheckCircle2 },
+  REFUNDED: { label: 'REFUNDED', tone: 'bg-[#2A1608] text-[#FDBA74] border-[#3A2410]', Icon: RefreshCw },
+  CANCELLED: { label: 'CANCELLED', tone: 'bg-[#2A1515] text-[#F87171] border-[#4A2323]', Icon: XCircle },
+  ACTIVE: { label: 'ACTIVE', tone: 'bg-[#0F1C30] text-[#818CF8] border-[#26315C]', Icon: Clock },
+  CUTOFF: { label: 'CUTOFF', tone: 'bg-[#291A0B] text-[#FB923C] border-[#3A2410]', Icon: Clock },
+  PENDING: { label: 'PENDING', tone: 'bg-[#0F1C30] text-[#818CF8] border-[#26315C]', Icon: Clock },
 };
 
 const getPnl = (ticket) => {
@@ -39,32 +39,34 @@ const getPnl = (ticket) => {
 
   if (status === 'WIN') {
     return {
-      text: `+${formatTdx(winAmount - amount)} TDX`,
-      tone: 'text-[#067647]',
+      // Total amount received on winning (full payout, not just the profit).
+      text: `+${formatTdx(winAmount)} TDX`,
+      tone: 'text-[#4ADE80]',
     };
   }
   if (status === 'LOSS') {
     return {
       text: `-${formatTdx(amount)} TDX`,
-      tone: 'text-[#B42318]',
+      tone: 'text-[#F87171]',
     };
   }
   if (status === 'REFUNDED') {
     return {
       text: `Refunded ${formatTdx(winAmount > 0 ? winAmount : amount)} TDX`,
-      tone: 'text-[#C4320A]',
+      tone: 'text-[#FDBA74]',
     };
   }
   if (status === 'SETTLED') {
     if (winAmount > 0) {
+      // Total amount received on winning (full payout, not just the profit).
       return {
-        text: `+${formatTdx(winAmount - amount)} TDX`,
-        tone: 'text-[#067647]',
+        text: `+${formatTdx(winAmount)} TDX`,
+        tone: 'text-[#4ADE80]',
       };
     }
-    return { text: 'Settled', tone: 'text-[#667085]' };
+    return { text: 'Settled', tone: 'text-[#9A9BA8]' };
   }
-  return { text: 'Pending', tone: 'text-[#3538CD]' };
+  return { text: 'Pending', tone: 'text-[#818CF8]' };
 };
 
 const LottoMyHistory = ({
@@ -79,11 +81,11 @@ const LottoMyHistory = ({
     <section className={`lotto-rise lotto-rise--d4 ${embedded ? '' : 'lotto-card lotto-card--pad'}`}>
       {/* Header */}
       <div className="flex items-center justify-between gap-2">
-        <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-wider text-[#111827]">
+        <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-wider text-[#F5F5F7]">
           <TicketIcon size={15} strokeWidth={2.4} className="text-[#7C3AED]" />
           My History
         </h3>
-        <span className="rounded-lg bg-[#F2F4F7] px-2 py-1 text-[10px] font-bold text-[#667085] tabular-nums">
+        <span className="rounded-lg bg-[#1C1C24] px-2 py-1 text-[10px] font-bold text-[#9A9BA8] tabular-nums">
           {tickets.length} ticket{tickets.length === 1 ? '' : 's'}
         </span>
       </div>
@@ -104,7 +106,7 @@ const LottoMyHistory = ({
             return (
               <div
                 key={ticket.id}
-                className="rounded-xl border border-[#E5E7EB] bg-white p-3 transition-colors hover:bg-[#F9FAFB]"
+                className="rounded-xl border border-[#26262E] bg-[#16161C] p-3 transition-colors hover:bg-[#16161C]"
               >
                 {/* Row 1: Period + Ticket number + Status badge */}
                 <div className="flex items-center justify-between gap-2">
@@ -112,7 +114,7 @@ const LottoMyHistory = ({
                     <span className="text-xs font-black text-[#7C3AED] tabular-nums">
                       #{periodLabel}
                     </span>
-                    <span className="truncate text-[10px] font-medium text-[#98A2B3] tabular-nums">
+                    <span className="truncate text-[10px] font-medium text-[#7C7D8A] tabular-nums">
                       {shortenId(ticketNumber, 14)}
                     </span>
                   </div>
@@ -129,7 +131,7 @@ const LottoMyHistory = ({
                     {selectedNumbers.map((num) => (
                       <span
                         key={num}
-                        className={`inline-flex h-7 min-w-7 items-center justify-center rounded-lg border border-[#E5E7EB] bg-[#F8FAFC] px-1.5 text-[11px] font-black ${symbolToneClassName(num)}`}
+                        className={`inline-flex h-7 min-w-7 items-center justify-center rounded-lg border border-[#26262E] bg-[#101014] px-1.5 text-[11px] font-black ${symbolToneClassName(num)}`}
                       >
                         {num}
                       </span>
@@ -138,13 +140,13 @@ const LottoMyHistory = ({
                 )}
 
                 {/* Row 3: Time + ticket amount + PnL */}
-                <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-[#F3F4F6] pt-2">
+                <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-[#1C1C24] pt-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-medium text-[#98A2B3]">
+                    <span className="text-[10px] font-medium text-[#7C7D8A]">
                       {ticket.createdAt ? formatDateTime(ticket.createdAt) : '—'}
                     </span>
-                    <span className="text-[10px] font-bold text-[#667085]">
-                      Ticket: <span className="text-xs font-black text-[#111827] tabular-nums">{formatTdx(ticket.amount)} TDX</span>
+                    <span className="text-[10px] font-bold text-[#9A9BA8]">
+                      Ticket: <span className="text-xs font-black text-[#F5F5F7] tabular-nums">{formatTdx(ticket.amount)} TDX</span>
                     </span>
                   </div>
                   {pnl && (
@@ -161,10 +163,10 @@ const LottoMyHistory = ({
           {pagination}
         </div>
       ) : (
-        <div className="mt-3 flex flex-col items-center justify-center rounded-xl border border-dashed border-[#D0D5DD] py-10 text-center">
-          <Crown size={28} strokeWidth={1.6} className="text-[#98A2B3]" />
-          <p className="mt-2 text-xs font-bold text-[#667085]">No tickets yet</p>
-          <p className="mt-1 text-[10px] text-[#98A2B3]">
+        <div className="mt-3 flex flex-col items-center justify-center rounded-xl border border-dashed border-[#34343E] py-10 text-center">
+          <Crown size={28} strokeWidth={1.6} className="text-[#7C7D8A]" />
+          <p className="mt-2 text-xs font-bold text-[#9A9BA8]">No tickets yet</p>
+          <p className="mt-1 text-[10px] text-[#7C7D8A]">
             Pick your numbers and place the first ticket
           </p>
         </div>

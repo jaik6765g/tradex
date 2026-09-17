@@ -31,6 +31,7 @@ export const CATEGORY_DURATION_SECONDS = {
   ONE_MIN: 60,
   THREE_MIN: 180,
   FIVE_MIN: 300,
+  TEN_MIN: 600,
 };
 
 export const MULTIPLIERS = {
@@ -58,7 +59,11 @@ export const LOTTO_CONSTANTS = {
   MIN_BET: 1,
   MAX_BET: 100000,
   PLATFORM_FEE: 0.03, // 3%
-  CUTOFF_SECONDS: 10,
+  // Single betting-cutoff boundary — MUST match the backend's
+  // LOTTO_TICKET_CUTOFF_SECONDS. In the last CUTOFF_SECONDS of a period:
+  // betting is closed (Buy Card shuts, taps are ignored) AND the backend has
+  // already pre-computed the result this round will reveal at 00.
+  CUTOFF_SECONDS: 5,
   CATEGORY: 'THIRTY_SEC',
   GAME_ID: '1',
 };

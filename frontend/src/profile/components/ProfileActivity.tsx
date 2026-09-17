@@ -98,80 +98,80 @@ export default function ProfileActivity() {
   };
 
   return (
-    <div className="w-full rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden">
+    <div className="w-full rounded-2xl bg-[#15161C] border border-[#292B33] shadow-sm overflow-hidden">
       {/* HEADER */}
       <button
         type="button"
         onClick={toggleActivity}
-        className="w-full p-3 flex items-center justify-between text-left hover:bg-gray-50 transition-colors"
+        className="w-full p-3 flex items-center justify-between text-left hover:bg-[#1B1917] transition-colors"
       >
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center">
-            <Activity size={14} className="text-gray-700" />
+          <div className="w-7 h-7 rounded-lg bg-[#202229] flex items-center justify-center">
+            <Activity size={14} className="text-[#A1A4AE]" />
           </div>
 
           <div>
-            <h2 className="text-sm font-bold text-gray-900">
+            <h2 className="text-sm font-bold text-[#F5F5F7]">
               Your Activity
             </h2>
 
-            <p className="text-[10px] text-gray-500">
+            <p className="text-[10px] text-[#A1A4AE]">
               Trading, games & bot activity
             </p>
           </div>
         </div>
 
         {expanded ? (
-          <ChevronDown size={17} className="text-gray-500" />
+          <ChevronDown size={17} className="text-[#A1A4AE]" />
         ) : (
-          <ChevronRight size={17} className="text-gray-500" />
+          <ChevronRight size={17} className="text-[#A1A4AE]" />
         )}
       </button>
 
       {/* CATEGORY LIST */}
       {expanded && (
-        <div className="border-t border-gray-100">
+        <div className="border-t border-[#292B33]">
           {/* PULSE TRADE */}
           <button
             type="button"
             onClick={() => selectCategory('pulse')}
-            className="w-full px-3 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors border-b border-gray-100"
+            className="w-full px-3 py-3 flex items-center justify-between hover:bg-[#1B1917] transition-colors border-b border-[#292B33]"
           >
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-[#10251A] flex items-center justify-center">
                 <TrendingUp
                   size={15}
-                  className="text-green-600"
+                  className="text-[#4ADE80]"
                 />
               </div>
 
               <div className="text-left">
-                <div className="text-xs font-semibold text-gray-900">
+                <div className="text-xs font-semibold text-[#F5F5F7]">
                   Pulse Trade
                 </div>
 
-                <div className="text-[10px] text-gray-500">
+                <div className="text-[10px] text-[#A1A4AE]">
                   Trading activity
                 </div>
               </div>
             </div>
 
             {activeCategory === 'pulse' ? (
-              <ChevronDown size={16} className="text-gray-400" />
+              <ChevronDown size={16} className="text-[#70737E]" />
             ) : (
-              <ChevronRight size={16} className="text-gray-400" />
+              <ChevronRight size={16} className="text-[#70737E]" />
             )}
           </button>
 
           {/* PULSE DATA */}
           {activeCategory === 'pulse' && (
-            <div className="px-3 py-3 bg-gray-50 border-b border-gray-100">
+            <div className="px-3 py-3 bg-[#1B1917] border-b border-[#292B33]">
               {loading ? (
                 <div className="grid grid-cols-2 gap-2">
                   {[1, 2, 3, 4].map((item) => (
                     <div
                       key={item}
-                      className="h-16 rounded-xl bg-white border border-gray-100 animate-pulse"
+                      className="h-16 rounded-xl bg-[#15161C] border border-[#292B33] animate-pulse"
                     />
                   ))}
                 </div>
@@ -181,44 +181,44 @@ export default function ProfileActivity() {
                     title="Open Positions"
                     value={pulseData.openPositions}
                     icon={TrendingUp}
-                    iconClass="text-green-600"
-                    bgClass="bg-green-50"
+                    iconClass="text-[#4ADE80]"
+                    bgClass="bg-[#10251A]"
                   />
 
                   <Stat
                     title="Total Trades"
                     value={pulseData.totalTrades}
                     icon={Activity}
-                    iconClass="text-blue-600"
-                    bgClass="bg-blue-50"
+                    iconClass="text-[#C99752]"
+                    bgClass="bg-[#211810]"
                   />
 
                   <Stat
                     title="Win Rate"
                     value={`${pulseData.winRate}%`}
                     icon={CircleDot}
-                    iconClass="text-orange-600"
-                    bgClass="bg-orange-50"
+                    iconClass="text-[#FF8F3D]"
+                    bgClass="bg-[#2A190D]"
                   />
 
                   <Stat
                     title="Wins"
                     value={pulseData.wins}
                     icon={Trophy}
-                    iconClass="text-purple-600"
-                    bgClass="bg-purple-50"
+                    iconClass="text-[#C99752]"
+                    bgClass="bg-[#211810]"
                   />
 
                   <Stat
                     title="Losses"
                     value={pulseData.losses}
                     icon={XCircle}
-                    iconClass="text-red-600"
-                    bgClass="bg-red-50"
+                    iconClass="text-[#F87171]"
+                    bgClass="bg-[#281313]"
                   />
                 </div>
               ) : (
-                <div className="py-4 text-center text-xs text-gray-500">
+                <div className="py-4 text-center text-xs text-[#A1A4AE]">
                   Unable to load Pulse Trade activity.
                 </div>
               )}
@@ -229,47 +229,47 @@ export default function ProfileActivity() {
           <button
             type="button"
             onClick={() => selectCategory('game')}
-            className="w-full px-3 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors border-b border-gray-100"
+            className="w-full px-3 py-3 flex items-center justify-between hover:bg-[#1B1917] transition-colors border-b border-[#292B33]"
           >
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-[#211810] flex items-center justify-center">
                 <Gamepad2
                   size={15}
-                  className="text-purple-600"
+                  className="text-[#C99752]"
                 />
               </div>
 
               <div className="text-left">
-                <div className="text-xs font-semibold text-gray-900">
+                <div className="text-xs font-semibold text-[#F5F5F7]">
                   Game
                 </div>
 
-                <div className="text-[10px] text-gray-500">
+                <div className="text-[10px] text-[#A1A4AE]">
                   Game activity
                 </div>
               </div>
             </div>
 
             {activeCategory === 'game' ? (
-              <ChevronDown size={16} className="text-gray-400" />
+              <ChevronDown size={16} className="text-[#70737E]" />
             ) : (
-              <ChevronRight size={16} className="text-gray-400" />
+              <ChevronRight size={16} className="text-[#70737E]" />
             )}
           </button>
 
           {activeCategory === 'game' && (
-            <div className="px-3 py-4 bg-gray-50 border-b border-gray-100">
-              <div className="rounded-xl bg-white border border-gray-100 p-4 text-center">
+            <div className="px-3 py-4 bg-[#1B1917] border-b border-[#292B33]">
+              <div className="rounded-xl bg-[#15161C] border border-[#292B33] p-4 text-center">
                 <Gamepad2
                   size={20}
-                  className="mx-auto mb-2 text-gray-400"
+                  className="mx-auto mb-2 text-[#70737E]"
                 />
 
-                <div className="text-xs font-semibold text-gray-700">
+                <div className="text-xs font-semibold text-[#A1A4AE]">
                   Game Activity
                 </div>
 
-                <div className="text-[10px] text-gray-500 mt-1">
+                <div className="text-[10px] text-[#A1A4AE] mt-1">
                   In development
                 </div>
               </div>
@@ -280,47 +280,47 @@ export default function ProfileActivity() {
           <button
             type="button"
             onClick={() => selectCategory('bot')}
-            className="w-full px-3 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+            className="w-full px-3 py-3 flex items-center justify-between hover:bg-[#1B1917] transition-colors"
           >
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-[#211810] flex items-center justify-center">
                 <Bot
                   size={15}
-                  className="text-blue-600"
+                  className="text-[#C99752]"
                 />
               </div>
 
               <div className="text-left">
-                <div className="text-xs font-semibold text-gray-900">
+                <div className="text-xs font-semibold text-[#F5F5F7]">
                   Bot Trade
                 </div>
 
-                <div className="text-[10px] text-gray-500">
+                <div className="text-[10px] text-[#A1A4AE]">
                   Automated trading activity
                 </div>
               </div>
             </div>
 
             {activeCategory === 'bot' ? (
-              <ChevronDown size={16} className="text-gray-400" />
+              <ChevronDown size={16} className="text-[#70737E]" />
             ) : (
-              <ChevronRight size={16} className="text-gray-400" />
+              <ChevronRight size={16} className="text-[#70737E]" />
             )}
           </button>
 
           {activeCategory === 'bot' && (
-            <div className="px-3 py-4 bg-gray-50">
-              <div className="rounded-xl bg-white border border-gray-100 p-4 text-center">
+            <div className="px-3 py-4 bg-[#1B1917]">
+              <div className="rounded-xl bg-[#15161C] border border-[#292B33] p-4 text-center">
                 <Bot
                   size={20}
-                  className="mx-auto mb-2 text-gray-400"
+                  className="mx-auto mb-2 text-[#70737E]"
                 />
 
-                <div className="text-xs font-semibold text-gray-700">
+                <div className="text-xs font-semibold text-[#A1A4AE]">
                   Bot Trading
                 </div>
 
-                <div className="text-[10px] text-gray-500 mt-1">
+                <div className="text-[10px] text-[#A1A4AE] mt-1">
                   In development
                 </div>
               </div>
@@ -346,7 +346,7 @@ function Stat({
   bgClass: string;
 }) {
   return (
-    <div className="rounded-xl bg-white border border-gray-100 px-2.5 py-2">
+    <div className="rounded-xl bg-[#15161C] border border-[#292B33] px-2.5 py-2">
       <div className="flex items-center gap-2">
         <div
           className={`w-7 h-7 rounded-lg flex items-center justify-center ${bgClass}`}
@@ -355,11 +355,11 @@ function Stat({
         </div>
 
         <div className="min-w-0">
-          <div className="text-[9px] font-medium text-gray-500 truncate">
+          <div className="text-[9px] font-medium text-[#A1A4AE] truncate">
             {title}
           </div>
 
-          <div className="text-sm font-bold text-gray-900">
+          <div className="text-sm font-bold text-[#F5F5F7]">
             {value}
           </div>
         </div>

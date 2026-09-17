@@ -66,7 +66,7 @@ export default function BottomNav({ activeTab }: Props) {
       return 'Referral';
     }
 
-    if (location.pathname.startsWith('/profile')) {
+    if (location.pathname.startsWith('/profile') || location.pathname.startsWith('/my-profile')) {
       return 'Profile';
     }
 
@@ -89,11 +89,11 @@ export default function BottomNav({ activeTab }: Props) {
           justify-around
           rounded-t-[20px]
           border-t
-          border-slate-200/50
-          bg-white/95
+          border-[#292B33]/60
+          bg-[#111217]/90
           backdrop-blur-sm
           px-1
-          shadow-[0_-2px_20px_rgba(15,23,42,0.04)]
+          shadow-[0_-2px_20px_rgba(0,0,0,0.04)]
         "
       >
         {items.map((item) => {
@@ -144,8 +144,8 @@ export default function BottomNav({ activeTab }: Props) {
                     ease-out
                     ${
                       active
-                        ? 'bg-indigo-500 shadow-[0_4px_15px_rgba(99,102,241,0.25)] scale-100'
-                        : 'bg-indigo-400 shadow-[0_2px_10px_rgba(99,102,241,0.15)] scale-95'
+                        ? 'bg-[#FF7A18] shadow-[0_4px_15px_rgba(255,122,24,0.45)] scale-100'
+                        : 'bg-[#FF8F3D] shadow-[0_2px_10px_rgba(255,122,24,0.30)] scale-95'
                     }
                   `}
                 >
@@ -162,8 +162,8 @@ export default function BottomNav({ activeTab }: Props) {
                       duration-300
                       ${
                         active
-                          ? 'bg-indigo-500'
-                          : 'bg-indigo-400'
+                          ? 'bg-[#FF7A18]'
+                          : 'bg-[#FF8F3D]'
                       }
                     `}
                   >
@@ -186,8 +186,8 @@ export default function BottomNav({ activeTab }: Props) {
                     duration-200
                     ${
                       active
-                        ? 'text-indigo-600'
-                        : 'text-slate-400'
+                        ? 'text-[#FF8F3D]'
+                        : 'text-[#70737E]'
                     }
                   `}
                 >
@@ -221,7 +221,7 @@ export default function BottomNav({ activeTab }: Props) {
                 outline-none
                 transition-all
                 duration-200
-                hover:bg-slate-50/60
+                hover:bg-[#1B1917]/60
               "
             >
               {/* Active Background */}
@@ -232,8 +232,8 @@ export default function BottomNav({ activeTab }: Props) {
                     inset-x-1
                     inset-y-1
                     rounded-xl
-                    bg-indigo-50/80
-                    shadow-[0_1px_6px_rgba(99,102,241,0.06)]
+                    bg-[#2A190D]/80
+                    shadow-[0_1px_6px_rgba(255,122,24,0.12)]
                   "
                 />
               )}
@@ -252,8 +252,8 @@ export default function BottomNav({ activeTab }: Props) {
                   duration-200
                   ${
                     active
-                      ? 'text-indigo-600'
-                      : 'text-slate-400'
+                      ? 'text-[#FF8F3D]'
+                      : 'text-[#70737E]'
                   }
                 `}
               >
@@ -276,8 +276,8 @@ export default function BottomNav({ activeTab }: Props) {
                   duration-200
                   ${
                     active
-                      ? 'font-semibold text-indigo-600'
-                      : 'font-medium text-slate-400'
+                      ? 'font-semibold text-[#FF8F3D]'
+                      : 'font-medium text-[#70737E]'
                   }
                 `}
               >
@@ -294,7 +294,7 @@ export default function BottomNav({ activeTab }: Props) {
                     h-0.5
                     w-0.5
                     rounded-full
-                    bg-indigo-500
+                    bg-[#FF7A18]
                   "
                 />
               )}

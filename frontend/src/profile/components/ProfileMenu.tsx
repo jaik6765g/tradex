@@ -1,15 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ChevronRight,
   Headphones,
   Info,
+  Loader2,
   Settings,
   User,
   Shield,
   Gift,
   Award,
-  LogOut,  // ✅ Added LogOut
+  LogOut,
 } from 'lucide-react';
 import { useWalletContext } from '../../wallet/context/WalletContext';
 
@@ -19,17 +20,17 @@ const menus = [
     title: 'My Profile',
     subtitle: 'View and edit your profile',
     icon: User,
-    color: '#7C3AED',
-    bg: '#F5F3FF',
-    route: '/profile',
+    color: '#C99752',
+    bg: '#211810',
+    route: '/my-profile',
   },
   {
     id: 'referral',
     title: 'Referral Program',
     subtitle: 'Earn rewards by inviting friends',
     icon: Gift,
-    color: '#F59E0B',
-    bg: '#FFFBEB',
+    color: '#FF8F3D',
+    bg: '#2A190D',
     route: '/referral',
   },
   {
@@ -37,8 +38,8 @@ const menus = [
     title: 'Achievements',
     subtitle: 'Track your trading milestones',
     icon: Award,
-    color: '#10B981',
-    bg: '#ECFDF5',
+    color: '#34D399',
+    bg: '#10251A',
     route: '/achievements',
   },
   {
@@ -46,8 +47,8 @@ const menus = [
     title: 'Security Settings',
     subtitle: 'Manage your account security',
     icon: Shield,
-    color: '#3B82F6',
-    bg: '#EFF6FF',
+    color: '#C99752',
+    bg: '#211810',
     route: '/security',
   },
   {
@@ -55,8 +56,8 @@ const menus = [
     title: 'Settings',
     subtitle: 'Customize your experience',
     icon: Settings,
-    color: '#6B7280',
-    bg: '#F9FAFB',
+    color: '#70737E',
+    bg: '#15161C',
     route: '/settings',
   },
   {
@@ -64,8 +65,8 @@ const menus = [
     title: 'Help & Support',
     subtitle: 'Get help and support',
     icon: Headphones,
-    color: '#7C3AED',
-    bg: '#F5F3FF',
+    color: '#C99752',
+    bg: '#211810',
     route: '/help',
   },
   {
@@ -73,15 +74,16 @@ const menus = [
     title: 'About TradeX',
     subtitle: 'Version 1.0.0',
     icon: Info,
-    color: '#2563EB',
-    bg: '#EFF6FF',
+    color: '#C99752',
+    bg: '#211810',
     route: '/about',
   },
 ];
 
 export default function ProfileMenu() {
   const navigate = useNavigate();
-  const { disconnectWallet, isAdmin } = useWalletContext();
+  const { logout, isAdmin } = useWalletContext();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const visibleMenus = isAdmin
     ? [
@@ -91,7 +93,7 @@ export default function ProfileMenu() {
           subtitle: 'Risk, liquidity, and operations metrics',
           icon: Shield,
           color: '#0F766E',
-          bg: '#CCFBF1',
+          bg: '#10251A',
           route: '/admin',
         },
         ...menus,
@@ -99,16 +101,22 @@ export default function ProfileMenu() {
     : menus;
 
   const handleLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
     try {
-      await disconnectWallet();
+      // Full sign-out: clears auth session (Supabase + local token),
+      // resets wallet state, and disconnects the wallet.
+      await logout();
       navigate('/');
     } catch (error) {
       console.error('Logout error:', error);
+    } finally {
+      setIsLoggingOut(false);
     }
   };
 
   return (
-    <div className="w-full rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden">
+    <div className="w-full rounded-2xl bg-[#15161C] border border-[#292B33] shadow-sm overflow-hidden">
       {/* Menu Items */}
       {visibleMenus.map((item, index) => {
         const Icon = item.icon;
@@ -120,8 +128,8 @@ export default function ProfileMenu() {
             onClick={() => navigate(item.route)}
             className={`
               flex items-center w-full px-4 py-3.5 text-left transition
-              hover:bg-gray-50
-              ${!isLast ? 'border-b border-gray-100' : ''}
+              hover:bg-[#1B1917]
+              ${!isLast ? 'border-b border-[#292B33]' : ''}
             `}
           >
             <div
@@ -132,15 +140,15 @@ export default function ProfileMenu() {
             </div>
 
             <div className="ml-3 flex-1 min-w-0">
-              <div className="text-sm font-semibold text-gray-900">
+              <div className="text-sm font-semibold text-[#F5F5F7]">
                 {item.title}
               </div>
-              <div className="text-[10px] text-gray-400">
+              <div className="text-[10px] text-[#70737E]">
                 {item.subtitle}
               </div>
             </div>
 
-            <ChevronRight size={16} className="text-gray-300" />
+            <ChevronRight size={16} className="text-[#70737E]" />
           </button>
         );
       })}
@@ -148,16 +156,23 @@ export default function ProfileMenu() {
       {/* Logout - Separate with border */}
       <button
         onClick={handleLogout}
-        className="flex items-center w-full px-4 py-3.5 text-left border-t border-gray-100 hover:bg-red-50 transition"
+        disabled={isLoggingOut}
+        className="flex items-center w-full px-4 py-3.5 text-left border-t border-[#292B33] hover:bg-[#281313] transition disabled:opacity-60 disabled:cursor-not-allowed"
       >
-        <div className="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center shrink-0">
-          <LogOut size={18} className="text-red-500" />
+        <div className="w-9 h-9 rounded-xl bg-[#281313] flex items-center justify-center shrink-0">
+          {isLoggingOut ? (
+            <Loader2 size={18} className="text-red-500 animate-spin" />
+          ) : (
+            <LogOut size={18} className="text-red-500" />
+          )}
         </div>
         <div className="ml-3 flex-1 min-w-0">
-          <div className="text-sm font-semibold text-red-600">Logout</div>
-          <div className="text-[10px] text-gray-400">Disconnect your wallet</div>
+          <div className="text-sm font-semibold text-[#F87171]">
+            {isLoggingOut ? 'Logging out...' : 'Logout'}
+          </div>
+          <div className="text-[10px] text-[#70737E]">Sign out of your account</div>
         </div>
-        <ChevronRight size={16} className="text-gray-300" />
+        <ChevronRight size={16} className="text-[#70737E]" />
       </button>
     </div>
   );

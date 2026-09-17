@@ -22,12 +22,12 @@ export default function ErrorState({
   return (
     <div
       className={cx(
-        'rounded-[18px] border border-[#FECDCA] bg-[#FEF3F2] p-4',
+        'rounded-[18px] border border-[#4A2323] bg-[#281313] p-4',
         className,
       )}
     >
       <div className="flex items-start gap-3">
-        <AlertCircle size={20} className="mt-0.5 text-[#B42318]" />
+        <AlertCircle size={20} className="mt-0.5 text-[#F87171]" />
 
         <div className="min-w-0">
           <p className="text-sm font-extrabold text-[#991B1B]">{title}</p>
@@ -40,7 +40,7 @@ export default function ErrorState({
             <div className="mt-3">
               <Button
                 variant="secondary"
-                className="h-9 border-[#FECACA] bg-white text-xs text-[#B42318] hover:bg-[#FFF5F4]"
+                className="h-9 border-[#4A2323] bg-[#15161C] text-xs text-[#F87171] hover:bg-[#281313]"
                 onClick={onRetry}
               >
                 {retryLabel}

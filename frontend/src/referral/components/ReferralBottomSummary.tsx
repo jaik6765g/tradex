@@ -19,7 +19,7 @@ export default function ReferralBottomSummary({
         title="Total Network"
         value={totalNetwork.toLocaleString()}
         icon="people"
-        color="#7C3AED"
+        color="#C99752"
       />
 
       <View style={styles.divider} />
@@ -28,7 +28,7 @@ export default function ReferralBottomSummary({
         title="Total Active"
         value={totalActive.toLocaleString()}
         icon="person"
-        color="#16A34A"
+        color="#4ADE80"
       />
 
       <View style={styles.divider} />
@@ -37,7 +37,7 @@ export default function ReferralBottomSummary({
         title="Total Earned"
         value={`${totalEarned.toLocaleString()} TDX`}
         icon="logo-bitcoin"
-        color="#F59E0B"
+        color="#FF8F3D"
       />
     </View>
   );
@@ -79,10 +79,10 @@ function Summary({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#15161C',
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#292B33',
     padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
@@ -98,13 +98,13 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    color: '#64748B',
+    color: '#70737E',
     fontSize: 11,
     marginBottom: 4,
   },
 
   value: {
-    color: '#111827',
+    color: '#A1A4AE',
     fontSize: 16,
     fontWeight: '900',
   },
@@ -120,6 +120,6 @@ const styles = StyleSheet.create({
   divider: {
     width: 1,
     height: 48,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: '#292B33',
   },
 });

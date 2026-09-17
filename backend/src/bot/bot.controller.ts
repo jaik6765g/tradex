@@ -104,7 +104,7 @@ export class BotController {
    * GET /bot/settings
    */
   @Get('settings')
-  @UseGuards(AdminGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   async getBotSettings() {
     return this.botService.getBotSettings();
   }
@@ -117,7 +117,7 @@ export class BotController {
    * PUT /bot/settings
    */
   @Put('settings')
-  @UseGuards(AdminGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   async updateBotSettings(@Body() dto: UpdateBotSettingsDto) {
     return this.botService.updateBotSettings(dto);
   }

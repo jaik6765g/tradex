@@ -223,8 +223,8 @@ export default function WalletCard() {
           w-full
           rounded-[20px]
           border
-          border-[#E7E9EE]
-          bg-white
+          border-[#292B33]
+          bg-[#15161C]
           p-5
           shadow-[0_4px_12px_rgba(0,0,0,0.03)]
         "
@@ -248,12 +248,12 @@ export default function WalletCard() {
                 items-center
                 justify-center
                 rounded-[14px]
-                bg-[#EEF4FF]
+                bg-[#211810]
               "
             >
               <Wallet
                 size={22}
-                className="text-[#2563EB]"
+                className="text-[#C99752]"
               />
             </div>
 
@@ -262,7 +262,7 @@ export default function WalletCard() {
                 className="
                   text-[17px]
                   font-extrabold
-                  text-[#111827]
+                  text-[#F5F5F7]
                 "
               >
                 Wallet
@@ -272,7 +272,7 @@ export default function WalletCard() {
                 className="
                   mt-0.5
                   text-[13px]
-                  text-[#667085]
+                  text-[#A1A4AE]
                 "
               >
                 Connect your wallet
@@ -283,12 +283,12 @@ export default function WalletCard() {
           <span
             className="
               rounded-full
-              bg-[#F2F4F7]
+              bg-[#1B1917]
               px-3
               py-1.5
               text-[12px]
               font-bold
-              text-[#667085]
+              text-[#A1A4AE]
             "
           >
             Not Connected
@@ -303,8 +303,8 @@ export default function WalletCard() {
             space-y-4
             rounded-[16px]
             border
-            border-[#E7E9EE]
-            bg-[#F8FAFC]
+            border-[#292B33]
+            bg-[#111217]
             p-5
           "
         >
@@ -315,7 +315,7 @@ export default function WalletCard() {
               text-center
               text-[14px]
               leading-5
-              text-[#667085]
+              text-[#A1A4AE]
             "
           >
             Connect your crypto wallet
@@ -336,7 +336,7 @@ export default function WalletCard() {
                 font-bold
                 uppercase
                 tracking-[0.08em]
-                text-[#667085]
+                text-[#A1A4AE]
               "
             >
               <span>Referral Code</span>
@@ -345,7 +345,7 @@ export default function WalletCard() {
                 <span
                   className="
                     rounded-full
-                    bg-[#DCFCE7]
+                    bg-[#10251A]
                     px-2
                     py-0.5
                     text-[10px]
@@ -362,7 +362,7 @@ export default function WalletCard() {
                     text-[10px]
                     font-medium
                     normal-case
-                    text-[#98A2B3]
+                    text-[#70737E]
                   "
                 >
                   Optional
@@ -392,18 +392,18 @@ export default function WalletCard() {
                 w-full
                 rounded-[14px]
                 border
-                border-[#D0D5DD]
-                bg-white
+                border-[#34343E]
+                bg-[#15161C]
                 px-4
                 text-[14px]
                 font-semibold
-                text-[#111827]
+                text-[#F5F5F7]
                 outline-none
                 transition
-                placeholder:text-[#98A2B3]
-                focus:border-[#2563EB]
+                placeholder:text-[#70737E]
+                focus:border-[#C99752]
                 focus:ring-4
-                focus:ring-[#2563EB]/10
+                focus:ring-[#C99752]/10
               "
             />
 
@@ -443,17 +443,14 @@ export default function WalletCard() {
               justify-center
               gap-2
               rounded-[14px]
-              bg-gradient-to-r
-              from-[#2563EB]
-              to-[#4F46E5]
+              bg-[#FF7A18]
               px-4
               text-[15px]
               font-extrabold
               text-white
-              shadow-[0_4px_14px_rgba(37,99,235,0.28)]
+              shadow-[0_4px_14px_rgba(255,122,24,0.25)]
               transition
-              hover:from-[#1D4ED8]
-              hover:to-[#4338CA]
+              hover:bg-[#FF8F3D]
               active:scale-[0.98]
             "
           >
@@ -467,7 +464,7 @@ export default function WalletCard() {
               text-center
               text-[10.5px]
               leading-4
-              text-[#98A2B3]
+              text-[#70737E]
             "
           >
             By connecting you agree to TradeX
@@ -489,8 +486,8 @@ export default function WalletCard() {
           w-full
           rounded-[20px]
           border
-          border-[#FDE68A]
-          bg-white
+          border-[#3A281C]
+          bg-[#15161C]
           p-5
           shadow-[0_4px_12px_rgba(0,0,0,0.03)]
         "
@@ -504,7 +501,7 @@ export default function WalletCard() {
               items-center
               justify-center
               rounded-[14px]
-              bg-[#FFF7ED]
+              bg-[#2A1608]
             "
           >
             <Wallet
@@ -518,7 +515,7 @@ export default function WalletCard() {
               className="
                 text-[17px]
                 font-extrabold
-                text-[#111827]
+                text-[#F5F5F7]
               "
             >
               Wrong Network
@@ -528,7 +525,7 @@ export default function WalletCard() {
               className="
                 mt-0.5
                 text-[13px]
-                text-[#667085]
+                text-[#A1A4AE]
               "
             >
               Please switch to {requiredNetworkName}
@@ -545,14 +542,14 @@ export default function WalletCard() {
             mt-5
             w-full
             rounded-[14px]
-            bg-[#111827]
+            bg-[#FF7A18]
             px-4
             py-3
             text-[15px]
             font-extrabold
             text-white
             transition
-            hover:bg-[#1F2937]
+            hover:bg-[#FF8F3D]
           "
         >
           Switch to {requiredNetworkName}
@@ -579,8 +576,8 @@ export default function WalletCard() {
           overflow-hidden
           rounded-[20px]
           border
-          border-[#D8B4FE]
-          bg-white
+          border-[#34261C]
+          bg-[#15161C]
           shadow-[0_6px_20px_rgba(0,0,0,0.05)]
         "
       >
@@ -589,8 +586,8 @@ export default function WalletCard() {
         <div
           className="
             border-b
-            border-[#E9D5FF]
-            bg-[#FAF5FF]
+            border-[#34261C]
+            bg-[#211810]
             p-5
           "
         >
@@ -605,12 +602,12 @@ export default function WalletCard() {
                   items-center
                   justify-center
                   rounded-[14px]
-                  bg-[#F3E8FF]
+                  bg-[#211810]
                 "
               >
                 <UserPlus
                   size={22}
-                  className="text-[#9333EA]"
+                  className="text-[#C99752]"
                 />
               </div>
 
@@ -619,7 +616,7 @@ export default function WalletCard() {
                   className="
                     text-[18px]
                     font-extrabold
-                    text-[#111827]
+                    text-[#F5F5F7]
                   "
                 >
                   Register on TradeX
@@ -629,7 +626,7 @@ export default function WalletCard() {
                   className="
                     mt-0.5
                     text-[13px]
-                    text-[#667085]
+                    text-[#A1A4AE]
                   "
                 >
                   This wallet is not registered yet
@@ -644,10 +641,10 @@ export default function WalletCard() {
               className="
                 rounded-full
                 p-1.5
-                text-[#98A2B3]
+                text-[#70737E]
                 transition
-                hover:bg-white
-                hover:text-[#475467]
+                hover:bg-[#20202A]
+                hover:text-[#A1A4AE]
                 disabled:cursor-not-allowed
               "
               aria-label="Cancel registration"
@@ -671,7 +668,7 @@ export default function WalletCard() {
                 font-bold
                 uppercase
                 tracking-[0.08em]
-                text-[#667085]
+                text-[#A1A4AE]
               "
             >
               Wallet Address
@@ -684,8 +681,8 @@ export default function WalletCard() {
                 gap-3
                 rounded-[14px]
                 border
-                border-[#E4E7EC]
-                bg-[#F8FAFC]
+                border-[#292B33]
+                bg-[#111217]
                 px-3.5
                 py-3
               "
@@ -694,7 +691,7 @@ export default function WalletCard() {
                 size={18}
                 className="
                   shrink-0
-                  text-[#667085]
+                  text-[#A1A4AE]
                 "
               />
 
@@ -705,7 +702,7 @@ export default function WalletCard() {
                   truncate
                   text-[14px]
                   font-bold
-                  text-[#111827]
+                  text-[#F5F5F7]
                 "
               >
                 {formatAddress(
@@ -724,17 +721,17 @@ export default function WalletCard() {
                   items-center
                   justify-center
                   rounded-[9px]
-                  text-[#667085]
+                  text-[#A1A4AE]
                   transition
-                  hover:bg-white
-                  hover:text-[#111827]
+                  hover:bg-[#20202A]
+                  hover:text-[#F5F5F7]
                 "
                 aria-label="Copy wallet address"
               >
                 {copied ? (
                   <Check
                     size={17}
-                    className="text-[#16A34A]"
+                    className="text-[#4ADE80]"
                   />
                 ) : (
                   <Copy
@@ -755,15 +752,15 @@ export default function WalletCard() {
               gap-2
               rounded-[12px]
               border
-              border-[#D1FAE5]
-              bg-[#ECFDF3]
+              border-[#123A24]
+              bg-[#10251A]
               px-3.5
               py-3
             "
           >
             <LockKeyhole
               size={17}
-              className="text-[#16A34A]"
+              className="text-[#4ADE80]"
             />
 
             <div>
@@ -794,8 +791,8 @@ export default function WalletCard() {
             className={
               `mt-5 rounded-[16px] border p-4 transition ${
                 referralCode
-                  ? 'border-[#D8B4FE] bg-[#FAF5FF]'
-                  : 'border-[#E4E7EC] bg-white'
+                  ? 'border-[#34261C] bg-[#211810]'
+                  : 'border-[#292B33] bg-[#15161C]'
               }`
             }
           >
@@ -808,14 +805,14 @@ export default function WalletCard() {
                 justify-between
                 text-[13px]
                 font-bold
-                text-[#344054]
+                text-[#E4E5E8]
               "
             >
               <span className="flex items-center gap-1.5">
                 {referralCode && (
                   <Gift
                     size={15}
-                    className="text-[#9333EA]"
+                    className="text-[#C99752]"
                   />
                 )}
 
@@ -826,12 +823,12 @@ export default function WalletCard() {
                 <span
                   className="
                     rounded-full
-                    bg-[#F3E8FF]
+                    bg-[#211810]
                     px-2.5
                     py-1
                     text-[10px]
                     font-bold
-                    text-[#9333EA]
+                    text-[#C99752]
                   "
                 >
                   Auto-filled from invite
@@ -841,7 +838,7 @@ export default function WalletCard() {
                   className="
                     text-[11px]
                     font-medium
-                    text-[#98A2B3]
+                    text-[#70737E]
                   "
                 >
                   Optional
@@ -872,19 +869,19 @@ export default function WalletCard() {
                 w-full
                 rounded-[14px]
                 border
-                border-[#D0D5DD]
-                bg-white
+                border-[#34343E]
+                bg-[#15161C]
                 px-4
                 text-[14px]
                 font-semibold
-                text-[#111827]
+                text-[#F5F5F7]
                 outline-none
                 transition
-                placeholder:text-[#98A2B3]
-                focus:border-[#9333EA]
+                placeholder:text-[#70737E]
+                focus:border-[#C99752]
                 focus:ring-4
-                focus:ring-[#9333EA]/10
-                disabled:bg-[#F2F4F7]
+                focus:ring-[#C99752]/10
+                disabled:bg-[#1B1917]
               "
             />
 
@@ -898,7 +895,7 @@ export default function WalletCard() {
                   text-[11.5px]
                   font-semibold
                   leading-4
-                  text-[#7E22CE]
+                  text-[#C99752]
                 "
               >
                 <Check
@@ -915,7 +912,7 @@ export default function WalletCard() {
                   mt-2
                   text-[11px]
                   leading-4
-                  text-[#98A2B3]
+                  text-[#70737E]
                 "
               >
                 Enter a valid TradeX referral code
@@ -932,8 +929,8 @@ export default function WalletCard() {
                 mt-4
                 rounded-[12px]
                 border
-                border-[#FECACA]
-                bg-[#FEF2F2]
+                border-[#4A2323]
+                bg-[#281313]
                 px-3.5
                 py-3
               "
@@ -943,7 +940,7 @@ export default function WalletCard() {
                   text-[12px]
                   font-semibold
                   leading-5
-                  text-[#B91C1C]
+                  text-[#F87171]
                 "
               >
                 {registrationError}
@@ -968,13 +965,13 @@ export default function WalletCard() {
               justify-center
               gap-2
               rounded-[14px]
-              bg-[#9333EA]
+              bg-[#C99752]
               px-4
               text-[15px]
               font-extrabold
               text-white
               transition
-              hover:bg-[#7E22CE]
+              hover:bg-[#C99752]
               active:scale-[0.98]
               disabled:cursor-not-allowed
               disabled:opacity-60
@@ -1006,7 +1003,7 @@ export default function WalletCard() {
               text-center
               text-[10.5px]
               leading-4
-              text-[#98A2B3]
+              text-[#70737E]
             "
           >
             Registration creates your TradeX account
@@ -1031,8 +1028,8 @@ export default function WalletCard() {
           w-full
           rounded-[20px]
           border
-          border-[#E7E9EE]
-          bg-white
+          border-[#292B33]
+          bg-[#15161C]
           p-5
           shadow-[0_4px_12px_rgba(0,0,0,0.03)]
         "
@@ -1046,14 +1043,14 @@ export default function WalletCard() {
               items-center
               justify-center
               rounded-[14px]
-              bg-[#EEF4FF]
+              bg-[#211810]
             "
           >
             <Loader2
               size={22}
               className="
                 animate-spin
-                text-[#2563EB]
+                text-[#C99752]
               "
             />
           </div>
@@ -1063,7 +1060,7 @@ export default function WalletCard() {
               className="
                 text-[17px]
                 font-extrabold
-                text-[#111827]
+                text-[#F5F5F7]
               "
             >
               Verifying Wallet
@@ -1073,7 +1070,7 @@ export default function WalletCard() {
               className="
                 mt-0.5
                 text-[13px]
-                text-[#667085]
+                text-[#A1A4AE]
               "
             >
               Please complete the wallet
@@ -1086,11 +1083,11 @@ export default function WalletCard() {
           className="
             mt-5
             rounded-[14px]
-            bg-[#F8FAFC]
+            bg-[#111217]
             px-4
             py-3
             text-[13px]
-            text-[#667085]
+            text-[#A1A4AE]
           "
         >
           Do not close your wallet
@@ -1114,8 +1111,8 @@ export default function WalletCard() {
           w-full
           rounded-[20px]
           border
-          border-[#FECACA]
-          bg-white
+          border-[#4A2323]
+          bg-[#15161C]
           p-5
           shadow-[0_4px_12px_rgba(0,0,0,0.03)]
         "
@@ -1130,7 +1127,7 @@ export default function WalletCard() {
               items-center
               justify-center
               rounded-[14px]
-              bg-[#FEF2F2]
+              bg-[#281313]
             "
           >
             <Wallet
@@ -1144,7 +1141,7 @@ export default function WalletCard() {
               className="
                 text-[17px]
                 font-extrabold
-                text-[#111827]
+                text-[#F5F5F7]
               "
             >
               Authentication Failed
@@ -1155,7 +1152,7 @@ export default function WalletCard() {
                 mt-1
                 text-[13px]
                 leading-5
-                text-[#B91C1C]
+                text-[#F87171]
               "
             >
               {authError}
@@ -1172,7 +1169,7 @@ export default function WalletCard() {
             className="
               flex-1
               rounded-[13px]
-              bg-[#111827]
+              bg-[#FF7A18]
               px-4
               py-3
               text-[14px]
@@ -1192,13 +1189,13 @@ export default function WalletCard() {
               flex-1
               rounded-[13px]
               border
-              border-[#E4E7EC]
-              bg-white
+              border-[#292B33]
+              bg-[#15161C]
               px-4
               py-3
               text-[14px]
               font-bold
-              text-[#344054]
+              text-[#E4E5E8]
             "
           >
             Disconnect
@@ -1218,8 +1215,8 @@ export default function WalletCard() {
         w-full
         rounded-[20px]
         border
-        border-[#1E293B]
-        bg-[#0B192C]
+        border-[#292B33]
+        bg-[#211810]
         p-5
         shadow-[0_6px_20px_rgba(0,0,0,0.08)]
       "
@@ -1243,7 +1240,7 @@ export default function WalletCard() {
               items-center
               justify-center
               rounded-[14px]
-              bg-[#10233B]
+              bg-[#211810]
             "
           >
             <Wallet
@@ -1306,7 +1303,7 @@ export default function WalletCard() {
             py-2
             text-[11px]
             font-bold
-            text-[#FCA5A5]
+            text-[#5C2B2B]
             transition
             hover:bg-[#450A0A]
           "
@@ -1322,8 +1319,8 @@ export default function WalletCard() {
           mt-5
           rounded-[14px]
           border
-          border-[#1E293B]
-          bg-[#071426]
+          border-[#292B33]
+          bg-[#211810]
           px-4
           py-3.5
         "
@@ -1343,7 +1340,7 @@ export default function WalletCard() {
                 font-bold
                 uppercase
                 tracking-[0.08em]
-                text-[#64748B]
+                text-[#A1A4AE]
               "
             >
               Network
@@ -1386,8 +1383,8 @@ export default function WalletCard() {
           mt-3
           rounded-[14px]
           border
-          border-[#1E293B]
-          bg-[#071426]
+          border-[#292B33]
+          bg-[#211810]
           px-4
           py-3.5
         "
@@ -1407,7 +1404,7 @@ export default function WalletCard() {
                 font-bold
                 uppercase
                 tracking-[0.08em]
-                text-[#64748B]
+                text-[#A1A4AE]
               "
             >
               Wallet Address
@@ -1438,9 +1435,9 @@ export default function WalletCard() {
               justify-center
               rounded-[10px]
               border
-              border-[#1E293B]
-              bg-[#0B192C]
-              text-[#94A3B8]
+              border-[#292B33]
+              bg-[#211810]
+              text-[#70737E]
               transition
               hover:text-white
             "
@@ -1468,8 +1465,8 @@ export default function WalletCard() {
             mt-3
             rounded-[14px]
             border
-            border-[#1E293B]
-            bg-[#071426]
+            border-[#292B33]
+            bg-[#211810]
             px-4
             py-3
           "
@@ -1482,7 +1479,7 @@ export default function WalletCard() {
                   font-bold
                   uppercase
                   tracking-[0.08em]
-                  text-[#64748B]
+                  text-[#A1A4AE]
                 "
               >
                 TradeX Referral Code
@@ -1494,7 +1491,7 @@ export default function WalletCard() {
                   text-[14px]
                   font-extrabold
                   tracking-wide
-                  text-[#FBBF24]
+                  text-[#FF7A18]
                 "
               >
                 {authUser.referralCode ||

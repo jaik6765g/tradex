@@ -11,7 +11,7 @@ interface Props {
 
 export function WalletBalance({ balance }: Props) {
   return (
-    <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-6 text-white shadow-lg">
+    <div className="bg-gradient-to-r from-[#FF7A18] to-[#E8650F] rounded-2xl p-6 text-white shadow-lg">
       <p className="text-sm opacity-80">Total Balance</p>
       <p className="text-3xl font-bold mt-1">{balance.tdx} TDX</p>
       

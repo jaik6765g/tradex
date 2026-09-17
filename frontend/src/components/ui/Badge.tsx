@@ -16,11 +16,11 @@ type BadgeProps = {
 };
 
 const variantClasses: Record<BadgeVariant, string> = {
-  success: 'border-[#ABEFC6] bg-[#ECFDF3] text-[#067647]',
-  warning: 'border-[#FEDF89] bg-[#FFFAEB] text-[#B54708]',
-  error: 'border-[#FECDCA] bg-[#FEF3F2] text-[#B42318]',
-  info: 'border-[#B2DDFF] bg-[#EFF8FF] text-[#175CD3]',
-  neutral: 'border-[#E4E7EC] bg-[#F9FAFB] text-[#475467]',
+  success: 'border-[#1E4A32] bg-[#10251A] text-[#4ADE80]',
+  warning: 'border-[#3A281C] bg-[#2A190D] text-[#FF8F3D]',
+  error: 'border-[#4A2323] bg-[#281313] text-[#F87171]',
+  info: 'border-[#1E3A5F] bg-[#0F1B2E] text-[#60A5FA]',
+  neutral: 'border-[#292B33] bg-[#15161C] text-[#A1A4AE]',
 };
 
 export default function Badge({

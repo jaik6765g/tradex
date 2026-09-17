@@ -53,29 +53,29 @@ const LottoBuyTicket = ({
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h3 className="flex items-center gap-2 text-[15px] font-black text-[#0F172A]">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#FEF3C7]">
-              <Ticket size={15} strokeWidth={2.4} className="text-[#B45309]" />
+          <h3 className="flex items-center gap-2 text-[15px] font-black text-[#F5F5F7]">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#2A1B0C]">
+              <Ticket size={15} strokeWidth={2.4} className="text-[#FB923C]" />
             </span>
             Buy Ticket
           </h3>
-          <p className="mt-1 text-[11px] font-medium text-[#64748B]">
+          <p className="mt-1 text-[11px] font-medium text-[#9A9BA8]">
             Debited from the main TDX wallet
           </p>
         </div>
 
         <div
-          className="flex items-center gap-2 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-2.5 py-1.5"
+          className="flex items-center gap-2 rounded-xl border border-[#26262E] bg-[#101014] px-2.5 py-1.5"
           title="Main TDX wallet balance"
         >
-          <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-white text-[#475569] shadow-sm">
+          <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-[#16161C] text-[#B9BAC6] shadow-sm">
             <Wallet size={13} strokeWidth={2.4} />
           </span>
           <span className="leading-tight">
-            <span className="block text-[9px] font-bold uppercase tracking-wider text-[#94A3B8]">
+            <span className="block text-[9px] font-bold uppercase tracking-wider text-[#7C7D8A]">
               Balance
             </span>
-            <span className="block text-[11px] font-black text-[#0F172A] tabular-nums">
+            <span className="block text-[11px] font-black text-[#F5F5F7] tabular-nums">
               {formatTdx(balance)} TDX
             </span>
           </span>
@@ -112,7 +112,7 @@ const LottoBuyTicket = ({
       {/* Alerts */}
       {selectionError && (
         <div
-          className="mt-3 flex items-start gap-2 rounded-xl border border-[#FECACA] bg-[#FEF2F2] px-3 py-2.5 text-[11px] font-semibold text-[#B91C1C]"
+          className="mt-3 flex items-start gap-2 rounded-xl border border-[#4A2323] bg-[#2A1515] px-3 py-2.5 text-[11px] font-semibold text-[#F87171]"
           role="alert"
         >
           <CircleAlert size={14} strokeWidth={2.6} className="mt-px shrink-0" />
@@ -122,7 +122,7 @@ const LottoBuyTicket = ({
 
       {error && (
         <div
-          className="mt-3 flex items-start gap-2 rounded-xl border border-[#FECACA] bg-[#FEF2F2] px-3 py-2.5 text-[11px] font-semibold text-[#B91C1C]"
+          className="mt-3 flex items-start gap-2 rounded-xl border border-[#4A2323] bg-[#2A1515] px-3 py-2.5 text-[11px] font-semibold text-[#F87171]"
           role="alert"
         >
           <CircleAlert size={14} strokeWidth={2.6} className="mt-px shrink-0" />
@@ -132,7 +132,7 @@ const LottoBuyTicket = ({
 
       {!isAuthenticated && (
         <div
-          className="mt-3 flex items-start gap-2 rounded-xl border border-[#BFDBFE] bg-[#EFF6FF] px-3 py-2.5 text-[11px] font-semibold text-[#1D4ED8]"
+          className="mt-3 flex items-start gap-2 rounded-xl border border-[#1E3A5F] bg-[#0F1D33] px-3 py-2.5 text-[11px] font-semibold text-[#93C5FD]"
           role="status"
         >
           <Info size={14} strokeWidth={2.6} className="mt-px shrink-0" />
@@ -142,7 +142,7 @@ const LottoBuyTicket = ({
 
       {insufficientBalance && isAuthenticated && (
         <div
-          className="mt-3 flex items-start gap-2 rounded-xl border border-[#FECACA] bg-[#FEF2F2] px-3 py-2.5 text-[11px] font-semibold text-[#B91C1C]"
+          className="mt-3 flex items-start gap-2 rounded-xl border border-[#4A2323] bg-[#2A1515] px-3 py-2.5 text-[11px] font-semibold text-[#F87171]"
           role="alert"
         >
           <CircleAlert size={14} strokeWidth={2.6} className="mt-px shrink-0" />
@@ -170,10 +170,10 @@ const LottoBuyTicket = ({
           enabled:hover:-translate-y-0.5
         `}
         style={{
-          background: 'linear-gradient(135deg, #FFD54D, #F5B800)',
+          background: 'linear-gradient(135deg, #FB923C, #F97316)',
           boxShadow: canPlace
-            ? '0 8px 22px rgba(245,184,0,0.30)'
-            : '0 4px 12px rgba(245,184,0,0.15)',
+            ? '0 8px 22px rgba(249,115,22,0.30)'
+            : '0 4px 12px rgba(249,115,22,0.15)',
         }}
       >
         {submitting && (

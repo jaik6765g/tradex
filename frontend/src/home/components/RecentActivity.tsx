@@ -75,7 +75,7 @@ function formatStatus(status: string): string {
 
 export default function RecentActivity() {
   const navigate = useNavigate();
-  const { userId, isConnected } = useWalletContext();
+  const { userId, isAuthenticated } = useWalletContext();
   const { transactions, isLoading, error } = useTransactionHistory(userId);
 
   const recentTransactions = useMemo(
@@ -87,16 +87,16 @@ export default function RecentActivity() {
   );
 
   const hasSession = !!userId;
-  const showConnectState = !isConnected && !hasSession && !isLoading && recentTransactions.length === 0;
+  const showConnectState = !isAuthenticated && !hasSession && !isLoading && recentTransactions.length === 0;
   const showEmptyState = hasSession && !isLoading && !error && recentTransactions.length === 0;
 
   return (
-    <div className="min-h-[245px] rounded-[20px] border border-[#E7E9EE] bg-white p-[18px]">
+    <div className="min-h-[245px] rounded-[20px] border border-[#292B33] bg-[#15161C] p-[18px]">
       <div className="flex items-center justify-between">
-        <h2 className="text-[19px] font-black text-[#111827]">Recent Activity</h2>
+        <h2 className="text-[19px] font-black text-[#F5F5F7]">Recent Activity</h2>
         <button
           onClick={() => navigate('/transactions')}
-          className="text-[#F5B800] text-[15px] font-extrabold hover:text-[#F59E0B] transition"
+          className="text-[#FF7A18] text-[15px] font-extrabold hover:text-[#FF8F3D] transition"
         >
           See All ›
         </button>
@@ -105,16 +105,16 @@ export default function RecentActivity() {
       {/* Loading */}
       {isLoading && (
         <div className="flex flex-col items-center justify-center pt-[35px]">
-          <Loader2 size={28} className="animate-spin text-[#98A2B3]" />
-          <div className="mt-3 text-sm font-bold text-[#475467]">Loading activity...</div>
+          <Loader2 size={28} className="animate-spin text-[#70737E]" />
+          <div className="mt-3 text-sm font-bold text-[#A1A4AE]">Loading activity...</div>
         </div>
       )}
 
       {/* Error */}
       {!isLoading && error && (
-        <div className="mt-4 rounded-xl border border-[#FECACA] bg-[#FEF2F2] p-3">
+        <div className="mt-4 rounded-xl border border-[#4A2323] bg-[#281313] p-3">
           <div className="flex items-start gap-2">
-            <AlertCircle size={16} className="mt-0.5 text-[#B91C1C]" />
+            <AlertCircle size={16} className="mt-0.5 text-[#F87171]" />
             <div>
               <div className="text-xs font-extrabold text-[#991B1B]">Could not load activity</div>
               <p className="mt-0.5 text-xs text-[#7F1D1D]">{error}</p>
@@ -126,18 +126,18 @@ export default function RecentActivity() {
       {/* Connect State */}
       {showConnectState && (
         <div className="flex flex-col items-center justify-center pt-[35px]">
-          <FileText size={58} color="#D0D5DD" />
-          <div className="mt-3 text-[17px] font-bold text-[#475467]">Connect wallet to view activity</div>
-          <div className="mt-1 text-sm text-[#667085]">Your recent transactions will appear here.</div>
+          <FileText size={58} className="text-[#3A3A46]" />
+          <div className="mt-3 text-[17px] font-bold text-[#A1A4AE]">Log in to view activity</div>
+          <div className="mt-1 text-sm text-[#A1A4AE]">Your recent transactions will appear here.</div>
         </div>
       )}
 
       {/* Empty State */}
       {showEmptyState && (
         <div className="flex flex-col items-center justify-center pt-[35px]">
-          <FileText size={58} color="#D0D5DD" />
-          <div className="mt-3 text-[17px] font-bold text-[#475467]">No transactions yet</div>
-          <div className="mt-1 text-sm text-[#667085]">Your activity will appear here.</div>
+          <FileText size={58} className="text-[#3A3A46]" />
+          <div className="mt-3 text-[17px] font-bold text-[#A1A4AE]">No transactions yet</div>
+          <div className="mt-1 text-sm text-[#A1A4AE]">Your activity will appear here.</div>
         </div>
       )}
 
@@ -155,18 +155,18 @@ export default function RecentActivity() {
                 key={tx.id}
                 type="button"
                 onClick={() => navigate('/transactions')}
-                className="flex w-full items-center justify-between rounded-xl border border-[#E7E9EE] bg-[#FCFCFD] px-3 py-2 text-left hover:bg-white transition"
+                className="flex w-full items-center justify-between rounded-xl border border-[#292B33] bg-[#1A1A20] px-3 py-2 text-left hover:bg-[#20202A] transition"
               >
                 <div>
-                  <div className="text-xs font-extrabold text-[#111827]">{label}</div>
-                  <div className="text-[10px] text-[#667085]">{formatRelativeTime(tx.timestamp)}</div>
+                  <div className="text-xs font-extrabold text-[#F5F5F7]">{label}</div>
+                  <div className="text-[10px] text-[#A1A4AE]">{formatRelativeTime(tx.timestamp)}</div>
                 </div>
 
                 <div className="text-right">
-                  <div className={`text-xs font-black ${sign === '+' ? 'text-green-600' : sign === '-' ? 'text-red-600' : 'text-[#111827]'}`}>
+                  <div className={`text-xs font-black ${sign === '+' ? 'text-[#4ADE80]' : sign === '-' ? 'text-[#F87171]' : 'text-[#F5F5F7]'}`}>
                     {sign} {amount} {tx.currency || 'TDX'}
                   </div>
-                  <div className="text-[10px] font-bold text-[#667085] capitalize">{status}</div>
+                  <div className="text-[10px] font-bold text-[#A1A4AE] capitalize">{status}</div>
                 </div>
               </button>
             );

@@ -33,7 +33,7 @@ export default function Input({
       {label ? (
         <label
           htmlFor={inputId}
-          className="mb-2 block text-sm font-bold text-[#344054]"
+          className="mb-2 block text-sm font-bold text-[#E4E5E8]"
         >
           {label}
         </label>
@@ -43,12 +43,12 @@ export default function Input({
         id={inputId}
         disabled={disabled}
         className={cx(
-          'h-10 w-full rounded-[10px] border bg-white px-3 text-sm text-[#111827] placeholder:text-[#98A2B3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F5B800] focus-visible:ring-offset-1',
+          'h-10 w-full rounded-[10px] border bg-[#15161C] px-3 text-sm text-[#F5F5F7] placeholder:text-[#70737E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A18] focus-visible:ring-offset-1',
           error
             ? 'border-[#F04438]'
-            : 'border-[#D0D5DD]',
+            : 'border-[#34343E]',
           disabled
-            ? 'cursor-not-allowed bg-[#F9FAFB] text-[#98A2B3]'
+            ? 'cursor-not-allowed bg-[#15161C] text-[#70737E]'
             : '',
           className,
         )}
@@ -59,7 +59,7 @@ export default function Input({
       />
 
       {error ? (
-        <p className="mt-2 text-xs font-semibold text-[#B42318]">
+        <p className="mt-2 text-xs font-semibold text-[#F87171]">
           {error}
         </p>
       ) : null}

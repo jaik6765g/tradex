@@ -1,12 +1,10 @@
-import { Processor, Process } from '@nestjs/bull';
-import type { Job } from 'bull';
 import { Injectable } from '@nestjs/common';
+import type { Job } from 'bullmq';
 import { DepositService } from '../deposit.service';
 import { BalanceService } from '../../balances/balance.service';
 import { LedgerType } from '../../ledger/ledger.entity';
 import { DepositStatus } from '../deposit.entity';
 
-@Processor('deposit-confirmation')
 @Injectable()
 export class DepositCreditProcessor {
   constructor(
@@ -14,7 +12,6 @@ export class DepositCreditProcessor {
     private balanceService: BalanceService,
   ) {}
 
-  @Process('credit-deposit')
   async handleDepositCredit(job: Job): Promise<void> {
     const { depositId, userId } = job.data as {
       depositId: string;
@@ -79,9 +76,14 @@ export class DepositCreditProcessor {
         depositId,
         {
           usdtAmount: deposit.usdtAmount,
+          tdxAmount: amountToCredit,
           rate: 100,
-          transactionHash: deposit.transactionHash,
           chainId: deposit.chainId,
+          token: 'USDT',
+          txHash: deposit.transactionHash,
+          transactionHash: deposit.transactionHash,
+          depositOrderId: deposit.orderId ?? undefined,
+          depositAddress: deposit.depositAddress ?? undefined,
         },
       );
 

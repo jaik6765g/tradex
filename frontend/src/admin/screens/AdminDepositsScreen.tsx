@@ -90,26 +90,26 @@ function DepositsFilters({
   onReset: () => void;
 }) {
   return (
-    <section className="rounded-[16px] border border-[#E5E7EB] bg-white p-3">
+    <section className="rounded-[16px] border border-[#292B33] bg-[#15161C] p-3">
       <form
         className="grid grid-cols-1 gap-2 md:grid-cols-[minmax(0,1fr)_180px_140px_auto]"
         onSubmit={(e) => { e.preventDefault(); onSearchSubmit(); }}
       >
         <div className="relative">
-          <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#98A2B3]" />
+          <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#70737E]" />
           <input
             type="text"
             placeholder="Search by deposit ID, user ID, tx hash, or chain"
             value={searchInput}
             onChange={(e) => onSearchInputChange(e.target.value)}
-            className="w-full rounded-[10px] border border-[#D0D5DD] bg-white pl-9 pr-3 py-2 text-sm text-[#111827] placeholder:text-[#98A2B3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F5B800]"
+            className="w-full rounded-[10px] border border-[#34343E] bg-[#15161C] pl-9 pr-3 py-2 text-sm text-[#F5F5F7] placeholder:text-[#70737E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A18]"
           />
         </div>
 
         <select
           value={status}
           onChange={(e) => onStatusChange(e.target.value as AdminDepositFilterStatus)}
-          className="rounded-[10px] border border-[#D0D5DD] bg-white px-3 py-2 text-sm font-semibold text-[#111827] outline-none focus-visible:ring-2 focus-visible:ring-[#F5B800]"
+          className="rounded-[10px] border border-[#34343E] bg-[#15161C] px-3 py-2 text-sm font-semibold text-[#F5F5F7] outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A18]"
         >
           {DEPOSIT_STATUS_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>{option.label}</option>
@@ -119,7 +119,7 @@ function DepositsFilters({
         <select
           value={limit}
           onChange={(e) => onLimitChange(Number(e.target.value))}
-          className="rounded-[10px] border border-[#D0D5DD] bg-white px-3 py-2 text-sm font-semibold text-[#111827] outline-none focus-visible:ring-2 focus-visible:ring-[#F5B800]"
+          className="rounded-[10px] border border-[#34343E] bg-[#15161C] px-3 py-2 text-sm font-semibold text-[#F5F5F7] outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A18]"
         >
           {PAGE_SIZE_OPTIONS.map((size) => (
             <option key={size} value={size}>{size} / page</option>
@@ -155,23 +155,23 @@ function DepositTableRow({
   const canCredit = deposit.status === 'VERIFIED';
 
   return (
-    <tr className="align-top transition-colors hover:bg-[#F8FAFC]">
-      <td className="px-3 py-2 text-xs text-[#111827]">
+    <tr className="align-top transition-colors hover:bg-[#111217]">
+      <td className="px-3 py-2 text-xs text-[#F5F5F7]">
         <p className="font-mono font-bold">{deposit.id.slice(0, 8)}...</p>
-        <p className="mt-1 text-[10px] text-[#667085]">User: {deposit.userId.slice(0, 8)}...</p>
+        <p className="mt-1 text-[10px] text-[#A1A4AE]">User: {deposit.userId.slice(0, 8)}...</p>
       </td>
-      <td className="px-3 py-2 text-xs text-[#111827] font-semibold">#{deposit.chainId}</td>
-      <td className="px-3 py-2 text-xs text-[#111827]">
+      <td className="px-3 py-2 text-xs text-[#F5F5F7] font-semibold">#{deposit.chainId}</td>
+      <td className="px-3 py-2 text-xs text-[#F5F5F7]">
         <p className="font-bold">{formatTokenAmount(deposit.tdxAmount)}</p>
-        <p className="mt-1 text-[10px] text-[#667085]">{formatTokenAmount(deposit.usdtAmount, 'USDT')}</p>
+        <p className="mt-1 text-[10px] text-[#A1A4AE]">{formatTokenAmount(deposit.usdtAmount, 'USDT')}</p>
       </td>
       <td className="px-3 py-2 text-xs">
         <Badge variant={DEPOSIT_STATUS_BADGE_VARIANTS[deposit.status]}>{formatDepositStatus(deposit.status)}</Badge>
       </td>
-      <td className="px-3 py-2 text-xs text-[#111827] font-semibold">
+      <td className="px-3 py-2 text-xs text-[#F5F5F7] font-semibold">
         {deposit.confirmations}/{deposit.requiredConfirmations}
       </td>
-      <td className="px-3 py-2 text-xs text-[#111827]">
+      <td className="px-3 py-2 text-xs text-[#F5F5F7]">
         <div className="flex flex-wrap items-center gap-2">
           {canMarkVerified && (
             <Button
@@ -210,12 +210,12 @@ function DepositTableRow({
             </Button>
           )}
           {!canMarkVerified && !canCredit && !canMarkFailed && (
-            <span className="text-[#98A2B3]">—</span>
+            <span className="text-[#70737E]">—</span>
           )}
         </div>
       </td>
-      <td className="px-3 py-2 text-xs text-[#111827] cursor-help">{formatRelativeTime(deposit.createdAt)}</td>
-      <td className="px-3 py-2 text-xs text-[#111827] font-mono">{formatAddress(deposit.transactionHash)}</td>
+      <td className="px-3 py-2 text-xs text-[#F5F5F7] cursor-help">{formatRelativeTime(deposit.createdAt)}</td>
+      <td className="px-3 py-2 text-xs text-[#F5F5F7] font-mono">{formatAddress(deposit.transactionHash)}</td>
     </tr>
   );
 }
@@ -317,15 +317,15 @@ export default function AdminDepositsScreen() {
 
   return (
     <div className="space-y-3">
-      <section className="rounded-[16px] border border-[#E5E7EB] bg-white p-4">
+      <section className="rounded-[16px] border border-[#292B33] bg-[#15161C] p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-[20px] font-black text-[#111827]">Deposits</h1>
-            <p className="mt-0.5 text-xs text-[#667085]">
+            <h1 className="text-[20px] font-black text-[#F5F5F7]">Deposits</h1>
+            <p className="mt-0.5 text-xs text-[#A1A4AE]">
               Review deposits, verify confirmations, and credit eligible transactions
             </p>
             {total > 0 && (
-              <p className="mt-1 text-xs font-semibold text-[#111827]">
+              <p className="mt-1 text-xs font-semibold text-[#F5F5F7]">
                 Total: {total} deposit{total === 1 ? '' : 's'}
               </p>
             )}
@@ -348,7 +348,7 @@ export default function AdminDepositsScreen() {
       />
 
       {loading && !deposits.length && (
-        <section className="rounded-[16px] border border-[#E5E7EB] bg-white p-4">
+        <section className="rounded-[16px] border border-[#292B33] bg-[#15161C] p-4">
           <div className="space-y-3">
             {Array.from({ length: 6 }).map((_, i) => (
               <div key={`deposit-skeleton-${i}`} className="grid grid-cols-8 gap-2">
@@ -366,34 +366,34 @@ export default function AdminDepositsScreen() {
       )}
 
       {!loading && !error && (
-        <section className="overflow-hidden rounded-[16px] border border-[#E5E7EB] bg-white">
+        <section className="overflow-hidden rounded-[16px] border border-[#292B33] bg-[#15161C]">
           {deposits.length === 0 ? (
             <div className="p-8 text-center">
-              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#F9FAFB]">
-                <Search size={24} className="text-[#98A2B3]" />
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#15161C]">
+                <Search size={24} className="text-[#70737E]" />
               </div>
-              <p className="text-base font-bold text-[#344054]">No deposits found</p>
-              <p className="mt-1 text-xs text-[#667085]">
+              <p className="text-base font-bold text-[#E4E5E8]">No deposits found</p>
+              <p className="mt-1 text-xs text-[#A1A4AE]">
                 {status !== 'ALL' ? `Try changing status filter or` : 'Try'} changing search text or pagination options.
               </p>
             </div>
           ) : (
             <>
               <div className="overflow-x-auto">
-                <table className="min-w-[1080px] w-full divide-y divide-[#EAECF0]">
-                  <thead className="bg-[#F9FAFB]">
+                <table className="min-w-[1080px] w-full divide-y divide-[#202229]">
+                  <thead className="bg-[#15161C]">
                     <tr>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">ID / User</th>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">Chain</th>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">Amount</th>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">Status</th>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">Confirmations</th>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">Actions</th>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">Created</th>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">Tx Hash</th>
+                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">ID / User</th>
+                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Chain</th>
+                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Amount</th>
+                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Status</th>
+                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Confirmations</th>
+                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Actions</th>
+                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Created</th>
+                      <th className="px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Tx Hash</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#F2F4F7] bg-white">
+                  <tbody className="divide-y divide-[#1B1917] bg-[#15161C]">
                     {deposits.map((deposit) => (
                       <DepositTableRow
                         key={deposit.id}
@@ -409,16 +409,16 @@ export default function AdminDepositsScreen() {
                 </table>
               </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#EAECF0] px-3 py-2.5">
-                <p className="text-xs text-[#667085]">
-                  Showing <span className="font-bold text-[#111827]">{rangeStart}-{rangeEnd}</span> of{' '}
-                  <span className="font-bold text-[#111827]">{total}</span>
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#202229] px-3 py-2.5">
+                <p className="text-xs text-[#A1A4AE]">
+                  Showing <span className="font-bold text-[#F5F5F7]">{rangeStart}-{rangeEnd}</span> of{' '}
+                  <span className="font-bold text-[#F5F5F7]">{total}</span>
                 </p>
                 <div className="flex items-center gap-2">
                   <Button variant="secondary" size="sm" className="h-8 px-2.5 text-xs" disabled={!canGoPrev} onClick={() => setOffset(Math.max(0, offset - limit))}>
                     <span className="mr-1">←</span> Previous
                   </Button>
-                  <span className="text-xs font-semibold text-[#344054]">
+                  <span className="text-xs font-semibold text-[#E4E5E8]">
                     Page {currentPage} of {totalPages}
                   </span>
                   <Button variant="secondary" size="sm" className="h-8 px-2.5 text-xs" disabled={!canGoNext} onClick={() => setOffset(offset + limit)}>

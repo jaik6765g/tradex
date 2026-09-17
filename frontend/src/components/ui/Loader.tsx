@@ -17,7 +17,7 @@ export default function Loader({
   return (
     <div
       className={cx(
-        'flex items-center justify-center gap-2 text-sm font-bold text-[#475467]',
+        'flex items-center justify-center gap-2 text-sm font-bold text-[#A1A4AE]',
         className,
       )}
       role="status"

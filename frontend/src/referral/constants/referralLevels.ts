@@ -30,8 +30,8 @@ const referralTypes = {
     title: 'Game Referral',
     subtitle: 'Earn from Game',
     icon: Gamepad2,
-    color: '#7C3AED',
-    bg: '#F3EAFF',
+    color: '#C99752',
+    bg: '#211810',
     description:
       'Earn referral rewards when your network participates in TradeX games.',
   },
@@ -39,8 +39,8 @@ const referralTypes = {
     title: 'Trade Referral',
     subtitle: 'Earn from Trade',
     icon: TrendingUp,
-    color: '#2563EB',
-    bg: '#EAF3FF',
+    color: '#C99752',
+    bg: '#211810',
     description:
       'Earn referral rewards from eligible trading activity across your network.',
   },
@@ -48,8 +48,8 @@ const referralTypes = {
     title: 'Bot Referral',
     subtitle: 'Earn from Bot',
     icon: Bot,
-    color: '#F59E0B',
-    bg: '#FFF5D8',
+    color: '#FF8F3D',
+    bg: '#2A190D',
     description:
       'Earn referral rewards from eligible automated bot activity.',
   },
@@ -195,10 +195,10 @@ export default function Referral() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
+      <div className="min-h-screen bg-[#111217] flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FBBF24] mx-auto" />
-          <p className="mt-4 text-[#64748B]">Loading referral data...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FF7A18] mx-auto" />
+          <p className="mt-4 text-[#A1A4AE]">Loading referral data...</p>
         </div>
       </div>
     );
@@ -206,13 +206,13 @@ export default function Referral() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
+      <div className="min-h-screen bg-[#111217] flex items-center justify-center">
         <div className="text-center max-w-md px-4">
           <div className="text-4xl mb-4">⚠️</div>
-          <p className="text-[#64748B]">{error}</p>
+          <p className="text-[#A1A4AE]">{error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="mt-4 px-6 py-2 bg-[#FBBF24] text-[#111827] rounded-lg font-bold hover:bg-[#FCD34D]"
+            className="mt-4 px-6 py-2 bg-[#FF7A18] text-[#F5F5F7] rounded-lg font-bold hover:bg-[#FF8F3D]"
           >
             Retry
           </button>
@@ -222,34 +222,34 @@ export default function Referral() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] pb-28">
+    <div className="min-h-screen bg-[#111217] pb-28">
       <main className="mx-auto w-full max-w-[1200px] px-4 py-5">
         <div className="space-y-4">
           {/* Hero */}
-          <section className="relative overflow-hidden rounded-[22px] bg-[#071426] min-h-[300px]">
-            <div className="absolute -right-16 -top-20 h-[260px] w-[260px] rounded-full bg-[#FBBF24]/[0.08]" />
-            <div className="absolute right-[18%] bottom-[-100px] h-[220px] w-[220px] rounded-full bg-[#FBBF24]/[0.05]" />
+          <section className="relative overflow-hidden rounded-[22px] bg-[#211810] min-h-[300px]">
+            <div className="absolute -right-16 -top-20 h-[260px] w-[260px] rounded-full bg-[#FF7A18]/[0.08]" />
+            <div className="absolute right-[18%] bottom-[-100px] h-[220px] w-[220px] rounded-full bg-[#FF7A18]/[0.05]" />
 
             <div className="relative z-10 grid min-h-[300px] grid-cols-1 md:grid-cols-[1.25fr_0.75fr]">
               <div className="flex flex-col justify-center p-6 md:p-8">
                 <h1 className="text-[30px] font-black leading-tight text-white">
                   Refer{' '}
-                  <span className="text-[#FBBF24]">& Earn</span>
+                  <span className="text-[#FF7A18]">& Earn</span>
                 </h1>
 
-                <p className="mt-2 text-sm leading-6 text-[#E5E7EB]">
+                <p className="mt-2 text-sm leading-6 text-[#292B33]">
                   Invite your friends and earn TDX rewards
                 </p>
 
-                <p className="text-sm leading-6 text-[#E5E7EB]">
+                <p className="text-sm leading-6 text-[#292B33]">
                   across Game, Trade and Bot.
                 </p>
 
-                <p className="mt-5 mb-2 text-sm font-extrabold text-[#FACC15]">
+                <p className="mt-5 mb-2 text-sm font-extrabold text-[#FF8F3D]">
                   Your Referral Link
                 </p>
 
-                <div className="flex h-[52px] max-w-[520px] overflow-hidden rounded-[13px] border border-[#374151] bg-[#101C2D]">
+                <div className="flex h-[52px] max-w-[520px] overflow-hidden rounded-[13px] border border-[#4F525C] bg-[#211810]">
                   <div className="flex min-w-0 flex-1 items-center px-3">
                     <span className="truncate text-sm text-white">
                       {referralLink || 'No referral link available'}
@@ -259,7 +259,7 @@ export default function Referral() {
                   <button
                     onClick={copyReferral}
                     disabled={!referralLink}
-                    className="flex w-[52px] shrink-0 items-center justify-center bg-[#FBBF24] text-[#111827] hover:bg-[#FCD34D] disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex w-[52px] shrink-0 items-center justify-center bg-[#FF7A18] text-[#F5F5F7] hover:bg-[#FF8F3D] disabled:opacity-50 disabled:cursor-not-allowed"
                     title="Copy referral link"
                   >
                     {copied ? <Check size={21} /> : <Copy size={21} />}
@@ -268,13 +268,13 @@ export default function Referral() {
               </div>
 
               <div className="flex flex-col items-center justify-center px-6 pb-7 md:pb-0">
-                <div className="mb-3 flex h-[120px] w-[120px] items-center justify-center rounded-full bg-[#FBBF24]/10">
-                  <div className="flex h-[92px] w-[92px] items-center justify-center rounded-full bg-[#FBBF24]/15">
-                    <Sparkles size={66} className="text-[#FBBF24]" />
+                <div className="mb-3 flex h-[120px] w-[120px] items-center justify-center rounded-full bg-[#FF7A18]/10">
+                  <div className="flex h-[92px] w-[92px] items-center justify-center rounded-full bg-[#FF7A18]/15">
+                    <Sparkles size={66} className="text-[#FF7A18]" />
                   </div>
                 </div>
 
-                <span className="mb-2 text-[13px] text-[#D1D5DB]">
+                <span className="mb-2 text-[13px] text-[#34343E]">
                   Share via
                 </span>
 
@@ -291,7 +291,7 @@ export default function Referral() {
                   <button
                     onClick={shareReferral}
                     disabled={!referralLink}
-                    className="flex h-10 w-10 items-center justify-center rounded-full bg-[#229ED9] text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex h-10 w-10 items-center justify-center rounded-full bg-[#FF8F3D] text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
                     title="Share"
                   >
                     <Send size={20} />
@@ -300,7 +300,7 @@ export default function Referral() {
                   <button
                     onClick={shareReferral}
                     disabled={!referralLink}
-                    className="flex h-10 w-10 items-center justify-center rounded-full bg-[#374151] text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex h-10 w-10 items-center justify-center rounded-full bg-[#4F525C] text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
                     title="More sharing options"
                   >
                     <Share2 size={21} />
@@ -311,17 +311,17 @@ export default function Referral() {
           </section>
 
           {/* Stats - Real API Data */}
-          <section className="grid grid-cols-1 overflow-hidden rounded-[18px] border border-[#E5E7EB] bg-white sm:grid-cols-3">
+          <section className="grid grid-cols-1 overflow-hidden rounded-[18px] border border-[#292B33] bg-[#15161C] sm:grid-cols-3">
             <StatCard
               icon={<Users size={22} />}
-              iconColor="#7C3AED"
+              iconColor="#C99752"
               title="Total Network"
               value={String(referralData?.stats.totalNetwork ?? 0)}
             />
 
             <StatCard
               icon={<Network size={22} />}
-              iconColor="#16A34A"
+              iconColor="#4ADE80"
               title="Total Active"
               value={String(referralData?.stats.totalActive ?? 0)}
               divider
@@ -329,7 +329,7 @@ export default function Referral() {
 
             <StatCard
               icon={<Wallet size={22} />}
-              iconColor="#F59E0B"
+              iconColor="#FF8F3D"
               title="Total Earned"
               value={`${formatTDX(referralData?.stats.totalEarned)} TDX`}
               divider
@@ -337,23 +337,23 @@ export default function Referral() {
           </section>
 
           {/* Referral link */}
-          <section className="rounded-[18px] border border-[#E5E7EB] bg-white p-4">
+          <section className="rounded-[18px] border border-[#292B33] bg-[#15161C] p-4">
             <div className="mb-3 flex items-start justify-between">
               <div>
-                <h2 className="text-[17px] font-extrabold text-[#111827]">
+                <h2 className="text-[17px] font-extrabold text-[#F5F5F7]">
                   Your Referral Link
                 </h2>
-                <p className="mt-1 text-xs text-[#6B7280]">
+                <p className="mt-1 text-xs text-[#70737E]">
                   Share your link and invite new users
                 </p>
               </div>
 
-              <Link size={24} className="text-[#F59E0B]" />
+              <Link size={24} className="text-[#FF8F3D]" />
             </div>
 
-            <div className="flex h-12 overflow-hidden rounded-xl border border-[#E5E7EB] bg-[#F9FAFB]">
+            <div className="flex h-12 overflow-hidden rounded-xl border border-[#292B33] bg-[#15161C]">
               <div className="flex min-w-0 flex-1 items-center px-3">
-                <span className="truncate text-sm text-[#374151]">
+                <span className="truncate text-sm text-[#E4E5E8]">
                   {referralLink || 'No referral link available'}
                 </span>
               </div>
@@ -361,7 +361,7 @@ export default function Referral() {
               <button
                 onClick={copyReferral}
                 disabled={!referralLink}
-                className="flex w-12 shrink-0 items-center justify-center bg-[#FBBF24] text-[#111827] hover:bg-[#FCD34D] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex w-12 shrink-0 items-center justify-center bg-[#FF7A18] text-[#F5F5F7] hover:bg-[#FF8F3D] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {copied ? <Check size={19} /> : <Copy size={19} />}
               </button>
@@ -370,7 +370,7 @@ export default function Referral() {
             <button
               onClick={shareReferral}
               disabled={!referralLink}
-              className="mt-2.5 flex h-[42px] w-full items-center justify-center gap-2 rounded-[11px] bg-[#FFF7E0] text-sm font-bold text-[#111827] hover:bg-[#FEF0C7] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="mt-2.5 flex h-[42px] w-full items-center justify-center gap-2 rounded-[11px] bg-[#2A190D] text-sm font-bold text-[#F5F5F7] hover:bg-[#33220F] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Share2 size={18} />
               Share Referral Link
@@ -378,7 +378,7 @@ export default function Referral() {
           </section>
 
           {/* Referral type tabs */}
-          <section className="grid grid-cols-1 overflow-hidden rounded-[18px] border border-[#E5E7EB] bg-white sm:grid-cols-3">
+          <section className="grid grid-cols-1 overflow-hidden rounded-[18px] border border-[#292B33] bg-[#15161C] sm:grid-cols-3">
             {(Object.keys(referralTypes) as ReferralType[]).map((key) => {
               const item = referralTypes[key];
               const Icon = item.icon;
@@ -389,7 +389,7 @@ export default function Referral() {
                   key={key}
                   onClick={() => setActiveType(key)}
                   className={`relative flex min-h-[105px] items-center justify-center gap-3 px-4 py-4 transition ${
-                    active ? 'bg-[#FFFDF7]' : 'bg-white hover:bg-[#FAFAFA]'
+                    active ? 'bg-[#2A190D]' : 'bg-[#15161C] hover:bg-[#15161C]'
                   }`}
                 >
                   <div
@@ -400,17 +400,17 @@ export default function Referral() {
                   </div>
 
                   <div className="text-left">
-                    <div className="text-xs font-extrabold text-[#111827]">
+                    <div className="text-xs font-extrabold text-[#F5F5F7]">
                       {item.title}
                     </div>
 
-                    <div className="mt-1 text-[10px] text-[#64748B]">
+                    <div className="mt-1 text-[10px] text-[#A1A4AE]">
                       {item.subtitle}
                     </div>
                   </div>
 
                   {active && (
-                    <div className="absolute bottom-0 left-1/2 h-[3px] w-[42px] -translate-x-1/2 rounded-full bg-[#F59E0B]" />
+                    <div className="absolute bottom-0 left-1/2 h-[3px] w-[42px] -translate-x-1/2 rounded-full bg-[#FF8F3D]" />
                   )}
                 </button>
               );
@@ -418,7 +418,7 @@ export default function Referral() {
           </section>
 
           {/* Active referral type */}
-          <section className="rounded-[18px] border border-[#E5E7EB] bg-white p-4">
+          <section className="rounded-[18px] border border-[#292B33] bg-[#15161C] p-4">
             <div className="flex items-center gap-3">
               <div
                 className="flex h-11 w-11 items-center justify-center rounded-full"
@@ -428,10 +428,10 @@ export default function Referral() {
               </div>
 
               <div>
-                <h2 className="text-base font-extrabold text-[#111827]">
+                <h2 className="text-base font-extrabold text-[#F5F5F7]">
                   {type.title}
                 </h2>
-                <p className="mt-1 text-xs text-[#64748B]">
+                <p className="mt-1 text-xs text-[#A1A4AE]">
                   {type.description}
                 </p>
               </div>
@@ -439,18 +439,18 @@ export default function Referral() {
           </section>
 
           {/* Level structure - REAL API DATA */}
-          <section className="rounded-[18px] border border-[#E5E7EB] bg-white p-4">
+          <section className="rounded-[18px] border border-[#292B33] bg-[#15161C] p-4">
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <h2 className="text-base font-extrabold text-[#111827]">
+                <h2 className="text-base font-extrabold text-[#F5F5F7]">
                   Referral Structure
                 </h2>
-                <p className="mt-1 text-xs text-[#64748B]">
+                <p className="mt-1 text-xs text-[#A1A4AE]">
                   Your network earnings by level
                 </p>
               </div>
 
-              <span className="rounded-full bg-[#FFF7E0] px-3 py-1.5 text-xs font-bold text-[#B77900]">
+              <span className="rounded-full bg-[#2A190D] px-3 py-1.5 text-xs font-bold text-[#FDBA74]">
                 6 Levels
               </span>
             </div>
@@ -462,75 +462,75 @@ export default function Referral() {
                 return (
                   <div
                     key={level.level}
-                    className="overflow-hidden rounded-[14px] border border-[#EAECF0]"
+                    className="overflow-hidden rounded-[14px] border border-[#202229]"
                   >
                     <button
                       onClick={() => toggleLevel(level.level)}
-                      className="flex w-full items-center gap-3 bg-[#FCFCFD] px-4 py-3 text-left hover:bg-[#F9FAFB]"
+                      className="flex w-full items-center gap-3 bg-[#1A1A20] px-4 py-3 text-left hover:bg-[#15161C]"
                     >
-                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#111827] text-xs font-extrabold text-white">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#FF7A18] text-xs font-extrabold text-white">
                         L{level.level}
                       </div>
 
                       <div className="min-w-0 flex-1">
-                        <div className="text-sm font-extrabold text-[#111827]">
+                        <div className="text-sm font-extrabold text-[#F5F5F7]">
                           Level {level.level}
                         </div>
-                        <div className="mt-0.5 text-[11px] text-[#667085]">
+                        <div className="mt-0.5 text-[11px] text-[#A1A4AE]">
                           {level.totalUsers} users · {level.activeUsers} active
                         </div>
                       </div>
 
-                      <span className="rounded-full bg-[#FFF7E0] px-2.5 py-1 text-xs font-extrabold text-[#B77900]">
+                      <span className="rounded-full bg-[#2A190D] px-2.5 py-1 text-xs font-extrabold text-[#FDBA74]">
                         {level.percentage}%
                       </span>
 
                       {expanded ? (
-                        <ChevronUp size={18} className="text-[#667085]" />
+                        <ChevronUp size={18} className="text-[#A1A4AE]" />
                       ) : (
-                        <ChevronDown size={18} className="text-[#667085]" />
+                        <ChevronDown size={18} className="text-[#A1A4AE]" />
                       )}
                     </button>
 
                     {expanded && (
-                      <div className="border-t border-[#EAECF0] bg-white">
+                      <div className="border-t border-[#202229] bg-[#15161C]">
                         {level.users.length === 0 ? (
-                          <div className="px-4 py-5 text-center text-xs text-[#98A2B3]">
+                          <div className="px-4 py-5 text-center text-xs text-[#70737E]">
                             No users at this level yet.
                           </div>
                         ) : (
                           level.users.map((user) => (
                             <div
                               key={user.userId}
-                              className="flex items-center gap-3 border-b border-[#F2F4F7] px-4 py-3 last:border-b-0"
+                              className="flex items-center gap-3 border-b border-[#1B1917] px-4 py-3 last:border-b-0"
                             >
-                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#F3F4F6] text-xs font-extrabold text-[#475467]">
+                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#1B1917] text-xs font-extrabold text-[#A1A4AE]">
                                 {user.walletAddress.slice(0, 1).toUpperCase()}
                               </div>
 
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-2">
-                                  <span className="text-sm font-bold text-[#111827]">
+                                  <span className="text-sm font-bold text-[#F5F5F7]">
                                     {formatWallet(user.walletAddress)}
                                   </span>
 
                                   <span
                                     className={`h-1.5 w-1.5 rounded-full ${
-                                      user.active ? 'bg-[#22C55E]' : 'bg-[#98A2B3]'
+                                      user.active ? 'bg-[#22C55E]' : 'bg-[#A1A4AE]'
                                     }`}
                                   />
                                 </div>
 
-                                <div className="mt-0.5 text-[10px] text-[#98A2B3]">
+                                <div className="mt-0.5 text-[10px] text-[#70737E]">
                                   {user.active ? 'Active' : 'Inactive'}
                                 </div>
                               </div>
 
                               <div className="text-right">
-                                <div className="text-xs font-bold text-[#111827]">
+                                <div className="text-xs font-bold text-[#F5F5F7]">
                                   {formatTDX(user.tradeVolume)} TDX
                                 </div>
-                                <div className="mt-0.5 text-[10px] font-bold text-[#16A34A]">
+                                <div className="mt-0.5 text-[10px] font-bold text-[#4ADE80]">
                                   +{formatTDX(user.earned)} TDX
                                 </div>
                               </div>
@@ -592,7 +592,7 @@ function StatCard({
   return (
     <div
       className={`flex flex-1 items-center justify-center gap-3 px-4 py-5 ${
-        divider ? 'border-t border-[#E5E7EB] sm:border-l sm:border-t-0' : ''
+        divider ? 'border-t border-[#292B33] sm:border-l sm:border-t-0' : ''
       }`}
     >
       <div
@@ -606,8 +606,8 @@ function StatCard({
       </div>
 
       <div>
-        <div className="text-xs text-[#64748B]">{title}</div>
-        <div className="mt-1 text-lg font-black text-[#111827]">{value}</div>
+        <div className="text-xs text-[#A1A4AE]">{title}</div>
+        <div className="mt-1 text-lg font-black text-[#F5F5F7]">{value}</div>
       </div>
     </div>
   );
@@ -625,18 +625,18 @@ function SummaryCard({
   highlight?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-[16px] border border-[#E5E7EB] bg-white p-4">
+    <div className="flex items-center gap-3 rounded-[16px] border border-[#292B33] bg-[#15161C] p-4">
       <div
         className={`flex h-10 w-10 items-center justify-center rounded-full ${
-          highlight ? 'bg-[#FFF7E0] text-[#F59E0B]' : 'bg-[#F3F4F6] text-[#475467]'
+          highlight ? 'bg-[#2A190D] text-[#FF8F3D]' : 'bg-[#1B1917] text-[#A1A4AE]'
         }`}
       >
         {icon}
       </div>
 
       <div>
-        <div className="text-[11px] text-[#667085]">{label}</div>
-        <div className="mt-1 text-sm font-extrabold text-[#111827]">{value}</div>
+        <div className="text-[11px] text-[#A1A4AE]">{label}</div>
+        <div className="mt-1 text-sm font-extrabold text-[#F5F5F7]">{value}</div>
       </div>
     </div>
   );

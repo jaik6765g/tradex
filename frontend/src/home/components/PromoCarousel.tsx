@@ -53,9 +53,9 @@ export default function PromoCarousel() {
 
   return (
     <div>
-      <div className="relative h-[190px] rounded-[22px] bg-[#07111F] overflow-hidden flex">
-        <div className="flex-1 px-[22px] pt-[18px] pb-4 z-10">
-          <div className="text-[#F5B800] text-sm font-bold">
+      <div className="relative h-[210px] min-[480px]:h-[190px] rounded-[22px] border border-[#292B33] bg-[#111217] overflow-hidden flex">
+        <div className="flex-1 py-[18px] pl-[54px] pr-4 z-10">
+          <div className="text-[#FF8F3D] text-sm font-bold">
             {banner.title}
           </div>
 
@@ -63,31 +63,31 @@ export default function PromoCarousel() {
             {banner.headline}
           </div>
 
-          <div className="text-[#D0D5DD] text-sm leading-5 mt-1.5 max-w-[205px]">
+          <div className="text-[#A1A4AE] text-sm leading-5 mt-1.5 max-w-[205px]">
             {banner.description}
           </div>
 
-          <button className="mt-3 px-[15px] py-[9px] rounded-[14px] bg-[#F5B800] flex items-center gap-2 text-[#111827] text-sm font-black hover:bg-[#FFD85C] transition">
+          <button className="mt-3 px-[15px] py-[9px] rounded-[14px] bg-[#FF7A18] flex items-center gap-2 text-[#F5F5F7] text-sm font-black hover:bg-[#FF8F3D] transition">
             {banner.button}
             <ArrowRight size={18} />
           </button>
         </div>
 
         <div className="w-[145px] relative hidden sm:block">
-          <div className="absolute top-[42px] left-[2px] w-[90px] h-[90px] rounded-full bg-[#F5B800] border-[5px] border-[#FFD85C] flex items-center justify-center rotate-[-12deg] shadow-[0_0_30px_rgba(245,184,0,0.5)]">
-            <span className="text-[#7A5200] text-[18px] font-black">
+          <div className="absolute top-[42px] left-[2px] w-[90px] h-[90px] rounded-full bg-[#FF7A18] border-[5px] border-[#FF8F3D] flex items-center justify-center rotate-[-12deg] shadow-[0_0_20px_rgba(255,122,24,0.35)]">
+            <span className="text-white text-[18px] font-black">
               TDX
             </span>
           </div>
 
-          <div className="absolute w-[34px] h-[34px] rounded-full bg-[#F5B800] top-[25px] left-0 flex items-center justify-center">
-            <span className="text-[7px] font-black text-[#7A5200]">
+          <div className="absolute w-[34px] h-[34px] rounded-full bg-[#FF7A18] top-[25px] left-0 flex items-center justify-center">
+            <span className="text-[7px] font-black text-white">
               TDX
             </span>
           </div>
 
-          <div className="absolute w-[90px] h-[160px] right-[-15px] top-[15px] border-[5px] border-[#344054] rounded-[18px] bg-[#101828] p-3">
-            <div className="text-[#F5B800] font-extrabold text-[10px]">
+          <div className="absolute w-[90px] h-[160px] right-[-12px] top-[15px] border-[5px] border-[#292B33] rounded-[18px] bg-[#1A1A20] p-3">
+            <div className="text-[#FF7A18] font-extrabold text-[10px]">
               TradeX
             </div>
 
@@ -96,10 +96,10 @@ export default function PromoCarousel() {
             </div>
 
             <div className="flex gap-1.5 mt-3">
-              <div className="w-8 h-8 rounded-lg bg-[#1D2939] flex items-center justify-center text-white">
+              <div className="w-8 h-8 rounded-lg bg-[#2E2E3A] flex items-center justify-center text-white">
                 +
               </div>
-              <div className="w-8 h-8 rounded-lg bg-[#1D2939] flex items-center justify-center text-white">
+              <div className="w-8 h-8 rounded-lg bg-[#2E2E3A] flex items-center justify-center text-white">
                 ↕
               </div>
             </div>
@@ -108,16 +108,16 @@ export default function PromoCarousel() {
 
         <button
           onClick={previous}
-          className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/15 flex items-center justify-center z-20 hover:bg-white/25"
+          className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full border border-[#292B33] bg-[#1F1F28]/90 flex items-center justify-center z-20 transition hover:bg-[#292B33]"
         >
-          <ChevronLeft size={22} color="white" />
+          <ChevronLeft size={20} color="white" />
         </button>
 
         <button
           onClick={next}
-          className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/15 flex items-center justify-center z-20 hover:bg-white/25"
+          className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full border border-[#292B33] bg-[#1F1F28]/90 flex items-center justify-center z-20 transition hover:bg-[#292B33]"
         >
-          <ChevronRight size={22} color="white" />
+          <ChevronRight size={20} color="white" />
         </button>
       </div>
 
@@ -128,8 +128,8 @@ export default function PromoCarousel() {
             onClick={() => setActiveIndex(index)}
             className={`rounded-full transition-all ${
               index === activeIndex
-                ? 'w-[11px] h-[11px] bg-[#111827]'
-                : 'w-2 h-2 bg-[#D0D5DD]'
+                ? 'w-[11px] h-[11px] bg-[#FF7A18]'
+                : 'w-2 h-2 bg-[#3A3A46]'
             }`}
           />
         ))}

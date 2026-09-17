@@ -1,3 +1,4 @@
+// backend/src/modules/lotto/lotto.module.ts
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bullmq';
@@ -27,9 +28,14 @@ import { LOTTO_SETTLEMENT_QUEUE } from './workers/lotto-settlement.queue';
 import { LottoRoundEngineScheduler } from './workers/lotto-round-engine.scheduler';
 import { LottoRoundEngineProcessor } from './workers/lotto-round-engine.processor';
 import { LOTTO_ROUND_ENGINE_QUEUE } from './workers/lotto-round-engine.queue';
+import { PeriodSyncModule } from '../period-sync/period-sync.module';
+import { LottoBetExposureService } from './services/lotto-bet-exposure.service';
+import { LottoWinStrategyService } from './services/lotto-win-strategy.service';
+import { AdminAuthModule } from '../../auth/admin-auth.module';
 
 @Module({
   imports: [
+    AdminAuthModule,
     TypeOrmModule.forFeature([
       LottoRound,
       LottoTicket,
@@ -51,6 +57,7 @@ import { LOTTO_ROUND_ENGINE_QUEUE } from './workers/lotto-round-engine.queue';
     BullModule.registerQueue({
       name: LOTTO_ROUND_ENGINE_QUEUE,
     }),
+    PeriodSyncModule,
   ],
   controllers: [LottoController, AdminLottoController],
   providers: [
@@ -59,7 +66,9 @@ import { LOTTO_ROUND_ENGINE_QUEUE } from './workers/lotto-round-engine.queue';
     LottoSettlementProcessor,
     LottoRoundEngineScheduler,
     LottoRoundEngineProcessor,
+    LottoBetExposureService,
+    LottoWinStrategyService,
   ],
-  exports: [LottoService],
+  exports: [LottoService, LottoBetExposureService, LottoWinStrategyService],
 })
 export class LottoModule {}

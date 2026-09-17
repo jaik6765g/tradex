@@ -15,19 +15,23 @@ import {
 } from '../utils/lottoPresentation.js';
 import { LOTTO_CONSTANTS } from '../utils/constants';
 
-const POLL_INTERVAL_MS = 10_000;
+// 5s steady refresh for round/results/history/balance. The draw result
+// itself is caught up faster via the bounded post-draw poll in
+// LottoGame.handleRoundExpire — this interval is only the fallback.
+const POLL_INTERVAL_MS = 5_000;
 const IDEMPOTENCY_CACHE_TTL_MS = 2 * 60 * 1000;
 const DEFAULT_CONTROLS = {
   paused: false,
   resultMode: 'SERVER_RANDOM',
 };
 
-// Backend Category enum: THIRTY_SEC | ONE_MIN | THREE_MIN | FIVE_MIN (no 10-min)
+// Backend Category enum: THIRTY_SEC | ONE_MIN | THREE_MIN | FIVE_MIN | TEN_MIN
 const VALID_CATEGORIES = new Set([
   'THIRTY_SEC',
   'ONE_MIN',
   'THREE_MIN',
   'FIVE_MIN',
+  'TEN_MIN',
 ]);
 const DEFAULT_CATEGORY = LOTTO_CONSTANTS.CATEGORY || 'THIRTY_SEC';
 
@@ -45,7 +49,9 @@ const toTimerSeconds = (round) => {
     return 0;
   }
 
-  return Math.max(0, Math.floor((cutoffAtMs - Date.now()) / 1000));
+  const result = Math.max(0, Math.floor((cutoffAtMs - Date.now()) / 1000));
+
+  return result;
 };
 
 const normalizeRoundForUi = (round) => {
@@ -168,6 +174,10 @@ export const useLottoGame = () => {
   const [history, setHistory] = useState([]);
   const [lastResult, setLastResult] = useState(null);
   const [recentResults, setRecentResults] = useState([]);
+  // Result ALREADY PRE-COMPUTED by the backend for the round in its cutoff
+  // window (betting closed, draw not reached). Cached so the 00:00 reveal needs
+  // no API call at all — see fetchPendingResult().
+  const [pendingResult, setPendingResult] = useState(null);
   const [controls, setControls] = useState(DEFAULT_CONTROLS);
   const [error, setError] = useState(null);
 
@@ -207,6 +217,24 @@ export const useLottoGame = () => {
   const historyCategoryRef = useRef(DEFAULT_CATEGORY);
   const idempotencyCacheRef = useRef(new Map());
   const pendingPurchaseRef = useRef(null);
+  // Client/server clock offset (ms). serverNow = Date.now() + serverOffsetRef.
+  // Lets the countdown stay correct even if the user's local clock is wrong.
+  const serverOffsetRef = useRef(0);
+  // Per-category caches: every duration tab owns its OWN round + recent
+  // results. Switching tabs instantly applies that category's cached data,
+  // so the timer/period/results can never mix across durations.
+  const roundsByCategoryRef = useRef(new Map());
+  const resultsByCategoryRef = useRef(new Map());
+  // Per-category pre-reveal cache: the value prepared for the round whose
+  // cutoff window is currently open. Keyed by category so switching tabs can
+  // never leak another duration's not-yet-revealed result.
+  const pendingByCategoryRef = useRef(new Map());
+  // Monotonic fetch tokens: only the LATEST fetch for the CURRENTLY selected
+  // category may write visible state. A slow in-flight response for a
+  // previously selected tab can never leak into the current view.
+  const roundFetchTokenRef = useRef(0);
+  const resultsFetchTokenRef = useRef(0);
+  const historyFetchTokenRef = useRef(0);
 
   const balance = useMemo(() => {
     const rawValue = walletBalance?.tdxAvailable || walletBalance?.tdx || '0';
@@ -229,6 +257,7 @@ export const useLottoGame = () => {
 
   const getActiveRound = useCallback(async (categoryOverride) => {
     const targetCategory = categoryOverride ?? categoryRef.current;
+    const fetchToken = ++roundFetchTokenRef.current;
     try {
       const response = await lottoApi.getActiveRound(
         targetCategory ? { category: targetCategory } : undefined,
@@ -236,35 +265,54 @@ export const useLottoGame = () => {
       if (!isMountedRef.current) return null;
 
       const normalizedRound = normalizeRoundForUi(response.round);
+
       setControls(response.controls ?? DEFAULT_CONTROLS);
-      setActiveRound(normalizedRound);
-      activeRoundRef.current = normalizedRound;
+
+      // Cache per category — even a stale-token response is still valid data
+      // for its own tab and keeps it warm for instant switching.
+      if (normalizedRound && normalizedRound.id) {
+        roundsByCategoryRef.current.set(targetCategory, normalizedRound);
+      }
+
+      // Only the LATEST fetch for the CURRENTLY SELECTED category may update
+      // visible state — prevents cross-category overwrites and timer resets.
+      if (
+        fetchToken === roundFetchTokenRef.current &&
+        categoryRef.current === targetCategory &&
+        normalizedRound &&
+        normalizedRound.id
+      ) {
+        setActiveRound(normalizedRound);
+        activeRoundRef.current = normalizedRound;
+      }
+
+      // Compute client/server clock offset from authoritative server time so
+      // the countdown is independent of the user's local clock. (Clock offset
+      // is category-independent — shared across all tabs.)
+      const serverNowMs = response.serverNow ? new Date(response.serverNow).getTime() : null;
+      if (Number.isFinite(serverNowMs)) {
+        serverOffsetRef.current = serverNowMs - Date.now();
+      }
+
       return normalizedRound;
     } catch (apiError) {
       if (!isMountedRef.current) return null;
-      setError(lottoApi.getErrorMessage(apiError, 'Failed to fetch active round'));
-      setActiveRound(null);
-      activeRoundRef.current = null;
+      // Only surface the error if this fetch is still relevant. Do NOT null
+      // the active round — the canonical timer expires it and retries, and
+      // the per-category cache keeps the tab stable.
+      if (fetchToken === roundFetchTokenRef.current && categoryRef.current === targetCategory) {
+        setError(lottoApi.getErrorMessage(apiError, 'Failed to fetch active round'));
+      }
       return null;
     }
   }, []);
-
-  const selectCategory = useCallback(
-    (nextCategory) => {
-      const normalized = VALID_CATEGORIES.has(nextCategory)
-        ? nextCategory
-        : DEFAULT_CATEGORY;
-      categoryRef.current = normalized;
-      setCategory(normalized);
-      return getActiveRound(normalized);
-    },
-    [getActiveRound],
-  );
 
   const getHistory = useCallback(
     async ({ limit = 20, offset = 0, append = false, status, category } = {}) => {
       const targetCategory = category ?? historyCategoryRef.current;
       historyCategoryRef.current = targetCategory;
+      const fetchToken = ++historyFetchTokenRef.current;
+      const applyToken = () => fetchToken === historyFetchTokenRef.current;
       if (!isAuthenticated || !userId) {
         if (!isMountedRef.current) return [];
 
@@ -292,48 +340,53 @@ export const useLottoGame = () => {
           ? response.items.map(normalizeHistoryTicketForUi).filter(Boolean)
           : [];
 
-        setHistory((previous) => {
-          if (!append) return items;
+        if (applyToken()) {
+          setHistory((previous) => {
+            if (!append) return items;
 
-          const merged = [...previous, ...items].reduce((accumulator, currentItem) => {
-            if (!accumulator.some((item) => item.id === currentItem.id)) {
-              accumulator.push(currentItem);
-            }
+            const merged = [...previous, ...items].reduce((accumulator, currentItem) => {
+              if (!accumulator.some((item) => item.id === currentItem.id)) {
+                accumulator.push(currentItem);
+              }
 
-            return accumulator;
-          }, []);
+              return accumulator;
+            }, []);
 
-          return merged;
-        });
+            return merged;
+          });
 
-        const total = Number(response.total ?? 0);
-        const normalizedLimit = Number(response.limit ?? limit);
-        const normalizedOffset = Number(response.offset ?? offset);
-        const hasMore = normalizedOffset + items.length < total;
+          const total = Number(response.total ?? 0);
+          const normalizedLimit = Number(response.limit ?? limit);
+          const normalizedOffset = Number(response.offset ?? offset);
+          const hasMore = normalizedOffset + items.length < total;
 
-        setHistoryMeta({
-          total,
-          limit: normalizedLimit,
-          offset: normalizedOffset,
-          hasMore,
-        });
+          setHistoryMeta({
+            total,
+            limit: normalizedLimit,
+            offset: normalizedOffset,
+            hasMore,
+          });
+        }
 
         return items;
       } catch (apiError) {
         if (!isMountedRef.current) return [];
 
         const message = lottoApi.getErrorMessage(apiError, 'Failed to fetch ticket history');
-        setHistoryError(message);
-        setError(message);
 
-        if (!append) {
-          setHistory([]);
-          setHistoryMeta({
-            total: 0,
-            limit,
-            offset: 0,
-            hasMore: false,
-          });
+        if (applyToken()) {
+          setHistoryError(message);
+          setError(message);
+
+          if (!append) {
+            setHistory([]);
+            setHistoryMeta({
+              total: 0,
+              limit,
+              offset: 0,
+              hasMore: false,
+            });
+          }
         }
 
         return [];
@@ -351,6 +404,8 @@ export const useLottoGame = () => {
       // Results follow the selected timer category so each page shows
       // exactly `limit` draws for that category (server-side filter).
       const targetCategory = category ?? categoryRef.current;
+      const fetchToken = ++resultsFetchTokenRef.current;
+      const isRecentPage = !append && offset === 0;
       if (isMountedRef.current) {
         setResultsLoading(true);
         setResultsError(null);
@@ -362,63 +417,204 @@ export const useLottoGame = () => {
           offset,
           category: targetCategory,
         });
-      if (!isMountedRef.current) return [];
+        if (!isMountedRef.current) return [];
 
-      const items = Array.isArray(response.items)
-        ? response.items.map(normalizeResultForUi).filter(Boolean)
-        : [];
+        const items = Array.isArray(response.items)
+          ? response.items.map(normalizeResultForUi).filter(Boolean)
+          : [];
 
-      setRecentResults((previous) => {
-        if (!append) return items;
+        const total = Number(response.total ?? 0);
+        const normalizedLimit = Number(response.limit ?? limit);
+        const normalizedOffset = Number(response.offset ?? offset);
+        const hasMore = normalizedOffset + items.length < total;
 
-        const merged = [...previous, ...items].reduce((accumulator, currentItem) => {
-          if (!accumulator.some((item) => item.id === currentItem.id)) {
-            accumulator.push(currentItem);
+        // Cache the canonical "recent" page per category so tab switches
+        // instantly show THIS category's own result balls (never another
+        // duration's results).
+        if (isRecentPage) {
+          resultsByCategoryRef.current.set(targetCategory, {
+            items,
+            meta: { total, limit: normalizedLimit, offset: normalizedOffset, hasMore },
+          });
+        }
+
+        // Only the LATEST fetch for the CURRENTLY selected category may
+        // update visible state — prevents cross-category result mixing.
+        if (
+          fetchToken === resultsFetchTokenRef.current &&
+          categoryRef.current === targetCategory
+        ) {
+          setRecentResults((previous) => {
+            if (!append) return items;
+
+            const merged = [...previous, ...items].reduce((accumulator, currentItem) => {
+              if (!accumulator.some((item) => item.id === currentItem.id)) {
+                accumulator.push(currentItem);
+              }
+
+              return accumulator;
+            }, []);
+
+            return merged;
+          });
+
+          if (!append) {
+            setLastResult(items[0] ?? null);
           }
 
-          return accumulator;
-        }, []);
+          setResultsMeta({
+            total,
+            limit: normalizedLimit,
+            offset: normalizedOffset,
+            hasMore,
+          });
+        }
 
-        return merged;
-      });
+        return items;
+      } catch (apiError) {
+        if (!isMountedRef.current) return [];
 
-      if (!append) {
-        setLastResult(items[0] ?? null);
+        const message = lottoApi.getErrorMessage(apiError, 'Failed to fetch recent results');
+
+        if (
+          fetchToken === resultsFetchTokenRef.current &&
+          categoryRef.current === targetCategory
+        ) {
+          setResultsError(message);
+          setError(message);
+
+          if (!append) {
+            setRecentResults([]);
+            setLastResult(null);
+            setResultsMeta({ total: 0, limit, offset: 0, hasMore: false });
+          }
+        }
+
+        return [];
+      } finally {
+        if (isMountedRef.current) {
+          setResultsLoading(false);
+        }
+      }
+    },
+    [],
+  );
+
+  /**
+   * Fetches the PRE-COMPUTED result for the round that is currently in its
+   * cutoff window and caches it per category.
+   *
+   * Returns the cached entry `{ roundId, roundNumber, result, revealAt }` or
+   * null when the backend has nothing pending (outside the window / no round).
+   *
+   * The reveal path reads this cache, never the network: at 00:00 the UI flips
+   * to this value instantly. It also refreshes the client/server clock offset
+   * from `serverNow`, keeping the countdown and the reveal on server time.
+   */
+  const fetchPendingResult = useCallback(async (categoryOverride) => {
+    const targetCategory = categoryOverride ?? categoryRef.current;
+
+    try {
+      const response = await lottoApi.getPendingResult({ category: targetCategory });
+
+      if (!isMountedRef.current) return null;
+
+      // Keep the server clock offset fresh — the reveal is gated on server time.
+      const serverNowMs = response?.serverNow ? new Date(response.serverNow).getTime() : null;
+      if (Number.isFinite(serverNowMs)) {
+        serverOffsetRef.current = serverNowMs - Date.now();
       }
 
-      const total = Number(response.total ?? 0);
-      const normalizedLimit = Number(response.limit ?? limit);
-      const normalizedOffset = Number(response.offset ?? offset);
-      const hasMore = normalizedOffset + items.length < total;
+      const pending = response?.pendingResult ?? null;
+      const entry = pending && pending.roundId != null && pending.result
+        ? {
+            roundId: pending.roundId,
+            roundNumber: pending.roundNumber,
+            category: pending.category ?? targetCategory,
+            result: pending.result,
+            status: pending.status ?? 'RESULTED',
+            resultSource: pending.resultSource ?? null,
+            revealAt: pending.revealAt ?? pending.drawAt ?? null,
+            drawAt: pending.drawAt ?? pending.revealAt ?? null,
+            // Set below from the response clock — used by the UI to decide
+            // "has the reveal instant arrived yet?" without a new request.
+            receivedAtMs: Date.now() + serverOffsetRef.current,
+          }
+        : null;
 
-      setResultsMeta({
-        total,
-        limit: normalizedLimit,
-        offset: normalizedOffset,
-        hasMore,
-      });
+      if (entry) {
+        pendingByCategoryRef.current.set(targetCategory, entry);
+      } else {
+        // Window closed (or the round was already drawn) — drop the stale entry
+        // so an old period can never be revealed as if it were the new one.
+        pendingByCategoryRef.current.delete(targetCategory);
+      }
 
-      return items;
+      if (categoryRef.current === targetCategory) {
+        setPendingResult(entry);
+      }
+
+      return entry;
     } catch (apiError) {
-      if (!isMountedRef.current) return [];
+      if (!isMountedRef.current) return null;
 
-      const message = lottoApi.getErrorMessage(apiError, 'Failed to fetch recent results');
-      setResultsError(message);
-      setError(message);
-
-      if (!append) {
-        setRecentResults([]);
-        setLastResult(null);
-        setResultsMeta({ total: 0, limit, offset: 0, hasMore: false });
+      if (categoryRef.current === targetCategory) {
+        setError(lottoApi.getErrorMessage(apiError, 'Failed to fetch pending result'));
       }
 
-      return [];
-    } finally {
-      if (isMountedRef.current) {
-        setResultsLoading(false);
-      }
+      return null;
     }
   }, []);
+
+  // Category switch = the WHOLE game context switches at once. The selected
+  // duration determines: timer round, current period, recent results, betting
+  // lock and the Buy Card roundId. Cached data is applied SYNCHRONOUSLY so
+  // the UI can never briefly show another duration's period/timer/results,
+  // then a background fetch refreshes this category's real backend data.
+  const selectCategory = useCallback(
+    (nextCategory) => {
+      const normalized = VALID_CATEGORIES.has(nextCategory)
+        ? nextCategory
+        : DEFAULT_CATEGORY;
+
+      if (categoryRef.current === normalized) {
+        // Same tab re-selected — just refresh in the background.
+        void getActiveRound(normalized);
+        void getLastResult({ limit: 5, offset: 0, append: false, category: normalized });
+        return;
+      }
+
+      categoryRef.current = normalized;
+      setCategory(normalized);
+
+      // 1) Instant synchronous switch to THIS category's cached round and
+      //    results (single source of truth for timer + period + Buy Card).
+      const cachedRound = roundsByCategoryRef.current.get(normalized) ?? null;
+      activeRoundRef.current = cachedRound;
+      setActiveRound(cachedRound);
+
+      const cachedResults = resultsByCategoryRef.current.get(normalized);
+      if (cachedResults) {
+        setRecentResults(cachedResults.items);
+        setLastResult(cachedResults.items[0] ?? null);
+        setResultsMeta(cachedResults.meta);
+      } else {
+        setRecentResults([]);
+        setLastResult(null);
+        setResultsMeta({ total: 0, limit: 20, offset: 0, hasMore: false });
+      }
+
+      // Pre-reveal cache follows the tab too: the newly selected category's own
+      // prepared value (or none) — never the previous tab's.
+      const cachedPending = pendingByCategoryRef.current.get(normalized) ?? null;
+      setPendingResult(cachedPending);
+
+      // 2) Fresh backend data for the newly selected category.
+      void getActiveRound(normalized);
+      void getLastResult({ limit: 5, offset: 0, append: false, category: normalized });
+    },
+    [getActiveRound, getLastResult],
+  );
 
   const getTicketDetail = useCallback(async (ticketId) => {
     const normalizedTicketId = Number(ticketId);
@@ -702,6 +898,10 @@ export const useLottoGame = () => {
     resultsLoading,
     resultsError,
 
+    // Pre-computed result awaiting its 00:00 reveal (cutoff window only).
+    pendingResult,
+    fetchPendingResult,
+
     ticketDetail,
     ticketDetailLoading,
     ticketDetailError,
@@ -724,6 +924,8 @@ export const useLottoGame = () => {
     getLastResult,
     getTicketDetail,
     placeBet,
+    // Server-synchronized "now" (ms). Falls back to Date.now() if unknown.
+    getServerNow: () => Date.now() + serverOffsetRef.current,
 
     clearTicketDetail: () => {
       if (!isMountedRef.current) return;

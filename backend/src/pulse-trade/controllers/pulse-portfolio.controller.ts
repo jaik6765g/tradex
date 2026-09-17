@@ -18,6 +18,7 @@ import { PulseTradeAdminService } from '../services/pulse-trade-admin.service';
 import { AdminTradeQueryDto } from '../dtos/admin-trade-query.dto';
 import { AdminAdjustLiquidityDto } from '../dtos/admin-adjust-liquidity.dto';
 import { AdminLiquidityActivityQueryDto } from '../dtos/admin-liquidity-activity-query.dto';
+import { AdminSettlementRecoveryDto } from '../dtos/admin-settlement-recovery.dto';
 
 @ApiTags('pulse-trade')
 @Controller('pulse-trade')
@@ -125,6 +126,38 @@ export class PulsePortfolioController {
     @Param('tradeId') tradeId: string,
   ) {
     return this.pulseTradeAdminService.getAdminTradeById(tradeId);
+  }
+
+  @Post('admin/trades/:tradeId/settlement-retry')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary:
+      'Recover a SETTLEMENT_FAILED pulse trade through the authoritative settlement pipeline (admin)',
+  })
+  async recoverTradeSettlement(
+    @Request() req: AuthenticatedRequest,
+    @Param('tradeId') tradeId: string,
+    @Body() dto: AdminSettlementRecoveryDto,
+  ) {
+    const forwardedIp = req.headers['x-forwarded-for'];
+
+    const ipAddress =
+      typeof forwardedIp === 'string'
+        ? (forwardedIp.split(',')[0]?.trim() ?? null)
+        : Array.isArray(forwardedIp)
+          ? (forwardedIp[0] ?? null)
+          : (req.ip ?? null);
+
+    return this.pulseTradeService.requestSettlementRecovery(
+      req.user.id,
+      tradeId,
+      dto,
+      {
+        ipAddress,
+        userAgent: req.get('user-agent') ?? null,
+      },
+    );
   }
 
   @Get('admin/metrics')

@@ -271,11 +271,11 @@ export default function AdminLiquidityScreen() {
   return (
     <div className="space-y-3">
       {/* Header */}
-      <section className="rounded-[16px] border border-[#E5E7EB] bg-white p-4">
+      <section className="rounded-[16px] border border-[#292B33] bg-[#15161C] p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-[20px] font-black text-[#111827]">Liquidity & Risk Control</h1>
-            <p className="mt-0.5 text-xs text-[#667085]">
+            <h1 className="text-[20px] font-black text-[#F5F5F7]">Liquidity & Risk Control</h1>
+            <p className="mt-0.5 text-xs text-[#A1A4AE]">
               Real-time Pulse Trade liquidity pool capacity and risk controls.
             </p>
           </div>
@@ -314,7 +314,7 @@ export default function AdminLiquidityScreen() {
       </section>
 
       {submitSuccess && (
-        <div className="flex items-center gap-2 rounded-[12px] border border-[#A7F3D0] bg-[#ECFDF3] px-3 py-2 text-xs font-semibold text-[#047857]">
+        <div className="flex items-center gap-2 rounded-[12px] border border-[#14532D] bg-[#10251A] px-3 py-2 text-xs font-semibold text-[#4ADE80]">
           <CheckCircle2 size={15} />
           {submitSuccess}
           <button type="button" className="ml-auto" onClick={() => setSubmitSuccess(null)} aria-label="Dismiss">
@@ -325,9 +325,9 @@ export default function AdminLiquidityScreen() {
 
       {/* Liquidity & Risk Cards */}
       <section className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        <article className="rounded-[16px] border border-[#E5E7EB] bg-white p-4">
+        <article className="rounded-[16px] border border-[#292B33] bg-[#15161C] p-4">
           <div className="flex items-center justify-between gap-2">
-            <h2 className="text-xs font-black uppercase tracking-[0.08em] text-[#475467]">Liquidity</h2>
+            <h2 className="text-xs font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Liquidity</h2>
             <Badge variant={getPulseRiskStateBadgeVariant(liquidity?.riskState)}>
               {formatPulseRiskState(liquidity?.riskState)}
             </Badge>
@@ -347,42 +347,42 @@ export default function AdminLiquidityScreen() {
               onRetry={() => void fetchLiquidity({ withLoader: true })}
             />
           ) : (
-            <div className="mt-3 space-y-2 text-xs text-[#344054]">
+            <div className="mt-3 space-y-2 text-xs text-[#E4E5E8]">
               <p className="flex items-center justify-between gap-2">
-                <span className="text-[#667085]">Pool Balance</span>
-                <span className="font-bold text-[#111827]">{formatTokenAmount(liquidity?.poolBalance)}</span>
+                <span className="text-[#A1A4AE]">Pool Balance</span>
+                <span className="font-bold text-[#F5F5F7]">{formatTokenAmount(liquidity?.poolBalance)}</span>
               </p>
               <p className="flex items-center justify-between gap-2">
-                <span className="text-[#667085]">Available Liquidity</span>
-                <span className="font-bold text-[#111827]">{formatTokenAmount(liquidity?.availableLiquidity)}</span>
+                <span className="text-[#A1A4AE]">Available Liquidity</span>
+                <span className="font-bold text-[#F5F5F7]">{formatTokenAmount(liquidity?.availableLiquidity)}</span>
               </p>
               <p className="flex items-center justify-between gap-2">
-                <span className="text-[#667085]">Reserved Amount</span>
-                <span className="font-bold text-[#111827]">{formatTokenAmount(liquidity?.reservedAmount)}</span>
+                <span className="text-[#A1A4AE]">Reserved Amount</span>
+                <span className="font-bold text-[#F5F5F7]">{formatTokenAmount(liquidity?.reservedAmount)}</span>
               </p>
               <p className="flex items-center justify-between gap-2">
-                <span className="text-[#667085]">Open Exposure</span>
-                <span className="font-bold text-[#111827]">{formatTokenAmount(liquidity?.openExposure)}</span>
+                <span className="text-[#A1A4AE]">Open Exposure</span>
+                <span className="font-bold text-[#F5F5F7]">{formatTokenAmount(liquidity?.openExposure)}</span>
               </p>
               <p className="flex items-center justify-between gap-2">
-                <span className="text-[#667085]">Reserved / Pool</span>
-                <span className="font-bold text-[#111827]">{formatPercent(liquidityUtilization)}</span>
+                <span className="text-[#A1A4AE]">Reserved / Pool</span>
+                <span className="font-bold text-[#F5F5F7]">{formatPercent(liquidityUtilization)}</span>
               </p>
               <p className="flex items-center justify-between gap-2">
-                <span className="text-[#667085]">Exposure / Pool</span>
-                <span className="font-bold text-[#111827]">{formatPercent(exposureRatio)}</span>
+                <span className="text-[#A1A4AE]">Exposure / Pool</span>
+                <span className="font-bold text-[#F5F5F7]">{formatPercent(exposureRatio)}</span>
               </p>
             </div>
           )}
 
-          <p className="mt-3 text-[11px] text-[#667085]">
-            Last updated: <span className="font-semibold text-[#111827]">{formatDateTime(liquidityFetchedAt)}</span>
+          <p className="mt-3 text-[11px] text-[#A1A4AE]">
+            Last updated: <span className="font-semibold text-[#F5F5F7]">{formatDateTime(liquidityFetchedAt)}</span>
           </p>
         </article>
 
-        <article className="rounded-[16px] border border-[#E5E7EB] bg-white p-4">
+        <article className="rounded-[16px] border border-[#292B33] bg-[#15161C] p-4">
           <div className="flex items-center justify-between gap-2">
-            <h2 className="text-xs font-black uppercase tracking-[0.08em] text-[#475467]">Risk Control</h2>
+            <h2 className="text-xs font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Risk Control</h2>
             <Badge variant={getPulseRiskStateBadgeVariant(risk?.state)}>
               {formatPulseRiskState(risk?.state)}
             </Badge>
@@ -402,45 +402,45 @@ export default function AdminLiquidityScreen() {
               onRetry={() => void fetchRisk({ withLoader: true })}
             />
           ) : (
-            <div className="mt-3 space-y-2 text-xs text-[#344054]">
+            <div className="mt-3 space-y-2 text-xs text-[#E4E5E8]">
               <p className="flex items-center justify-between gap-2">
-                <span className="text-[#667085]">Accepting Trades</span>
+                <span className="text-[#A1A4AE]">Accepting Trades</span>
                 <Badge variant={risk?.acceptingTrades ? 'success' : 'error'}>
                   {risk?.acceptingTrades ? 'Yes' : 'No'}
                 </Badge>
               </p>
               <p className="flex items-center justify-between gap-2">
-                <span className="text-[#667085]">Max Allowed Trade</span>
-                <span className="font-bold text-[#111827]">{formatTokenAmount(risk?.maxAllowedTrade)}</span>
+                <span className="text-[#A1A4AE]">Max Allowed Trade</span>
+                <span className="font-bold text-[#F5F5F7]">{formatTokenAmount(risk?.maxAllowedTrade)}</span>
               </p>
-              <div className="rounded-[12px] border border-[#EAECF0] bg-[#F9FAFB] p-3">
-                <p className="text-[11px] uppercase tracking-[0.06em] text-[#667085]">Reason</p>
-                <p className="mt-1 text-xs font-semibold text-[#111827]">{risk?.reason || 'No restrictions'}</p>
+              <div className="rounded-[12px] border border-[#202229] bg-[#15161C] p-3">
+                <p className="text-[11px] uppercase tracking-[0.06em] text-[#A1A4AE]">Reason</p>
+                <p className="mt-1 text-xs font-semibold text-[#F5F5F7]">{risk?.reason || 'No restrictions'}</p>
               </div>
             </div>
           )}
 
-          <p className="mt-3 text-[11px] text-[#667085]">
-            Last updated: <span className="font-semibold text-[#111827]">{formatDateTime(riskFetchedAt)}</span>
+          <p className="mt-3 text-[11px] text-[#A1A4AE]">
+            Last updated: <span className="font-semibold text-[#F5F5F7]">{formatDateTime(riskFetchedAt)}</span>
           </p>
         </article>
       </section>
 
       {/* Activity Log */}
-      <section className="rounded-[16px] border border-[#E5E7EB] bg-white p-4">
+      <section className="rounded-[16px] border border-[#292B33] bg-[#15161C] p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <History size={17} />
             <div>
               <h2 className="text-sm font-black">Liquidity Activity</h2>
-              <p className="text-[11px] text-[#667085]">Admin ADD/REMOVE history and failed attempts.</p>
+              <p className="text-[11px] text-[#A1A4AE]">Admin ADD/REMOVE history and failed attempts.</p>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
             <select
               value={activityAction}
               onChange={(e) => setActivityAction(e.target.value as 'ALL' | LiquidityAction)}
-              className="h-9 rounded-[9px] border border-[#D0D5DD] bg-white px-2 text-xs outline-none"
+              className="h-9 rounded-[9px] border border-[#34343E] bg-[#15161C] px-2 text-xs outline-none"
             >
               <option value="ALL">All Actions</option>
               <option value="ADD">ADD</option>
@@ -449,7 +449,7 @@ export default function AdminLiquidityScreen() {
             <select
               value={activityResult}
               onChange={(e) => setActivityResult(e.target.value as 'ALL' | 'SUCCESS' | 'FAILED')}
-              className="h-9 rounded-[9px] border border-[#D0D5DD] bg-white px-2 text-xs outline-none"
+              className="h-9 rounded-[9px] border border-[#34343E] bg-[#15161C] px-2 text-xs outline-none"
             >
               <option value="ALL">All Results</option>
               <option value="SUCCESS">SUCCESS</option>
@@ -465,19 +465,19 @@ export default function AdminLiquidityScreen() {
             ))}
           </div>
         ) : activityError ? (
-          <div className="mt-4 flex items-center gap-2 rounded-[10px] border border-[#FECACA] bg-[#FEF2F2] p-3 text-xs text-[#B42318]">
+          <div className="mt-4 flex items-center gap-2 rounded-[10px] border border-[#4A2323] bg-[#281313] p-3 text-xs text-[#F87171]">
             <AlertCircle size={15} />
             {activityError}
           </div>
         ) : activities.length === 0 ? (
-          <div className="mt-4 rounded-[10px] border border-dashed border-[#D0D5DD] p-8 text-center text-xs text-[#667085]">
+          <div className="mt-4 rounded-[10px] border border-dashed border-[#34343E] p-8 text-center text-xs text-[#A1A4AE]">
             No liquidity activity found.
           </div>
         ) : (
           <div className="mt-4 overflow-x-auto">
             <table className="min-w-[850px] w-full text-left text-xs">
               <thead>
-                <tr className="border-b border-[#EAECF0] text-[11px] uppercase tracking-[0.05em] text-[#667085]">
+                <tr className="border-b border-[#202229] text-[11px] uppercase tracking-[0.05em] text-[#A1A4AE]">
                   <th className="px-3 py-2">Date</th>
                   <th className="px-3 py-2">Action</th>
                   <th className="px-3 py-2">Amount</th>
@@ -489,7 +489,7 @@ export default function AdminLiquidityScreen() {
               </thead>
               <tbody>
                 {activities.map((item) => (
-                  <tr key={item.id} className="border-b border-[#F2F4F7] last:border-0">
+                  <tr key={item.id} className="border-b border-[#1B1917] last:border-0">
                     <td className="px-3 py-3 whitespace-nowrap">{formatDateTime(item.createdAt)}</td>
                     <td className="px-3 py-3">
                       <Badge variant={item.action === 'ADD' ? 'success' : 'warning'}>
@@ -524,13 +524,13 @@ export default function AdminLiquidityScreen() {
             if (e.target === e.currentTarget) closeModal();
           }}
         >
-          <div className="w-full max-w-[520px] rounded-[18px] border border-[#E5E7EB] bg-white p-5 shadow-2xl">
+          <div className="w-full max-w-[520px] rounded-[18px] border border-[#292B33] bg-[#15161C] p-5 shadow-2xl">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h2 id="liquidity-modal-title" className="text-base font-black">
                   {modalAction === 'ADD' ? 'Add Liquidity' : 'Remove Liquidity'}
                 </h2>
-                <p className="mt-1 text-xs text-[#667085]">
+                <p className="mt-1 text-xs text-[#A1A4AE]">
                   {modalAction === 'ADD'
                     ? 'Increase the authoritative Pulse Trade platform liquidity pool.'
                     : `Remove unused liquidity. Maximum removable: ${formatTokenAmount(liquidity?.availableLiquidity)}.`}
@@ -540,7 +540,7 @@ export default function AdminLiquidityScreen() {
                 type="button"
                 onClick={closeModal}
                 disabled={submitLoading}
-                className="rounded-lg p-1 text-[#667085] hover:bg-[#F2F4F7]"
+                className="rounded-lg p-1 text-[#A1A4AE] hover:bg-[#1B1917]"
                 aria-label="Close"
               >
                 <X size={18} />
@@ -549,7 +549,7 @@ export default function AdminLiquidityScreen() {
 
             <div className="mt-5 space-y-3">
               <label className="block">
-                <span className="mb-1.5 block text-xs font-bold text-[#344054]">Amount (TDX) *</span>
+                <span className="mb-1.5 block text-xs font-bold text-[#E4E5E8]">Amount (TDX) *</span>
                 <input
                   autoFocus
                   value={amount}
@@ -557,36 +557,36 @@ export default function AdminLiquidityScreen() {
                   inputMode="decimal"
                   placeholder="10000"
                   disabled={submitLoading}
-                  className="h-10 w-full rounded-[9px] border border-[#D0D5DD] px-3 text-sm outline-none focus:border-[#667085]"
+                  className="h-10 w-full rounded-[9px] border border-[#34343E] px-3 text-sm outline-none focus:border-[#70737E]"
                 />
               </label>
 
               <label className="block">
-                <span className="mb-1.5 block text-xs font-bold text-[#344054]">Reason *</span>
+                <span className="mb-1.5 block text-xs font-bold text-[#E4E5E8]">Reason *</span>
                 <input
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   maxLength={120}
                   placeholder="Initial Pulse liquidity"
                   disabled={submitLoading}
-                  className="h-10 w-full rounded-[9px] border border-[#D0D5DD] px-3 text-sm outline-none focus:border-[#667085]"
+                  className="h-10 w-full rounded-[9px] border border-[#34343E] px-3 text-sm outline-none focus:border-[#70737E]"
                 />
               </label>
 
               <label className="block">
-                <span className="mb-1.5 block text-xs font-bold text-[#344054]">Reference</span>
+                <span className="mb-1.5 block text-xs font-bold text-[#E4E5E8]">Reference</span>
                 <input
                   value={reference}
                   onChange={(e) => setReference(e.target.value)}
                   maxLength={120}
                   placeholder="LIQ-001"
                   disabled={submitLoading}
-                  className="h-10 w-full rounded-[9px] border border-[#D0D5DD] px-3 text-sm outline-none focus:border-[#667085]"
+                  className="h-10 w-full rounded-[9px] border border-[#34343E] px-3 text-sm outline-none focus:border-[#70737E]"
                 />
               </label>
 
               <label className="block">
-                <span className="mb-1.5 block text-xs font-bold text-[#344054]">Note</span>
+                <span className="mb-1.5 block text-xs font-bold text-[#E4E5E8]">Note</span>
                 <textarea
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
@@ -594,12 +594,12 @@ export default function AdminLiquidityScreen() {
                   rows={3}
                   placeholder="Optional note"
                   disabled={submitLoading}
-                  className="w-full resize-none rounded-[9px] border border-[#D0D5DD] px-3 py-2 text-sm outline-none focus:border-[#667085]"
+                  className="w-full resize-none rounded-[9px] border border-[#34343E] px-3 py-2 text-sm outline-none focus:border-[#70737E]"
                 />
               </label>
 
               {submitError && (
-                <div className="flex items-start gap-2 rounded-[10px] border border-[#FECACA] bg-[#FEF2F2] p-3 text-xs font-semibold text-[#B42318]">
+                <div className="flex items-start gap-2 rounded-[10px] border border-[#4A2323] bg-[#281313] p-3 text-xs font-semibold text-[#F87171]">
                   <AlertCircle size={15} className="mt-0.5 shrink-0" />
                   <span>{submitError}</span>
                 </div>

@@ -120,19 +120,19 @@ export default function AssetList({ category = 'All' }: { category?: CategoryVal
       : allAssets.filter((item) => assetCategory(item) === category);
 
   return (
-    <div className="bg-white mx-5 p-4 rounded-2xl border border-[#F3F4F6] mb-3">
+    <div className="bg-[#15161C] mx-5 p-4 rounded-2xl border border-[#292B33] mb-3">
       {/* Header */}
-      <div className="flex items-center justify-between mb-3 pb-2 border-b border-[#F9FAFB]">
-        <div className="flex-1 text-[13px] font-semibold text-[#6B7280]">
+      <div className="flex items-center justify-between mb-3 pb-2 border-b border-[#15161C]">
+        <div className="flex-1 text-[13px] font-semibold text-[#70737E]">
           {category === 'All' ? 'Asset' : category}
         </div>
 
         <div className="flex items-center justify-end w-[152px]">
-          <div className="w-24 text-right text-[13px] font-semibold text-[#6B7280]">
+          <div className="w-24 text-right text-[13px] font-semibold text-[#70737E]">
             Floor Price
           </div>
 
-          <div className="w-16 text-right text-[13px] font-semibold text-[#6B7280]">
+          <div className="w-16 text-right text-[13px] font-semibold text-[#70737E]">
             24H Change
           </div>
         </div>
@@ -141,7 +141,7 @@ export default function AssetList({ category = 'All' }: { category?: CategoryVal
       {/* Render List */}
       {filteredAssets.length === 0 ? (
         <div className="py-8 text-center">
-          <p className="text-sm text-[#9CA3AF]">No items in this category yet.</p>
+          <p className="text-sm text-[#A1A4AE]">No items in this category yet.</p>
         </div>
       ) : (
         filteredAssets.map((item, index) => (
@@ -149,11 +149,11 @@ export default function AssetList({ category = 'All' }: { category?: CategoryVal
           {/* Section divider before coming-soon games (only in All/Games) */}
           {item.comingSoon && index > 0 && (category === 'All' || category === 'Games') && filteredAssets[index - 1]?.comingSoon === false && (
             <div className="flex items-center gap-2 pt-4 pb-2">
-              <div className="h-px flex-1 bg-gradient-to-r from-transparent via-violet-300 to-transparent" />
-              <span className="text-[10px] font-black uppercase tracking-[0.15em] text-violet-500">
+              <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#34261C] to-transparent" />
+              <span className="text-[10px] font-black uppercase tracking-[0.15em] text-[#C99752]">
                 🎮 More Games — Coming Soon
               </span>
-              <div className="h-px flex-1 bg-gradient-to-r from-transparent via-violet-300 to-transparent" />
+              <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#34261C] to-transparent" />
             </div>
           )}
           <AssetListItem

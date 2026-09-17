@@ -18,7 +18,7 @@ import logo from '/assets/logo.png';
 export default function Header() {
   const {
     balance,
-    isConnected,
+    isAuthenticated,
   } = useWalletContext();
 
   const [showBalance, setShowBalance] = useState(true);
@@ -34,7 +34,7 @@ export default function Header() {
   });
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 border-b border-gray-200/60 bg-white/95 backdrop-blur-sm px-3 py-2">
+    <header className="fixed top-0 left-0 right-0 z-50 border-b border-[#292B33]/70 bg-[#111217]/90 backdrop-blur-xl px-3 py-2">
       <div className="mx-auto flex max-w-7xl items-center justify-between">
 
         {/* ====================================================
@@ -42,7 +42,7 @@ export default function Header() {
         ==================================================== */}
         <Link
           to="/"
-          className="group flex items-center gap-2 text-base font-black tracking-tight text-blue-600"
+          className="group flex items-center gap-2 text-base font-black tracking-tight text-[#FF8F3D]"
         >
           <img 
             src={logo} 
@@ -54,30 +54,30 @@ export default function Header() {
         {/* ====================================================
             PREMIUM TDX BALANCE CARD
         ==================================================== */}
-        <div className="group relative flex items-center gap-2.5 rounded-2xl border border-indigo-500/20 bg-gradient-to-r from-indigo-50/80 via-white/80 to-purple-50/80 px-4 py-2 shadow-[0_4px_20px_rgba(99,102,241,0.15)] backdrop-blur-xl transition-all duration-300 hover:border-indigo-500/40 hover:shadow-[0_6px_30px_rgba(99,102,241,0.25)]">
+        <div className="group relative flex items-center gap-2.5 rounded-2xl border border-[#292B33] bg-[#15161C]/90 px-3.5 py-1.5 shadow-[0_4px_16px_rgba(0,0,0,0.35)] backdrop-blur-xl transition-all duration-300 hover:border-[#FF7A18]/35">
 
           {/* Coin Icon with Premium Glow */}
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 via-purple-500 to-fuchsia-500 shadow-[0_2px_8px_rgba(99,102,241,0.4)]">
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-[#FF7A18] via-[#FF8F3D] to-[#EA580C] shadow-[0_2px_6px_rgba(255,122,24,0.35)]">
             <Coins size={14} className="text-white" />
           </div>
 
           {/* Balance Content */}
           <div className="flex flex-col leading-tight">
             {/* Label - Only TDX text */}
-            <span className="text-[9px] font-black uppercase tracking-[0.15em] text-indigo-500/80">
+            <span className="text-[9px] font-black uppercase tracking-[0.15em] text-[#FF8F3D]/90">
               TDX Balance
             </span>
 
             {/* Value - No duplicate TDX text */}
-            <span className="text-sm font-black text-gray-900 transition-all duration-300 group-hover:text-indigo-600">
-              {isConnected ? (
+            <span className="text-sm font-black text-[#F5F5F7] transition-all duration-300 group-hover:text-[#FF8F3D]">
+              {isAuthenticated ? (
                 showBalance ? (
                   <span>{formattedBalance}</span>
                 ) : (
-                  <span className="text-gray-400">••••••</span>
+                  <span className="text-[#70737E]">••••••</span>
                 )
               ) : (
-                <span className="text-gray-400">0.00</span>
+                <span className="text-[#70737E]">0.00</span>
               )}
             </span>
           </div>
@@ -85,7 +85,7 @@ export default function Header() {
           {/* Toggle Visibility Button */}
           <button
             onClick={() => setShowBalance(!showBalance)}
-            className="flex h-6 w-6 items-center justify-center rounded-full text-gray-400 transition-all duration-200 hover:bg-indigo-100 hover:text-indigo-600"
+            className="flex h-6 w-6 items-center justify-center rounded-full text-[#70737E] transition-all duration-200 hover:bg-white/5 hover:text-[#FF8F3D]"
             aria-label={showBalance ? 'Hide balance' : 'Show balance'}
           >
             {showBalance ? (
@@ -95,9 +95,9 @@ export default function Header() {
             )}
           </button>
 
-          {/* Connected Status Dot */}
-          {isConnected && (
-            <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-green-400 ring-2 ring-white shadow-[0_0_10px_rgba(74,222,128,0.6)] animate-pulse" />
+          {/* Account Status Dot */}
+          {isAuthenticated && (
+            <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-green-400 ring-2 ring-[#111217] shadow-[0_0_10px_rgba(74,222,128,0.6)] animate-pulse" />
           )}
         </div>
 

@@ -111,11 +111,11 @@ export default function AdminRiskSecurityScreen() {
   return (
     <div className="space-y-3">
       {/* Header */}
-      <section className="rounded-[16px] border border-[#E5E7EB] bg-white p-4">
+      <section className="rounded-[16px] border border-[#292B33] bg-[#15161C] p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-[20px] font-black text-[#111827]">Risk & Security</h1>
-            <p className="mt-0.5 text-xs text-[#667085]">
+            <h1 className="text-[20px] font-black text-[#F5F5F7]">Risk & Security</h1>
+            <p className="mt-0.5 text-xs text-[#A1A4AE]">
               Monitor real-time risk posture, risk controls, and security-related operational events.
             </p>
           </div>
@@ -134,7 +134,7 @@ export default function AdminRiskSecurityScreen() {
 
       {loading && !data ? (
         <section className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-          <div className="rounded-[16px] border border-[#E5E7EB] bg-white p-4">
+          <div className="rounded-[16px] border border-[#292B33] bg-[#15161C] p-4">
             <Skeleton className="h-5 w-40" />
             <div className="mt-3 space-y-2">
               {Array.from({ length: 6 }).map((_, index) => (
@@ -142,7 +142,7 @@ export default function AdminRiskSecurityScreen() {
               ))}
             </div>
           </div>
-          <div className="rounded-[16px] border border-[#E5E7EB] bg-white p-4">
+          <div className="rounded-[16px] border border-[#292B33] bg-[#15161C] p-4">
             <Skeleton className="h-5 w-40" />
             <div className="mt-3 space-y-2">
               {Array.from({ length: 6 }).map((_, index) => (
@@ -165,36 +165,36 @@ export default function AdminRiskSecurityScreen() {
       {!loading && !error && data && (
         <>
           <section className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <article className="rounded-[16px] border border-[#E5E7EB] bg-white p-4">
+            <article className="rounded-[16px] border border-[#292B33] bg-[#15161C] p-4">
               <div className="flex items-center justify-between gap-2">
-                <h2 className="text-xs font-black uppercase tracking-[0.08em] text-[#475467]">Risk Overview</h2>
+                <h2 className="text-xs font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Risk Overview</h2>
                 <Badge variant={getRiskVariant(data.risk.state)}>
                   {formatRiskState(data.risk.state)}
                 </Badge>
               </div>
-              <div className="mt-3 space-y-2 text-xs text-[#344054]">
+              <div className="mt-3 space-y-2 text-xs text-[#E4E5E8]">
                 <p className="flex items-center justify-between gap-2">
-                  <span className="text-[#667085]">Overall Risk State</span>
-                  <span className="font-bold text-[#111827]">{formatRiskState(data.risk.state)}</span>
+                  <span className="text-[#A1A4AE]">Overall Risk State</span>
+                  <span className="font-bold text-[#F5F5F7]">{formatRiskState(data.risk.state)}</span>
                 </p>
                 <p className="flex items-center justify-between gap-2">
-                  <span className="text-[#667085]">Open Trade Exposure</span>
-                  <span className="font-bold text-[#111827]">{formatTokenAmount(data.liquidity.openExposure, 'TDX')}</span>
+                  <span className="text-[#A1A4AE]">Open Trade Exposure</span>
+                  <span className="font-bold text-[#F5F5F7]">{formatTokenAmount(data.liquidity.openExposure, 'TDX')}</span>
                 </p>
                 <p className="flex items-center justify-between gap-2">
-                  <span className="text-[#667085]">Reserved Liquidity</span>
-                  <span className="font-bold text-[#111827]">{formatTokenAmount(data.liquidity.reservedAmount, 'TDX')}</span>
+                  <span className="text-[#A1A4AE]">Reserved Liquidity</span>
+                  <span className="font-bold text-[#F5F5F7]">{formatTokenAmount(data.liquidity.reservedAmount, 'TDX')}</span>
                 </p>
                 <p className="flex items-center justify-between gap-2">
-                  <span className="text-[#667085]">Available Liquidity</span>
-                  <span className="font-bold text-[#111827]">{formatTokenAmount(data.liquidity.availableLiquidity, 'TDX')}</span>
+                  <span className="text-[#A1A4AE]">Available Liquidity</span>
+                  <span className="font-bold text-[#F5F5F7]">{formatTokenAmount(data.liquidity.availableLiquidity, 'TDX')}</span>
                 </p>
                 <p className="flex items-center justify-between gap-2">
-                  <span className="text-[#667085]">Maximum Allowed Trade</span>
-                  <span className="font-bold text-[#111827]">{formatTokenAmount(data.risk.maxAllowedTrade, 'TDX')}</span>
+                  <span className="text-[#A1A4AE]">Maximum Allowed Trade</span>
+                  <span className="font-bold text-[#F5F5F7]">{formatTokenAmount(data.risk.maxAllowedTrade, 'TDX')}</span>
                 </p>
                 <p className="flex items-center justify-between gap-2">
-                  <span className="text-[#667085]">Settlement Issues</span>
+                  <span className="text-[#A1A4AE]">Settlement Issues</span>
                   <Badge variant={settlementIssues > 0 ? 'warning' : 'success'}>
                     {settlementIssues}
                   </Badge>
@@ -202,61 +202,61 @@ export default function AdminRiskSecurityScreen() {
               </div>
             </article>
 
-            <article className="rounded-[16px] border border-[#E5E7EB] bg-white p-4">
+            <article className="rounded-[16px] border border-[#292B33] bg-[#15161C] p-4">
               <div className="flex items-center justify-between gap-2">
-                <h2 className="text-xs font-black uppercase tracking-[0.08em] text-[#475467]">Risk Control</h2>
+                <h2 className="text-xs font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Risk Control</h2>
                 <Badge variant={getRiskVariant(data.risk.state)}>
                   {formatRiskState(data.risk.state)}
                 </Badge>
               </div>
-              <div className="mt-3 space-y-2 text-xs text-[#344054]">
+              <div className="mt-3 space-y-2 text-xs text-[#E4E5E8]">
                 <p className="flex items-center justify-between gap-2">
-                  <span className="text-[#667085]">Accepting Trades</span>
+                  <span className="text-[#A1A4AE]">Accepting Trades</span>
                   <Badge variant={data.risk.acceptingTrades ? 'success' : 'error'}>
                     {data.risk.acceptingTrades ? 'Yes' : 'No'}
                   </Badge>
                 </p>
                 <p className="flex items-center justify-between gap-2">
-                  <span className="text-[#667085]">Maximum Allowed Trade</span>
-                  <span className="font-bold text-[#111827]">{formatTokenAmount(data.risk.maxAllowedTrade, 'TDX')}</span>
+                  <span className="text-[#A1A4AE]">Maximum Allowed Trade</span>
+                  <span className="font-bold text-[#F5F5F7]">{formatTokenAmount(data.risk.maxAllowedTrade, 'TDX')}</span>
                 </p>
                 <p className="flex items-center justify-between gap-2">
-                  <span className="text-[#667085]">Risk State</span>
-                  <span className="font-bold text-[#111827]">{formatRiskState(data.risk.state)}</span>
+                  <span className="text-[#A1A4AE]">Risk State</span>
+                  <span className="font-bold text-[#F5F5F7]">{formatRiskState(data.risk.state)}</span>
                 </p>
-                <div className="rounded-[12px] border border-[#EAECF0] bg-[#F9FAFB] p-3">
-                  <p className="text-[11px] uppercase tracking-[0.06em] text-[#667085]">Reason</p>
-                  <p className="mt-1 text-xs font-semibold text-[#111827]">{data.risk.reason || 'No restrictions'}</p>
+                <div className="rounded-[12px] border border-[#202229] bg-[#15161C] p-3">
+                  <p className="text-[11px] uppercase tracking-[0.06em] text-[#A1A4AE]">Reason</p>
+                  <p className="mt-1 text-xs font-semibold text-[#F5F5F7]">{data.risk.reason || 'No restrictions'}</p>
                 </div>
-                <div className="rounded-[12px] border border-[#EAECF0] bg-[#F9FAFB] p-3">
-                  <p className="text-[11px] uppercase tracking-[0.06em] text-[#667085]">Exposure Information</p>
-                  <p className="mt-1 text-xs text-[#344054]">
-                    Pool Balance: <span className="font-semibold text-[#111827]">{formatTokenAmount(data.liquidity.poolBalance, 'TDX')}</span>
+                <div className="rounded-[12px] border border-[#202229] bg-[#15161C] p-3">
+                  <p className="text-[11px] uppercase tracking-[0.06em] text-[#A1A4AE]">Exposure Information</p>
+                  <p className="mt-1 text-xs text-[#E4E5E8]">
+                    Pool Balance: <span className="font-semibold text-[#F5F5F7]">{formatTokenAmount(data.liquidity.poolBalance, 'TDX')}</span>
                   </p>
-                  <p className="mt-1 text-xs text-[#344054]">
-                    Open Exposure: <span className="font-semibold text-[#111827]">{formatTokenAmount(data.liquidity.openExposure, 'TDX')}</span>
+                  <p className="mt-1 text-xs text-[#E4E5E8]">
+                    Open Exposure: <span className="font-semibold text-[#F5F5F7]">{formatTokenAmount(data.liquidity.openExposure, 'TDX')}</span>
                   </p>
-                  <p className="mt-1 text-xs text-[#344054]">
-                    Last refresh: <span className="font-semibold text-[#111827]">{formatDateTime(data.fetchedAt)}</span>
+                  <p className="mt-1 text-xs text-[#E4E5E8]">
+                    Last refresh: <span className="font-semibold text-[#F5F5F7]">{formatDateTime(data.fetchedAt)}</span>
                   </p>
                 </div>
               </div>
             </article>
           </section>
 
-          <section className="rounded-[16px] border border-[#E5E7EB] bg-white p-4">
+          <section className="rounded-[16px] border border-[#292B33] bg-[#15161C] p-4">
             <div className="flex items-center justify-between gap-2">
-              <h2 className="text-xs font-black uppercase tracking-[0.08em] text-[#475467]">Security / Risk Alerts</h2>
+              <h2 className="text-xs font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Security / Risk Alerts</h2>
               <Badge variant={riskAlerts.length > 0 ? 'warning' : 'neutral'}>
                 {riskAlerts.length} event{riskAlerts.length === 1 ? '' : 's'}
               </Badge>
             </div>
 
             {riskAlerts.length === 0 ? (
-              <div className="mt-4 rounded-[12px] border border-dashed border-[#D0D5DD] bg-[#F9FAFB] p-6 text-center">
-                <ShieldAlert className="mx-auto h-8 w-8 text-[#98A2B3]" />
-                <p className="mt-2 text-sm font-bold text-[#344054]">No current risk/security alerts</p>
-                <p className="mt-1 text-xs text-[#667085]">
+              <div className="mt-4 rounded-[12px] border border-dashed border-[#34343E] bg-[#15161C] p-6 text-center">
+                <ShieldAlert className="mx-auto h-8 w-8 text-[#70737E]" />
+                <p className="mt-2 text-sm font-bold text-[#E4E5E8]">No current risk/security alerts</p>
+                <p className="mt-1 text-xs text-[#A1A4AE]">
                   No authoritative risk/security audit events were returned.
                 </p>
                 <Button
@@ -270,28 +270,28 @@ export default function AdminRiskSecurityScreen() {
               </div>
             ) : (
               <div className="mt-3 overflow-x-auto">
-                <table className="min-w-[940px] w-full divide-y divide-[#EAECF0]">
-                  <thead className="bg-[#F9FAFB]">
+                <table className="min-w-[940px] w-full divide-y divide-[#202229]">
+                  <thead className="bg-[#15161C]">
                     <tr>
-                      <th className="px-3 py-2 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">Time</th>
-                      <th className="px-3 py-2 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">Admin</th>
-                      <th className="px-3 py-2 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">Action</th>
-                      <th className="px-3 py-2 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">Resource</th>
-                      <th className="px-3 py-2 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#667085]">Result</th>
+                      <th className="px-3 py-2 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Time</th>
+                      <th className="px-3 py-2 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Admin</th>
+                      <th className="px-3 py-2 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Action</th>
+                      <th className="px-3 py-2 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Resource</th>
+                      <th className="px-3 py-2 text-left text-[11px] font-black uppercase tracking-[0.08em] text-[#A1A4AE]">Result</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#F2F4F7] bg-white">
+                  <tbody className="divide-y divide-[#1B1917] bg-[#15161C]">
                     {riskAlerts.map((alert) => {
                       const result = getAuditLogResult(alert);
                       return (
-                        <tr key={alert.id} className="align-top hover:bg-[#F8FAFC]">
-                          <td className="px-3 py-2 text-xs text-[#111827]">{formatDateTime(alert.createdAt)}</td>
-                          <td className="px-3 py-2 text-xs text-[#111827] font-mono">{alert.adminId}</td>
-                          <td className="px-3 py-2 text-xs text-[#111827] font-semibold">{alert.action}</td>
-                          <td className="px-3 py-2 text-xs text-[#111827]">
+                        <tr key={alert.id} className="align-top hover:bg-[#111217]">
+                          <td className="px-3 py-2 text-xs text-[#F5F5F7]">{formatDateTime(alert.createdAt)}</td>
+                          <td className="px-3 py-2 text-xs text-[#F5F5F7] font-mono">{alert.adminId}</td>
+                          <td className="px-3 py-2 text-xs text-[#F5F5F7] font-semibold">{alert.action}</td>
+                          <td className="px-3 py-2 text-xs text-[#F5F5F7]">
                             {alert.targetType}
                             {alert.targetId && (
-                              <p className="mt-1 text-[10px] text-[#667085] font-mono">{alert.targetId}</p>
+                              <p className="mt-1 text-[10px] text-[#A1A4AE] font-mono">{alert.targetId}</p>
                             )}
                           </td>
                           <td className="px-3 py-2 text-xs">
