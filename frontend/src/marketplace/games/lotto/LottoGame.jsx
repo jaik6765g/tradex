@@ -369,8 +369,14 @@ export default function LottoGame({ onBack } = {}) {
     status: activeRound?.status,
     timerDuration: roundTimer.remainingSeconds,
   });
+  // HIGH-001 fix: `loading`/`isRefreshing` (background poll activity) must
+  // NEVER lock or dim the betting UI. Only a genuine betting lock
+  // (bet in flight, paused, unauthenticated, round closed / non-COUNTDOWN
+  // phase) may do that. The first blocking load cannot dim the grid anyway:
+  // before it completes there is no active round, so `!isRoundOpen` already
+  // locks the UI — the grid only becomes interactive once real round data
+  // arrives.
   const isLocked =
-    loading ||
     placingBet ||
     isPaused ||
     !isAuthenticated ||

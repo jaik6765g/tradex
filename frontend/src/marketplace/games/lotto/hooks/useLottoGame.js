@@ -167,7 +167,14 @@ export const useLottoGame = () => {
     refresh: refreshWallet,
   } = useWalletContext();
 
+  // HIGH-001 fix: separate INITIAL loading from BACKGROUND refreshing.
+  // `loading` is now ONLY the first blocking load (before any round data
+  // exists) — it may show a skeleton and lock the UI. Every background poll
+  // sets `isRefreshing` instead, which never dims the grid, never flashes
+  // content and never clears visible UI state. Poll interval and API calls
+  // are unchanged.
   const [loading, setLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [placingBet, setPlacingBet] = useState(false);
   const [activeRound, setActiveRound] = useState(null);
   const [category, setCategory] = useState(DEFAULT_CATEGORY);
@@ -212,6 +219,9 @@ export const useLottoGame = () => {
 
   const isMountedRef = useRef(false);
   const pollRef = useRef(null);
+  // HIGH-001: flips once after the first refreshLottoState completes; every
+  // later call is a background refresh (isRefreshing), never a blocking load.
+  const hasCompletedInitialLoadRef = useRef(false);
   const activeRoundRef = useRef(null);
   const categoryRef = useRef(DEFAULT_CATEGORY);
   const historyCategoryRef = useRef(DEFAULT_CATEGORY);
@@ -657,22 +667,46 @@ export const useLottoGame = () => {
   }, []);
 
   const refreshLottoState = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+    // HIGH-001 fix: only the FIRST blocking load (before any round data has
+    // ever arrived in this session) toggles `loading`. Every background poll
+    // toggles `isRefreshing` instead — which no consumer treats as a
+    // blocking/visual state, so the grid never dims mid-session.
+    // Tracked via a ref (NOT state/props) so refreshLottoState's identity —
+    // and therefore the 5s poll interval subscription — stays as stable as
+    // before (no new effect re-subscribes).
+    const isFirstLoad = !hasCompletedInitialLoadRef.current;
+    if (isMountedRef.current) {
+      if (isFirstLoad) {
+        setLoading(true);
+      } else {
+        setIsRefreshing(true);
+      }
+    }
+    if (isFirstLoad) {
+      setError(null);
+    }
 
     try {
       const tasks = [getActiveRound(), getLastResult({ limit: 5, offset: 0, append: false })];
 
       if (isAuthenticated && userId) {
         tasks.push(fetchBalance(), getHistory({ limit: 5, offset: 0, append: false }));
-      } else if (isMountedRef.current) {
+      } else if (isMountedRef.current && isFirstLoad) {
+        // Only wipe history on the genuine first load — never mid-session.
         setHistory([]);
       }
 
       await Promise.all(tasks);
     } finally {
+      if (isFirstLoad) {
+        hasCompletedInitialLoadRef.current = true;
+      }
       if (isMountedRef.current) {
-        setLoading(false);
+        if (isFirstLoad) {
+          setLoading(false);
+        } else {
+          setIsRefreshing(false);
+        }
       }
     }
   }, [fetchBalance, getActiveRound, getHistory, getLastResult, isAuthenticated, userId]);
@@ -880,6 +914,7 @@ export const useLottoGame = () => {
 
   return {
     loading: loading || placingBet,
+    isRefreshing,
     placingBet,
     balance,
     activeRound,
