@@ -311,7 +311,6 @@ export class AdminLottoService {
     ONE_MIN: '1 MIN',
     THREE_MIN: '3 MIN',
     FIVE_MIN: '5 MIN',
-    TEN_MIN: '10 MIN',
   };
 
   static formatPercent(value: number, fractionDigits = 1): string {

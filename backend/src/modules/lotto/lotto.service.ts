@@ -117,7 +117,6 @@ const ALL_LOTTO_CATEGORIES: Category[] = [
   Category.ONE_MIN,
   Category.THREE_MIN,
   Category.FIVE_MIN,
-  Category.TEN_MIN,
 ];
 
 const CATEGORY_DURATION_SECONDS: Record<Category, number> = {
@@ -125,7 +124,6 @@ const CATEGORY_DURATION_SECONDS: Record<Category, number> = {
   [Category.ONE_MIN]: 60,
   [Category.THREE_MIN]: 180,
   [Category.FIVE_MIN]: 300,
-  [Category.TEN_MIN]: 600,
 };
 
 // The result is PRE-COMPUTED at the cutoff and revealed at drawAt, so clients
@@ -343,14 +341,14 @@ export class LottoService {
   /**
    * Creates the next OPEN round for a category when none exists.
    *
-   * Reference-backed categories (THIRTY_SEC / ONE_MIN / THREE_MIN / FIVE_MIN)
-   * are special: their period number and timing come exclusively from the
-   * authoritative TPPLAY reference (via PeriodSyncService). We NEVER generate
-   * the number or the start/end timestamps for those. If the reference has not
-   * been reconciled yet, we simply return false — no fabrication
-   * (requirement 6, 7, 15, 33).
+   * Authoritative round creation for a reference-backed category (30S / 1M /
+   * 3M / 5M). Uses the synced periodNumber + startTime/endTime for THAT
+   * category. If the reference says a period other than our current OPEN round,
+   * we reconcile. Never fabricates a period.
    *
-   * TEN_MIN has no reference and keeps the legacy independent generator.
+   * Every supported category is reference-backed, so the legacy independent
+   * generator (ensureGeneratedRound) is no longer reachable from the round
+   * engine's category loop.
    */
   private async ensureActiveRoundForCategory(
     category: Category,
@@ -358,8 +356,7 @@ export class LottoService {
     // Any category backed by an authoritative external reference (THIRTY_SEC,
     // ONE_MIN, THREE_MIN, FIVE_MIN) uses the EXACT SAME synced-round path: the
     // period number + start/end boundary always come from the reference, never
-    // from a locally generated sequence. Categories without a reference
-    // (TEN_MIN) keep the legacy independent generator.
+    // from a locally generated sequence.
     if (this.periodSyncService.hasReferenceForCategory(category)) {
       return this.ensureSyncedRound(category);
     }

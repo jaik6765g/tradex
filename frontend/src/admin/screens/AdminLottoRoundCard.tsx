@@ -3,7 +3,7 @@ import { Clock, Ticket } from 'lucide-react';
 import { statusTone, formatTdx, formatCountdown } from './adminLottoUtils';
 import type { AdminLottoCategoryCard } from '../services/adminLotto.service';
 
-const DURATION_LABELS: Record<string, string> = { THIRTY_SEC: '30 SEC', ONE_MIN: '1 MIN', THREE_MIN: '3 MIN', FIVE_MIN: '5 MIN', TEN_MIN: '10 MIN' };
+const DURATION_LABELS: Record<string, string> = { THIRTY_SEC: '30 SEC', ONE_MIN: '1 MIN', THREE_MIN: '3 MIN', FIVE_MIN: '5 MIN' };
 
 export default function RoundCard({ category, card, onRequestResult }: { category: string; card: AdminLottoCategoryCard | null; onRequestResult: (round: any) => void }) {
   const round = card?.round ?? null;

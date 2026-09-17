@@ -20,8 +20,7 @@ import { symbolToneName } from '../utils/lottoUi';
 import { getBallImage } from '../utils/ballAssets';
 import { mergeRevealedResult } from '../utils/lottoReveal';
 
-// Existing categories only — 10 Min tab removed from the UI (display only;
-// the backend TEN_MIN enum stays valid in the API layer).
+// Existing categories only — the four supported game categories.
 const GAME_TABS = [
   { category: 'THIRTY_SEC', line1: 'Lotto', line2: '30sec' },
   { category: 'ONE_MIN', line1: 'Lotto 1', line2: 'Min' },

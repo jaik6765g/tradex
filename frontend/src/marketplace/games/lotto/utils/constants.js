@@ -31,7 +31,6 @@ export const CATEGORY_DURATION_SECONDS = {
   ONE_MIN: 60,
   THREE_MIN: 180,
   FIVE_MIN: 300,
-  TEN_MIN: 600,
 };
 
 export const MULTIPLIERS = {

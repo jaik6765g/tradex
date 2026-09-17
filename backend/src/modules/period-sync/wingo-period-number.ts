@@ -31,7 +31,8 @@
 //   30S end 2026-09-15T08:23:00Z -> 20260915100051006
 //   30S end 2026-09-15T00:00:00Z -> 20260914100052880 (previous UTC day)
 //
-// TEN_MIN has no reference source and therefore no authoritative encoding.
+// Every supported category (30S / 1M / 3M / 5M) has an authoritative encoding;
+// a category that is not listed here has no reference source.
 
 export interface WingoCategoryEncoding {
   /** Single digit identifying the game inside the period number. */

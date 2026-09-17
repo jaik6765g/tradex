@@ -1,6 +1,6 @@
 // Shared presentation helpers for the Admin Lotto Game Manager.
 export const RESULT_SYMBOLS = ['0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'];
-export const CATEGORIES = ['THIRTY_SEC', 'ONE_MIN', 'THREE_MIN', 'FIVE_MIN', 'TEN_MIN'];
+export const CATEGORIES = ['THIRTY_SEC', 'ONE_MIN', 'THREE_MIN', 'FIVE_MIN'];
 
 const STATUS_TONES: Record<string, string> = {
   OPEN: 'bg-[#10251A] text-[#4ADE80]',

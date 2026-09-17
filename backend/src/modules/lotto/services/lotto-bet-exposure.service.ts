@@ -103,9 +103,9 @@ export class LottoBetExposureService implements OnModuleInit {
    *
    * The ACTIVE round of the category is the source of truth for what players
    * are betting on: reference-backed rounds carry the synced period number,
-   * while TEN_MIN rounds keep their own generated numbers, so scoping tickets
-   * by the round (and falling back to the synced period) is correct for every
-   * category — the period number alone is only guaranteed for THIRTY_SEC.
+   * so scoping tickets by the round (and falling back to the synced period)
+   * is correct for every supported category — the period number alone is
+   * only guaranteed for THIRTY_SEC.
    *
    * Every snapshot also carries the win-potential view (payout liability per
    * symbol) and, for the active round, the exact symbol the draw engine will
@@ -214,8 +214,8 @@ export class LottoBetExposureService implements OnModuleInit {
     sync: NonNullable<ReturnType<PeriodSyncService['getSnapshot']>>,
     activeRound: LottoRound | null,
   ): Promise<ExposureSnapshot> {
-    // Indexed scope: the active round when one exists (covers every category,
-    // including TEN_MIN whose round numbers are not synced period numbers),
+    // Indexed scope: the active round when one exists (covers every supported
+    // category),
     // otherwise the accepted unsettled bets of the synced period.
     const tickets = activeRound
       ? await this.ticketRepo.find({

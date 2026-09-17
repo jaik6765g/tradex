@@ -20,7 +20,6 @@ export enum Category {
   ONE_MIN = 'ONE_MIN',
   THREE_MIN = 'THREE_MIN',
   FIVE_MIN = 'FIVE_MIN',
-  TEN_MIN = 'TEN_MIN',
 }
 
 export enum RoundStatus {

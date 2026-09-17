@@ -309,7 +309,8 @@ describe('PeriodSyncService — WinGo period sync (TPPLAY reference)', () => {
     for (const category of ['THIRTY_SEC', 'ONE_MIN', 'THREE_MIN', 'FIVE_MIN']) {
       expect(service.hasReferenceForCategory(category)).toBe(true);
     }
-    // TEN_MIN has no external reference → legacy generator.
+    // TEN_MIN was removed as a category: it must never resolve to a reference,
+    // so no round engine path can ever generate it.
     expect(service.hasReferenceForCategory('TEN_MIN')).toBe(false);
   });
 });

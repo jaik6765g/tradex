@@ -23,7 +23,6 @@ const LOTTO_CATEGORY_VALUES = [
   'ONE_MIN',
   'THREE_MIN',
   'FIVE_MIN',
-  'TEN_MIN',
 ] as const;
 
 export enum TicketStatus {

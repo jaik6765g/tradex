@@ -9,7 +9,7 @@ import { normalizeRoundStatus } from './lottoState.js';
 
 // ---------------------------------------------------------------------------
 // Category duration map (backend contract: THIRTY_SEC | ONE_MIN | THREE_MIN |
-// FIVE_MIN | TEN_MIN). NOTE: backend has no 2-minute category.
+// FIVE_MIN). NOTE: backend has no 2-minute category.
 // ---------------------------------------------------------------------------
 
 /**
@@ -21,7 +21,6 @@ export const CATEGORY_DURATION_SECONDS = {
   ONE_MIN: 60,
   THREE_MIN: 180,
   FIVE_MIN: 300,
-  TEN_MIN: 600,
 };
 
 // ---------------------------------------------------------------------------

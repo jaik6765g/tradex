@@ -25,13 +25,12 @@ const DEFAULT_CONTROLS = {
   resultMode: 'SERVER_RANDOM',
 };
 
-// Backend Category enum: THIRTY_SEC | ONE_MIN | THREE_MIN | FIVE_MIN | TEN_MIN
+// Backend Category enum: THIRTY_SEC | ONE_MIN | THREE_MIN | FIVE_MIN
 const VALID_CATEGORIES = new Set([
   'THIRTY_SEC',
   'ONE_MIN',
   'THREE_MIN',
   'FIVE_MIN',
-  'TEN_MIN',
 ]);
 const DEFAULT_CATEGORY = LOTTO_CONSTANTS.CATEGORY || 'THIRTY_SEC';
 

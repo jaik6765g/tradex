@@ -140,7 +140,6 @@ describe('LottoService cutoff-first result timing', () => {
     [Category.ONE_MIN],
     [Category.THREE_MIN],
     [Category.FIVE_MIN],
-    [Category.TEN_MIN],
   ])(
     '2/9. at cutoff succeeds for %s and flips OPEN → CUTOFF atomically',
     async (category) => {

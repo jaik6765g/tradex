@@ -28,7 +28,6 @@ const CATEGORY_OPTIONS = [
   { value: 'ONE_MIN', label: '1 MIN' },
   { value: 'THREE_MIN', label: '3 MIN' },
   { value: 'FIVE_MIN', label: '5 MIN' },
-  { value: 'TEN_MIN', label: '10 MIN' },
 ];
 
 export default function AdminLottoExposureScreen() {
