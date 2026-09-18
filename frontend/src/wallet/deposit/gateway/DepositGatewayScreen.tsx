@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import {
+  AlertCircle,
   AlertTriangle,
   ArrowLeft,
   Check,
+  ChevronDown,
   Clock,
   Copy,
   History,
@@ -72,6 +74,103 @@ const LIVE_ORDER_STATUSES: OrderStatus[] = [
  */
 const BNB_LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#000000" stroke="#FFFFFF" stroke-width="4"/><g fill="#F0B90B" transform="translate(16,16)"><path d="M16 5.5 24.5 14 21.8 16.7 16 10.9 10.2 16.7 7.5 14Z"/><path d="M16 26.5 7.5 18 10.2 15.3 16 21.1 21.8 15.3 24.5 18Z"/><path d="M16 13.2 18.8 16 16 18.8 13.2 16Z"/><path d="M6.2 13.2 9 16 6.2 18.8 3.4 16Z"/><path d="M25.8 13.2 28.6 16 25.8 18.8 23 16Z"/></g></svg>`;
 const BNB_LOGO_SRC = `data:image/svg+xml;utf8,${encodeURIComponent(BNB_LOGO_SVG)}`;
+
+/**
+ * USDT-style logo (teal circle + T) drawn with code.
+ */
+const USDT_LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#26A17B"/><path fill="#FFFFFF" d="M35.6 33.6v-3.4c5.3.2 9.3 1.3 9.3 2.6 0 1.4-4 2.5-9.3 2.7v-.1zm0-6.9v-3.3h8.6v-5.7H19.8v5.7h8.6v3.3c-7 .3-12.3 1.7-12.3 3.4 0 1.7 5.3 3.1 12.3 3.4v12.2h7.2V36.9c7-.3 12.2-1.7 12.2-3.4 0-1.7-5.2-3.1-12.2-3.4z"/></svg>`;
+const USDT_LOGO_SRC = `data:image/svg+xml;utf8,${encodeURIComponent(USDT_LOGO_SVG)}`;
+
+/** BNB chain dropdown icon (black rounded square + yellow diamond logo). */
+function BnbChainIcon({ size = 28 }: { size?: number }) {
+  return (
+    <span
+      className="flex shrink-0 items-center justify-center rounded-lg bg-black"
+      style={{ width: size, height: size }}
+    >
+      <svg viewBox="0 0 64 64" width={size * 0.62} height={size * 0.62}>
+        <g fill="#F0B90B">
+          <path d="M32 8 40.5 16.5 37.8 19.2 32 13.4 26.2 19.2 23.5 16.5Z" />
+          <path d="M32 56 23.5 47.5 26.2 44.8 32 50.6 37.8 44.8 40.5 47.5Z" />
+          <path d="M32 26.4 37.6 32 32 37.6 26.4 32Z" />
+          <path d="M17.2 26.4 22.8 32 17.2 37.6 11.6 32Z" />
+          <path d="M46.8 26.4 52.4 32 46.8 37.6 41.2 32Z" />
+        </g>
+      </svg>
+    </span>
+  );
+}
+
+function UsdtIcon({ size = 28 }: { size?: number }) {
+  return (
+    <img
+      src={USDT_LOGO_SRC}
+      alt="USDT"
+      width={size}
+      height={size}
+      className="shrink-0 rounded-full"
+      style={{ width: size, height: size }}
+    />
+  );
+}
+
+/** Dropdown-style display row (select look, chevron right). */
+function SelectRow({
+  icon,
+  label,
+  highlighted,
+}: {
+  icon: ReactNode;
+  label: string;
+  highlighted?: boolean;
+}) {
+  return (
+    <div
+      className={`mt-1.5 flex items-center justify-between rounded-xl border px-4 py-3.5 ${
+        highlighted ? 'border-[#FF7A18]' : 'border-[#292B33]'
+      } bg-[#0E0E12]`}
+    >
+      <span className="flex items-center gap-3 text-sm font-semibold">
+        {icon}
+        {label}
+      </span>
+      <ChevronDown size={16} className="text-[#A1A4AE]" />
+    </div>
+  );
+}
+
+/**
+ * Deposit instructions — Withdrawal Information panel jaisi styling:
+ * brown bg + orange title + simple disc bullets (no sub-headings).
+ */
+const DEPOSIT_INSTRUCTIONS: string[] = [
+  'You can deposit between 10 USDT and 10,000 USDT per transaction.',
+  'Your deposit will be credited automatically after 1–5 minutes (usually within a few minutes).',
+  'Send only USDT on BNB Smart Chain (BSC) to the address provided.',
+  'Please verify the network and deposit address carefully. Sending the wrong coin or using the wrong network may result in permanent loss of funds.',
+  'If you send any other coin or use the wrong chain, the funds cannot be recovered.',
+];
+
+function InstructionsCard() {
+  return (
+    <div className="mt-4 p-3 bg-[#2A190D] rounded-xl border border-[#3A281C]">
+      <div className="flex items-start gap-2">
+        <AlertCircle size={16} className="text-[#F59E0B] mt-0.5 shrink-0" />
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold text-[#F59E0B]">
+            Deposit Instruction
+          </p>
+          <ul className="mt-2 list-disc list-inside space-y-1 text-xs leading-relaxed text-[#F59E0B]">
+            {DEPOSIT_INSTRUCTIONS.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 export default function DepositGatewayScreen() {
   const [config, setConfig] = useState<GatewayConfig | null>(null);
@@ -202,6 +301,14 @@ export default function DepositGatewayScreen() {
       setError('Enter a valid amount');
       return;
     }
+    if (amountNum < 10) {
+      setError('Minimum deposit amount is 10 USDT.');
+      return;
+    }
+    if (amountNum > 10000) {
+      setError('Maximum deposit amount is 10,000 USDT.');
+      return;
+    }
     // Guard: backend se fresh pending order check karo — live order hai to
     // wahi kholo, naya order mat banao. Usi ko pura karo ya expire ka wait karo.
     try {
@@ -301,42 +408,75 @@ export default function DepositGatewayScreen() {
             <label className="text-xs font-bold uppercase tracking-wider text-[#A1A4AE]">
               Asset
             </label>
-            <div className="mt-1.5 rounded-xl border border-[#292B33] bg-[#0E0E12] px-4 py-3 text-sm">
-              USDT
-            </div>
+            <SelectRow icon={<UsdtIcon size={28} />} label="USDT" />
 
             <label className="mt-4 block text-xs font-bold uppercase tracking-wider text-[#A1A4AE]">
               Network
             </label>
-            <div className="mt-1.5 flex flex-wrap gap-2">
-              {enabledNetworks.map((n) => (
-                <button
-                  key={n.id}
-                  type="button"
-                  onClick={() => setNetworkId(n.id)}
-                  className={`rounded-xl border px-3 py-2 text-sm ${
-                    n.id === (currentNetwork?.id ?? 'bsc')
-                      ? 'border-[#FF7A18] text-[#F5F5F7]'
-                      : 'border-[#292B33] text-[#A1A4AE]'
-                  }`}
+            {enabledNetworks.length > 1 ? (
+              <div className="relative mt-1.5">
+                <select
+                  value={currentNetwork?.id ?? 'bsc'}
+                  onChange={(e) => setNetworkId(e.target.value)}
+                  className="w-full appearance-none rounded-xl border border-[#FF7A18] bg-[#0E0E12] px-4 py-3.5 pr-10 text-sm font-semibold outline-none"
                 >
-                  {n.name} ({n.id.toUpperCase()})
-                </button>
-              ))}
-            </div>
+                  {enabledNetworks.map((n) => (
+                    <option key={n.id} value={n.id}>
+                      {n.name}
+                    </option>
+                  ))}
+                </select>
+                <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-3">
+                  <BnbChainIcon size={28} />
+                  <ChevronDown size={16} className="text-[#A1A4AE]" />
+                </span>
+              </div>
+            ) : (
+              <SelectRow
+                icon={<BnbChainIcon size={28} />}
+                label={
+                  currentNetwork
+                    ? `${currentNetwork.name}${
+                        currentNetwork.id.toUpperCase() === 'BSC'
+                          ? ' (BSC)'
+                          : ` (${currentNetwork.id.toUpperCase()})`
+                      }`
+                    : 'BNB Smart Chain (BSC)'
+                }
+                highlighted
+              />
+            )}
 
             <label className="mt-4 block text-xs font-bold uppercase tracking-wider text-[#A1A4AE]">
-              Amount
+              Amount ({asset})
             </label>
-            <input
-              type="number"
-              min="1"
-              step="any"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="0.00"
-              className="mt-1.5 w-full rounded-xl border border-[#292B33] bg-[#0E0E12] px-4 py-3 text-lg outline-none focus:border-[#FF7A18]"
-            />
+            <div className="mt-1.5 flex items-center justify-between rounded-xl border border-[#292B33] bg-[#0E0E12] px-4 py-3 focus-within:border-[#FF7A18]">
+              <input
+                type="number"
+                min="1"
+                step="any"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="0.00"
+                className="w-full bg-transparent text-lg outline-none placeholder:text-[#70737E]"
+              />
+              <span className="shrink-0 whitespace-nowrap text-xs text-[#70737E]">
+                Min: 10&nbsp;&nbsp;|&nbsp;&nbsp;Max: 10,000
+              </span>
+            </div>
+
+            {amountNum > 0 && Number.isFinite(amountNum) && amountNum < 10 && (
+              <p className="mt-3 flex items-start gap-1.5 text-xs text-[#F87171]">
+                <AlertTriangle size={13} className="mt-0.5 shrink-0" />
+                Minimum deposit amount is 10 USDT.
+              </p>
+            )}
+            {amountNum > 10000 && (
+              <p className="mt-3 flex items-start gap-1.5 text-xs text-[#F87171]">
+                <AlertTriangle size={13} className="mt-0.5 shrink-0" />
+                Maximum deposit amount is 10,000 USDT.
+              </p>
+            )}
 
             {amountNum > 0 && Number.isFinite(amountNum) && (
               <div className="mt-4 rounded-xl border border-[#34261C] bg-[#211810] px-4 py-3">
@@ -392,6 +532,8 @@ export default function DepositGatewayScreen() {
                 </button>
               );
             })()}
+
+          <InstructionsCard />
           </>
         ) : (
           <div>
