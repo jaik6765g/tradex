@@ -24,6 +24,10 @@ import { USDT_ADDRESS, USDT_ABI } from '../config/wallet';
 import { AuthService } from '../../auth/services/auth.service';
 import { useAppAuth } from '../../auth/authContext';
 import type { AuthUser, AuthWallet } from '../../auth/hooks/auth.types';
+import {
+  canLoadMainBalance,
+  isBalanceResponseCurrent,
+} from '../utils/balanceInit';
 
 const REQUIRED_CHAIN_ID = CHAIN_IDS.BSC_MAINNET;
 const REQUIRED_NETWORK_NAME = 'BNB Smart Chain';
@@ -134,6 +138,11 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   // unchanged ledger data never reallocates the context value.
   const transactionsSignatureRef = useRef('');
 
+  // Which account the in-memory balance currently belongs to. Initialised from
+  // the identity that is already known during the first render, so a
+  // child-initiated refresh can never be wrongly discarded as "stale".
+  const balanceOwnerRef = useRef<string | null>(auth.userId ?? null);
+
   const userId = auth.userId;
   const authUser = auth.user;
 
@@ -149,9 +158,14 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   // context value, so toggling it twice per poll re-rendered every
   // useWalletContext() consumer app-wide. Genuine errors are still recorded.
   const fetchBalance = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
-    if (!userId || !AuthService.getToken()) {
+    if (!canLoadMainBalance({ userId, token: AuthService.getToken() })) {
       return;
     }
+
+    // Stale-response guard: remember which account this request is for, so a
+    // slow response for a previous user can never overwrite the balance of the
+    // account that is signed in now.
+    const requestUserId = userId;
 
     if (!silent) {
       setIsLoading(true);
@@ -160,6 +174,10 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const response = await WalletService.getMyBalance();
+
+      if (!isBalanceResponseCurrent(requestUserId, balanceOwnerRef.current)) {
+        return; // superseded by a newer identity — discard entirely
+      }
 
       let usdtBalance = '0';
       if (address && isConnected) {
@@ -204,9 +222,15 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         return isSameBalance(prev, next) ? prev : next;
       });
     } catch (err) {
+      if (!isBalanceResponseCurrent(requestUserId, balanceOwnerRef.current)) {
+        return; // error belongs to a superseded identity — never surface it
+      }
       setError(err instanceof Error ? err.message : 'Failed to fetch balance');
     } finally {
-      if (!silent) {
+      if (
+        !silent &&
+        isBalanceResponseCurrent(requestUserId, balanceOwnerRef.current)
+      ) {
         setIsLoading(false);
       }
     }
@@ -362,13 +386,38 @@ const fetchTransactions = useCallback(async () => {
     }
   }, [chainId, switchChainAsync]);
 
+  // ------------------------------------------------
+  // GLOBAL MAIN BALANCE INITIALIZATION
+  // ------------------------------------------------
+  // 1) Ownership: the in-memory balance belongs to exactly ONE identity.
+  //    Whenever the signed-in user changes (login, restored session, switch),
+  //    drop the previous account's money immediately so a different user can
+  //    never see it while the fresh request is in flight.
   useEffect(() => {
-    if (!userId || !isConnected || isWrongNetwork || !AuthService.getToken()) {
+    const nextOwner = userId ?? null;
+    if (balanceOwnerRef.current === nextOwner) {
+      return;
+    }
+
+    balanceOwnerRef.current = nextOwner;
+    setBalance(INITIAL_BALANCE);
+    setTransactions([]);
+    transactionsSignatureRef.current = '';
+    setError(null);
+  }, [userId]);
+
+  // 2) Initial fetch: it must run as soon as an authenticated identity exists —
+  //    right after login, after session restoration, and on every user change —
+  //    WITHOUT waiting for Lotto/Trade to mount. A connected web3 wallet or the
+  //    selected network must NOT gate it: the Main Balance is backend money
+  //    (TDX) and the on-chain USDT read inside fetchBalance is best-effort.
+  useEffect(() => {
+    if (!canLoadMainBalance({ userId, token: AuthService.getToken() })) {
       return;
     }
 
     void refresh();
-  }, [userId, isConnected, isWrongNetwork, refresh]);
+  }, [userId, refresh]);
 const value = useMemo<WalletContextType>(
     () => ({
       address: address ?? null,
