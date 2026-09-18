@@ -13,7 +13,7 @@ import {
   toCanonicalResultView,
   toCanonicalTicketHistoryRow,
 } from '../utils/lottoPresentation.js';
-import { LOTTO_CONSTANTS } from '../utils/constants';
+import { CATEGORY_DURATION_SECONDS, LOTTO_CONSTANTS } from '../utils/constants';
 
 // 5s steady refresh for round/results/history/balance. The draw result
 // itself is caught up faster via the bounded post-draw poll in
@@ -115,6 +115,51 @@ const normalizeResultForUi = (result) => {
   };
 };
 
+// Finds the DRAWN result symbol for a settled ticket by looking it up in the
+// per-category cached recent-results pages (populated by getLastResult,
+// including LottoGame's post-draw catch-up poll). Returns null when the draw
+// is not cached yet — the settlement card then simply hides its result chips.
+const findDrawnResultSymbol = (ticket, resultsByCategory) => {
+  const roundId = ticket?.roundId;
+  const roundNumber = ticket?.roundNumber != null ? String(ticket.roundNumber) : null;
+  if (roundId == null && !roundNumber) {
+    return null;
+  }
+
+  for (const cached of resultsByCategory.values()) {
+    const items = Array.isArray(cached?.items) ? cached.items : [];
+    const match = items.find((item) => {
+      if (
+        roundId != null &&
+        item?.roundId != null &&
+        String(item.roundId) === String(roundId)
+      ) {
+        return true;
+      }
+      if (
+        roundNumber &&
+        item?.roundNumber != null &&
+        String(item.roundNumber) === roundNumber
+      ) {
+        return true;
+      }
+      return false;
+    });
+    if (match?.result) {
+      return match.result;
+    }
+  }
+
+  return null;
+};
+
+// "Period: Lotto 30sec" style label for the settlement card, derived from the
+// settled ticket's backend category (THIRTY_SEC → 30, ONE_MIN → 60, ...).
+const formatSettlementPeriodLabel = (category) => {
+  const seconds = CATEGORY_DURATION_SECONDS[category];
+  return Number.isFinite(seconds) ? `Lotto ${seconds}sec` : 'Lotto';
+};
+
 const buildIdempotencyKey = (roundId, selectedNumbers, amount) => {
   let seed;
 
@@ -214,6 +259,9 @@ export const useLottoGame = () => {
   // Win/Loss settlement popup (shared WinLossPopup component)
   const [settlementPopup, setSettlementPopup] = useState(null);
   const notifiedTicketIdsRef = useRef(new Set());
+  // Periods (roundNumbers) that already fired their ONE settlement popup —
+  // guarantees a single card per period even with many settled tickets.
+  const shownRoundNumbersRef = useRef(new Set());
   const sessionStartedAtRef = useRef(Date.now());
 
   const isMountedRef = useRef(false);
@@ -852,13 +900,21 @@ export const useLottoGame = () => {
   // Fires when one of the user's tickets settles with WIN/LOSS
   // AFTER this screen session started (session filter prevents
   // spamming popups from old history rows on first load).
-  // One popup at a time — the first newly-settled ticket wins.
+  // ONE popup per period — the highest-win settled ticket wins (a loss card
+  // shows only when the whole batch lost). See the effect below.
   // ============================================================
 
   useEffect(() => {
     if (!isMountedRef.current || !Array.isArray(history) || history.length === 0) {
       return;
     }
+
+    // Collect EVERY newly-settled ticket in this poll batch first, then show
+    // ONE popup for the batch: the highest-WIN ticket wins (losses only ever
+    // shown when the whole batch lost). Tickets from a period that already had
+    // its popup are skipped, so a multi-ticket period can never spam cards —
+    // exactly one popup per period, highest win only.
+    const fresh = [];
 
     for (const ticket of history) {
       if (!ticket?.isSettled || !ticket?.id) {
@@ -881,32 +937,74 @@ export const useLottoGame = () => {
       }
 
       notifiedTicketIdsRef.current.add(ticket.id);
+      fresh.push(ticket);
+    }
 
+    if (fresh.length === 0) {
+      return;
+    }
+
+    // One popup per PERIOD: drop tickets whose period already showed a card.
+    const candidates = fresh.filter((ticket) => {
+      const roundKey = ticket.roundNumber != null ? String(ticket.roundNumber) : `round-${ticket.roundId ?? ticket.id}`;
+      if (shownRoundNumbersRef.current.has(roundKey)) {
+        return false;
+      }
+      return true;
+    });
+
+    if (candidates.length === 0) {
+      return;
+    }
+
+    // Highest-win ticket of the period wins; when nothing won, the largest
+    // stake loss is shown once. Wins always beat losses.
+    const best = candidates.reduce((acc, ticket) => {
       const won = Boolean(ticket.isWin);
-      const stake = Number(ticket.amount ?? 0);
-      const winAmount = Number(ticket.winAmount ?? 0);
+      const accWon = Boolean(acc?.isWin);
+      const value = Number(ticket.isWin ? ticket.winAmount ?? 0 : ticket.amount ?? 0);
+      const accValue = Number(acc ? (accWon ? acc.winAmount ?? 0 : acc.amount ?? 0) : -1);
 
-      const formatTdx = (value) =>
-        Number(value ?? 0).toLocaleString('en-IN', {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        });
+      if (!acc) return ticket;
+      if (won && !accWon) return ticket;
+      if (!won && accWon) return acc;
+      return value > accValue ? ticket : acc;
+    }, null);
 
-      setSettlementPopup({
-        id: String(ticket.id),
-        outcome: won ? 'win' : 'loss',
-        title: won ? '🎉 Ticket Won!' : 'No Win This Round',
-        detail: `Round ${ticket.roundNumber ?? '—'} • ${ticket.selectedNumbers?.length ?? 0} numbers`,
-        amount: won
-          ? `+${formatTdx(winAmount)} TDX`
-          : `${formatTdx(stake)} TDX`,
-        meta: won
-          ? 'Winnings credited to your wallet'
-          : 'Better luck next round!',
+    if (!best) {
+      return;
+    }
+
+    const bestRoundKey = best.roundNumber != null ? String(best.roundNumber) : `round-${best.roundId ?? best.id}`;
+    shownRoundNumbersRef.current.add(bestRoundKey);
+
+    const won = Boolean(best.isWin);
+    const stake = Number(best.amount ?? 0);
+    const winAmount = Number(best.winAmount ?? 0);
+
+    const formatTdx = (value) =>
+      Number(value ?? 0).toLocaleString('en-IN', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
       });
 
-      break;
-    }
+    setSettlementPopup({
+      id: String(best.id),
+      outcome: won ? 'win' : 'loss',
+      title: won ? '🎉 Ticket Won!' : 'No Win This Round',
+      detail: `Round ${best.roundNumber ?? '—'} • ${best.selectedNumbers?.length ?? 0} numbers`,
+      amount: won
+        ? `+${formatTdx(winAmount)} TDX`
+        : `${formatTdx(stake)} TDX`,
+      meta: won
+        ? 'Winnings credited to your wallet'
+        : 'Better luck next round!',
+      // LottoResultPopup (screenshot-style card) extras — ignored by the
+      // shared WinLossPopup, consumed only by the lotto card design.
+      resultSymbol: findDrawnResultSymbol(best, resultsByCategoryRef.current),
+      periodLabel: formatSettlementPeriodLabel(best.category),
+      period: best.roundNumber ?? null,
+    });
   }, [history]);
 
   useEffect(() => {

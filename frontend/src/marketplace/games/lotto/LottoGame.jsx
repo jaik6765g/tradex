@@ -14,7 +14,7 @@ import CountdownOverlay from './components/CountdownOverlay';
 import LottoBuyCard from './components/LottoBuyCard';
 
 
-import WinLossPopup from '../../../shared/components/WinLossPopup';
+import LottoResultPopup from './components/LottoResultPopup';
 
 import { useLottoGame } from './hooks/useLottoGame';
 import { useLottoRoundTimer } from './hooks/useLottoRoundTimer';
@@ -551,13 +551,8 @@ export default function LottoGame({ onBack } = {}) {
             embedded
           />
 
-          {/* Win/Loss settlement popup — constrained INSIDE the Pick Number area
-              (not full screen). Rendered after result.mp3 fully finishes. */}
-          <WinLossPopup
-            value={settlementDisplay}
-            onClose={handleCloseSettlement}
-            embedded
-          />
+          {/* The settlement card now renders full-screen at the root level
+              (LottoResultPopup below) — see the reference card design. */}
         </div>
 
                 {/* Ticket Summary card removed (TPPlay direct flow:
@@ -575,6 +570,14 @@ export default function LottoGame({ onBack } = {}) {
           onGoToHistoryPage={handleGoToHistoryPage}
         />
       </div>
+
+      {/* Screenshot-style settlement card (popup.png frame) — LOTTO ONLY.
+          Pulse Trade keeps the shared WinLossPopup. Rendered full-screen
+          after result.mp3 fully finishes; auto-closes after 3 seconds. */}
+      <LottoResultPopup
+        value={settlementDisplay}
+        onClose={handleCloseSettlement}
+      />
 
       {/* TPPlay-style Buy Card confirmation layer (overlay + bottom sheet).
           Single shared <LottoBuyCard selection=...> — every number, color

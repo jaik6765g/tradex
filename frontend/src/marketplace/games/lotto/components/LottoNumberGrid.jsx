@@ -14,6 +14,26 @@ const COLOR_GROUP_DEFS = [
   { key: 'BLUE',   label: 'Blue',   tone: GROUP_TONE.BLUE,   range: '2,3,6,7,A,B,E,F', numbers: COLOR_GROUPS.BLUE   },
 ];
 
+// ✅ Even / Odd half-half quick-select row (below the number grid).
+// Each side covers exactly 8 of the 16 symbols (half the outcomes):
+// EVEN = 0,2,4,6,8,A,C,E · ODD = 1,3,5,7,9,B,D,F.
+// Both route through the SAME onToggleGroup flow as the color groups, so the
+// Buy Card / bet placement / forbidden-pair handling stays in one place.
+const PARITY_GROUP_DEFS = [
+  {
+    key: 'EVEN',
+    label: 'Even',
+    tone: GROUP_TONE.GREEN,
+    numbers: ['0', '2', '4', '6', '8', 'A', 'C', 'E'],
+  },
+  {
+    key: 'ODD',
+    label: 'Odd',
+    tone: GROUP_TONE.RED,
+    numbers: ['1', '3', '5', '7', '9', 'B', 'D', 'F'],
+  },
+];
+
 // ✅ 2×2 dot patterns for the GROUP buttons (5th column) — keyed by group key
 const GROUP_DOT_PATTERNS = {
   GREEN: [
@@ -62,6 +82,7 @@ const LottoNumberGrid = ({
   ];
 
   return (
+    <>
     <section className="w-full rounded-[16px] border border-[#33333E] bg-gradient-to-br from-[#2C2C36] to-[#1F1F27] p-3 shadow-md">
       <div className="space-y-2">
         {rows.map((row, index) => {
@@ -174,6 +195,11 @@ const LottoNumberGrid = ({
             </div>
           );
         })}
+
+        {/* Even / Odd quick-select — OUTSIDE the number card (card ke niche),
+            Big/Small jaisa joint pill: ek hi capsule, beech me joint,
+            left half orange = Even, right half blue = Odd. Same tap flow
+            (onToggleGroup → shared LottoBuyCard). */}
       </div>
 
       {/* Blocked-action feedback (e.g. a colour group that would cover all 16
@@ -185,6 +211,49 @@ const LottoNumberGrid = ({
         </p>
       )}
     </section>
+
+    <div
+      className="mt-2 flex w-full overflow-hidden rounded-full shadow-md"
+      role="group"
+      aria-label="Even or Odd quick select"
+    >
+      {PARITY_GROUP_DEFS.map((groupDef) => {
+        const isEven = groupDef.key === 'EVEN';
+        return (
+          <button
+            key={groupDef.key}
+            type="button"
+            onClick={() =>
+              !disabled && onToggleGroup?.(groupDef.key, groupDef.numbers)
+            }
+            disabled={disabled}
+            aria-label={`Bet on ${groupDef.label} numbers (${groupDef.numbers.join(', ')})`}
+            title={`${groupDef.label}: ${groupDef.numbers.join(', ')}`}
+            className={`
+              flex h-10 flex-1 items-center justify-center
+              text-[15px] font-semibold text-white
+              transition-all duration-150 active:brightness-95
+              ${isEven ? '' : 'border-l border-white/20'}
+              ${
+                disabled
+                  ? 'cursor-not-allowed opacity-40'
+                  : 'cursor-pointer hover:brightness-110'
+              }
+            `}
+            style={{
+              backgroundColor: isEven ? '#E19A3C' : '#5B87D1',
+              // Joint pill: outer capsule gol, beech ka joint sharp.
+              borderRadius: isEven
+                ? '9999px 0 0 9999px'
+                : '0 9999px 9999px 0',
+            }}
+          >
+            {groupDef.label}
+          </button>
+        );
+      })}
+    </div>
+    </>
   );
 };
 
