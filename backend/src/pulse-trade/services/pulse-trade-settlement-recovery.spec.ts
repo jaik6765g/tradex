@@ -286,6 +286,9 @@ function makeHarness(
       {} as never,
       {} as never,
       { get: () => null } as never,
+      {
+        recordWageredVolume: jest.fn(async () => ({ status: 'COUNTED' })),
+      } as never,
       withQueue ? (settlementQueue as never) : (undefined as never),
     );
 

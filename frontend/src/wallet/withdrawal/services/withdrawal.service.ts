@@ -74,6 +74,7 @@ type WithdrawalApiErrorPayload = {
   message?: string | string[];
   error?: string;
   code?: string;
+  remainingWagering?: string;
 };
 
 const ACTIVE_WITHDRAWAL_CONFLICT_MESSAGE =
@@ -110,12 +111,17 @@ export const parseWithdrawalApiError = (error: unknown): Error => {
     return new Error('Authentication expired. Please reconnect wallet and login again.');
   }
 
+  // Wagering requirement enforcement (backend-authoritative, machine-readable).
+  if (status === 403 && data.code === 'WAGERING_REQUIREMENT_INCOMPLETE') {
+    const remaining = data.remainingWagering;
     const trimmed =
       remaining !== undefined && remaining !== null
         ? String(remaining).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '')
         : null;
     return new Error(
       trimmed
+        ? `Wagering requirement not complete. ${trimmed} TDX of wagering is still required before you can withdraw.`
+        : 'Wagering requirement not complete. Wager the required amount before withdrawing.',
     );
   }
 

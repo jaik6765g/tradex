@@ -18,6 +18,7 @@ import { apiClient } from '../../../core/api/client';
 
 import { useWalletLimits } from '../../../wallet/hooks/useWalletLimits';
 import { TDX_RATE } from '../../../wallet/config/wallet';
+import { useWithdrawalWagering } from '../hooks/useWithdrawalWagering';
 import {
   compareDecimalStrings,
   formatDecimalString,
@@ -142,13 +143,21 @@ export default function WithdrawalScreen() {
   const { withdrawMin, withdrawMax, dailyWithdrawals } = useWalletLimits();
 
   // Account readiness — a signed-in account is enough (no wallet connection
+  // required). Declared before the wagering summary hook because both the
   // hook call and the derived eligibility flags below depend on it.
   const accountReady = Boolean(isAuthenticated && userId);
 
+  // Wagering summary from the existing backend summary endpoint
+  // (GET /wagering/me). Display guidance only — the backend remains the
   // final authority inside its locked withdrawal transaction.
   const {
+    summary: wageringSummary,
+    loading: wageringLoading,
+    error: wageringError,
     withdrawalEligible,
     remainingTdx,
+    refresh: refreshWagering,
+  } = useWithdrawalWagering(accountReady);
 
   const trimInput = (raw: string): string => raw.trim();
 
@@ -170,9 +179,19 @@ export default function WithdrawalScreen() {
   const usdtPreviewExact = amountValidDecimal ? tdxToUsdt(amountTrimmed) : null;
 
   // --- Derived eligibility (guidance only; backend is authoritative) ---
+  // The wagering summary is considered known only after the summary request
+  // resolves at least once: `wageringKnown` avoids flashing a wrong "0"
   // during the initial fetch.
+  const wageringKnown =
+    accountReady && !wageringLoading && wageringSummary !== null;
+  const wageringSatisfied =
+    wageringKnown && (withdrawalEligible === true || !wageringSummary?.wageringEnabled);
+  const wageringIncomplete =
+    wageringKnown &&
+    Boolean(wageringSummary?.wageringEnabled) &&
     withdrawalEligible === false;
 
+  const remainingWageringTdx =
     remainingTdx !== null && remainingTdx !== undefined
       ? trimDecimalZeros(String(remainingTdx))
       : '0';
@@ -183,8 +202,10 @@ export default function WithdrawalScreen() {
     ? trimDecimalZeros(availableTdxRaw)
     : '0';
 
+  // Withdrawable amount in USDT — 0 while wagering is incomplete.
   const withdrawableUsdtDisplay = !accountReady
     ? '—'
+    : wageringIncomplete
       ? '0'
       : isPositiveDecimal(availableTdxDisplay)
         ? (tdxToUsdt(availableTdxDisplay) ?? '0')
@@ -193,6 +214,7 @@ export default function WithdrawalScreen() {
   // The withdrawal button stays disabled (blurred) until there is a real,
   // withdrawable amount — a 0 USDT withdrawable balance can never be submitted.
   const hasWithdrawableBalance =
+    accountReady && !wageringIncomplete && isPositiveDecimal(availableTdxDisplay);
 
   // Today's remaining withdrawals from the limits API — never hardcoded.
   const frequencyUnlimited = dailyWithdrawals.mode === 'UNLIMITED';
@@ -310,10 +332,12 @@ export default function WithdrawalScreen() {
   // HANDLERS
   // ============================================================
 
+  // --- Eligibility banner + submit gating. Priority: auth > wagering
   // incomplete > daily limit reached > amount out of range. `blockReason`
   // decides both the banner and the button.
   type BlockReason =
     | 'LOGIN'
+    | 'WAGERING_INCOMPLETE'
     | 'DAILY_LIMIT_REACHED'
     | 'NO_WITHDRAWABLE_BALANCE'
     | 'AMOUNT_BELOW_MIN'
@@ -324,6 +348,8 @@ export default function WithdrawalScreen() {
 
   const blockReason: BlockReason = !accountReady
     ? 'LOGIN'
+    : wageringIncomplete
+      ? 'WAGERING_INCOMPLETE'
       : dailyLimitReached
         ? 'DAILY_LIMIT_REACHED'
         : !hasWithdrawableBalance
@@ -347,8 +373,11 @@ export default function WithdrawalScreen() {
   } | null = (() => {
     if (!accountReady) return null;
     switch (blockReason) {
+      case 'WAGERING_INCOMPLETE':
         return {
           tone: 'amber',
+          title: 'Wagering incomplete — withdrawal on hold',
+          body: `Complete the remaining wagering of ${formatDecimalString(remainingWageringTdx)} TDX to enable withdrawals.`,
         };
       case 'DAILY_LIMIT_REACHED':
         return {
@@ -362,6 +391,7 @@ export default function WithdrawalScreen() {
         return {
           tone: 'amber',
           title: 'No withdrawable balance',
+          body: 'Your withdrawable balance is 0 USDT. Deposit funds or complete wagering to enable withdrawals.',
         };
       // Amount and address problems are shown inline (next to the amount
       // input and the destination field), so they render no banner.
@@ -371,9 +401,11 @@ export default function WithdrawalScreen() {
       case 'ADDRESS_INVALID':
         return null;
       default:
+        if (wageringKnown && wageringSatisfied && hasTypedAmount && amountValidDecimal) {
           return {
             tone: 'green',
             title: 'Withdrawal available',
+            body: 'Your balance, wagering status and daily quota allow this request.',
           };
         }
         return null;
@@ -385,6 +417,7 @@ export default function WithdrawalScreen() {
     // an amount the backend would reject. Uses the smaller of the available
     // balance and the per-transaction maximum, with exact string compares.
     if (!accountReady || isLoading) return;
+    if (wageringIncomplete || dailyLimitReached) return;
     if (!isPositiveDecimal(availableTdxRaw)) return;
     const avail = trimDecimalZeros(availableTdxRaw);
     if (compareDecimalStrings(avail, minTdxExact) === -1) return;
@@ -451,6 +484,7 @@ export default function WithdrawalScreen() {
           )}
 
           {/* Withdraw Panel */}
+          <section className="rounded-[20px] border border-[#292B33] bg-[#15161C] p-4" aria-busy={wageringLoading}>
             <div className="flex items-center justify-between">
               <h2 className="text-[16px] font-black text-[#F5F5F7]">Withdraw</h2>
               <button
@@ -506,6 +540,7 @@ export default function WithdrawalScreen() {
                       disabled={
                         !accountReady ||
                         isLoading ||
+                        wageringIncomplete ||
                         dailyLimitReached
                       }
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#C99752] hover:text-[#C99752] disabled:opacity-40 disabled:cursor-not-allowed"
@@ -519,6 +554,7 @@ export default function WithdrawalScreen() {
                 <p className="mt-2 text-xs font-semibold text-[#A1A4AE]">
                   Withdrawable Balance:{' '}
                   <span className={hasWithdrawableBalance ? 'text-[#4ADE80]' : 'text-[#FF8F3D]'}>
+                    {wageringLoading || !accountReady
                       ? '…'
                       : `${formatDecimalString(withdrawableUsdtDisplay)} USDT`}
                   </span>
@@ -719,6 +755,7 @@ export default function WithdrawalScreen() {
                   </div>
                 )}
 
+                {/* Withdrawal Information — remaining wagering + instructions */}
                 <div className="mt-4 p-3 bg-[#2A190D] rounded-xl border border-[#3A281C]">
                   <div className="flex items-start gap-2">
                     <AlertCircle size={16} className="text-[#F59E0B] mt-0.5 shrink-0" />
@@ -727,11 +764,16 @@ export default function WithdrawalScreen() {
                         Withdrawal Information
                       </p>
                       <div className="mt-1.5 flex items-center justify-between gap-2 text-xs">
+                        <span className="text-[#A1A4AE]">Remaining Wagering</span>
                         <span
                           className={`font-extrabold ${
+                            wageringIncomplete ? 'text-[#FF8F3D]' : 'text-[#F5F5F7]'
                           }`}
                         >
+                          {wageringLoading || !accountReady
                             ? '…'
+                            : wageringKnown
+                              ? `${formatDecimalString(remainingWageringTdx)} TDX`
                               : '—'}
                         </span>
                       </div>
@@ -741,6 +783,7 @@ export default function WithdrawalScreen() {
                           <span className="mx-1">•</span>
                           Max {formatDecimalString(maxUsdtRaw)} USDT
                         </li>
+                        <li>Complete wagering before withdrawing.</li>
                         <li>Check the address and network before submitting.</li>
                         <li>Never share your password, OTP, or recovery phrase.</li>
                       </ul>

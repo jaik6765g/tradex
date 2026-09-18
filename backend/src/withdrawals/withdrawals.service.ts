@@ -21,6 +21,7 @@ import { LedgerEntry, LedgerType } from '../ledger/ledger.entity';
 import { WalletsService } from '../wallets/wallets.service';
 import { Withdrawal, WithdrawalStatus } from './entities/withdrawal.entity';
 import { AdminSetting } from '../admin/entities/admin-setting.entity';
+import { WageringService } from '../wagering/wagering.service';
 import {
   DAILY_WITHDRAWAL_LIMIT_EXCEEDED_CODE,
   DailyWithdrawalFrequency,
@@ -141,6 +142,7 @@ export class WithdrawalsService {
     private readonly blockchainService: BlockchainService,
     private readonly walletsService: WalletsService,
     private readonly configService: ConfigService,
+    private readonly wageringService: WageringService,
     private readonly limitsService: LimitsService,
   ) {}
 
@@ -170,6 +172,7 @@ export class WithdrawalsService {
     // Min/max withdrawal limits (5 / 500 USDT defaults) — fast-fail BEFORE
     // the transaction and re-asserted inside the locked transaction below
     // (backend is the single source of truth; limits are read from the DB
+    // on every enforcement call). Throws 400 WITHDRAWAL_BELOW_MINIMUM /
     // WITHDRAWAL_ABOVE_MAXIMUM with zero mutations.
     await this.limitsService.assertWithdrawalAmount(
       this.decimal(usdtAmount),
@@ -212,7 +215,10 @@ export class WithdrawalsService {
         this.decimal(usdtAmount),
       );
 
+      // 4. Wagering enforcement — unchanged position: inside the locked
       //    transaction, BEFORE any withdrawal row is created. Throws 403
+      //    WAGERING_REQUIREMENT_INCOMPLETE when obligations are incomplete.
+      await this.wageringService.assertWithdrawalAllowed(userId, manager);
 
       const created = await repo.save(
         repo.create({

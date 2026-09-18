@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bullmq';
 import { Deposit } from './deposit.entity';
+import { AdminAuditLog } from '../admin/entities/admin-audit-log.entity';
 import { DepositService } from './deposit.service';
 import { DepositController } from './deposit.controller';
 import { DepositDetectionProcessor } from './processors/deposit-detection.processor';
@@ -16,11 +17,12 @@ import { UsersModule } from '../users/users.module';
 import { BlockchainModule } from '../blockchain/blockchain.module';
 import { ConfigModule } from '@nestjs/config';
 import { AdminAuthModule } from '../auth/admin-auth.module';
+import { WageringModule } from '../wagering/wagering.module';
 
 @Module({
   imports: [
     AdminAuthModule,
-    TypeOrmModule.forFeature([Deposit]),
+    TypeOrmModule.forFeature([Deposit, AdminAuditLog]),
     BullModule.registerQueue({
       name: 'deposit-detection',
     }),
@@ -33,6 +35,7 @@ import { AdminAuthModule } from '../auth/admin-auth.module';
     UsersModule,
     BlockchainModule,
     ConfigModule,
+    WageringModule,
   ],
   controllers: [DepositController],
   providers: [

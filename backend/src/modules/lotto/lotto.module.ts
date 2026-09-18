@@ -32,10 +32,12 @@ import { PeriodSyncModule } from '../period-sync/period-sync.module';
 import { LottoBetExposureService } from './services/lotto-bet-exposure.service';
 import { LottoWinStrategyService } from './services/lotto-win-strategy.service';
 import { AdminAuthModule } from '../../auth/admin-auth.module';
+import { WageringModule } from '../../wagering/wagering.module';
 
 @Module({
   imports: [
     AdminAuthModule,
+    WageringModule,
     TypeOrmModule.forFeature([
       LottoRound,
       LottoTicket,

@@ -34,6 +34,12 @@ import { AdminPool } from './modules/lotto/entities/admin-pool.entity';
 import { AdminPoolTransaction } from './modules/lotto/entities/admin-pool-transaction.entity';
 import { AdminAction } from './modules/lotto/entities/admin-action.entity';
 import { SystemSetting } from './modules/lotto/entities/system-setting.entity';
+import { WageringSettings } from './wagering/entities/wagering-settings.entity';
+import { WageringUserOverride } from './wagering/entities/wagering-user-override.entity';
+import { WageringObligation } from './wagering/entities/wagering-obligation.entity';
+import { WageringEvent } from './wagering/entities/wagering-event.entity';
+import { WageringNotification } from './wagering/entities/wagering-notification.entity';
+import { WageringModule } from './wagering/wagering.module';
 
 import { PulseTradeModule } from './pulse-trade/pulse-trade.module';
 
@@ -117,6 +123,12 @@ import { DepositGatewayModule } from './deposit-gateway/gateway.module';
           // Bot System
           BotMonthlySettlement,
           BotSetting,
+          // Wagering System
+          WageringSettings,
+          WageringUserOverride,
+          WageringObligation,
+          WageringEvent,
+          WageringNotification,
         ],
         synchronize: false,
         // Query logging floods production logs with every SELECT —
@@ -170,6 +182,7 @@ import { DepositGatewayModule } from './deposit-gateway/gateway.module';
     PulseTradeModule,
     LottoModule,
     BotModule, // ✅ BotModule is already imported here
+    WageringModule,
     DepositGatewayModule,
   ],
 })

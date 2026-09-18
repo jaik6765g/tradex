@@ -263,6 +263,9 @@ function makeHarness(o: {
     { evaluatePreTradeRisk: jest.fn() } as never,
     { checkTradeLiquidity: jest.fn() } as never,
     { get: jest.fn(() => undefined) } as never,
+    {
+      recordWageredVolume: jest.fn(async () => ({ status: 'COUNTED' })),
+    } as never,
   );
 
   return { svc, trades, ledgers, tradeRepo, priceService, seed };

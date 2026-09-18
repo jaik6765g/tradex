@@ -48,6 +48,11 @@ import { User } from '../../users/user.entity';
 import { LedgerEntry, LedgerType } from '../../ledger/ledger.entity';
 import { Balance } from '../../balances/balance.entity';
 import { PeriodSyncService } from '../period-sync/period-sync.service';
+import { WageringService } from '../../wagering/wagering.service';
+import {
+  LOTTO_SOURCE_TYPE,
+  WageringActivityType,
+} from '../../wagering/wagering.service';
 import { formatWingoPeriodNumber } from '../period-sync/wingo-period-number';
 import {
   LOTTO_WIN_STRATEGY_SETTING_KEY,
@@ -265,6 +270,7 @@ export class LottoService {
     private readonly winStrategyService: LottoWinStrategyService,
     private dataSource: DataSource,
     private readonly configService: ConfigService,
+    private readonly wageringService: WageringService,
   ) {}
 
   async getActiveRound(category?: Category) {
@@ -1862,7 +1868,7 @@ export class LottoService {
       throw new ConflictException('ROUND_NOT_DRAWN');
     }
 
-    const { round: settledRound, normalizedResult } =
+    const { round: settledRound, normalizedResult, settledTickets } =
       await this.dataSource.transaction(async (manager) => {
         const txRoundRepo = manager.getRepository(LottoRound);
         const txTicketRepo = manager.getRepository(LottoTicket);
@@ -1938,10 +1944,50 @@ export class LottoService {
         return {
           round: savedRound,
           normalizedResult,
+          settledTickets: tickets,
         };
       });
 
+      // Wagering volume hook — POST-COMMIT so a wagering failure can never
+      // roll back or block lotto settlement, and a settlement rollback can
+      // never leave wagering volume counted for an unsettled round.
+      // Exactly-once by (sourceType, sourceId); refunds/cancels never occur
+      // for tickets settled by settleTicketForRound, and only the settled
+      // stake (never fees or payouts) is counted.
+      void this.recordWageringForSettledTickets(settledTickets ?? []).catch((error) => {
+        console.warn(
+          `⚠️ Wagering volume hook failed for round ${settledRound.id}:`,
+          error,
+        );
+      });
+
     return this.toRoundSettlementResult(settledRound, normalizedResult);
+  }
+
+  /** Fire-and-forget post-commit wagering volume recording (guarded). */
+  private async recordWageringForSettledTickets(
+    tickets: LottoTicket[],
+  ): Promise<void> {
+    for (const ticket of tickets) {
+      try {
+        await this.wageringService.recordWageredVolume({
+          userId: ticket.userId,
+          activityType: WageringActivityType.LOTTO,
+          sourceType: LOTTO_SOURCE_TYPE,
+          sourceId: ticket.id.toString(),
+          // netAmount already excludes the 3% in-ticket deduction (2% referral
+          // + 1% admin), so only fee-excluded stake is counted.
+          amount: this.parseAmount(ticket.netAmount).toFixed(18),
+          ledgerType: 'GAME_ENTRY',
+          settlementOutcome: 'SETTLED',
+        });
+      } catch (error) {
+        console.warn(
+          `⚠️ Wagering volume hook failed for lotto ticket ${ticket.id}:`,
+          error,
+        );
+      }
+    }
   }
 
   async markRoundSettlementFailed(

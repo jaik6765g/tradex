@@ -16,6 +16,7 @@ import {
   Menu,
   PieChart,
   Settings,
+  Settings2,
   Shield,
   Trophy,
   Users,
@@ -44,6 +45,7 @@ import AdminSecuritySettingsScreen from './AdminSecuritySettingsScreen';
 import AdminBotSettingsScreen from './AdminBotSettingsScreen';
 import AdminLottoManagerScreen from './AdminLottoManagerScreen';
 import AdminLottoExposureScreen from './AdminLottoExposureScreen';
+import AdminWageringScreen from './AdminWageringScreen';
 
 interface AdminNavItem {
   label: string;
@@ -70,6 +72,7 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   { label: 'Audit Logs', path: '/admin/audit-logs', icon: AlertCircle, implemented: true },
   { label: 'Settings', path: '/admin/settings', icon: Settings, implemented: true },
   { label: 'Security', path: '/admin/settings/security', icon: Shield, implemented: true },
+  { label: 'Wagering', path: '/admin/wagering', icon: Settings2, implemented: true },
 ];
 
 function AdminSidebar({ onItemClick }: { onItemClick?: () => void }) {
@@ -174,6 +177,7 @@ export default function AdminDashboardScreen() {
   const isBotSettingsRoute = location.pathname.startsWith('/admin/bot-settings');
   const isLottoExposureRoute = location.pathname.startsWith('/admin/lotto/exposure');
   const isLottoRoute = location.pathname.startsWith('/admin/lotto');
+  const isWageringRoute = location.pathname.startsWith('/admin/wagering');
   const isRiskSecurityRoute = location.pathname.startsWith('/admin/risk-security');
   const isAuditLogsRoute = location.pathname.startsWith('/admin/audit-logs');
   // Must be checked BEFORE the generic /admin/settings route.
@@ -183,7 +187,7 @@ export default function AdminDashboardScreen() {
 
   const isDashboardRoute = !isOverviewRoute && !isUsersRoute && !isWithdrawalsRoute &&
     !isDepositsRoute && !isPulseTradeRoute && !isLedgerRoute && !isLiquidityRoute &&
-    !isReferralsRoute && !isBotSettingsRoute && !isLottoExposureRoute && !isLottoRoute && !isRiskSecurityRoute && !isAuditLogsRoute && !isSettingsRoute && !isSecuritySettingsRoute;
+    !isReferralsRoute && !isBotSettingsRoute && !isLottoExposureRoute && !isLottoRoute && !isWageringRoute && !isRiskSecurityRoute && !isAuditLogsRoute && !isSettingsRoute && !isSecuritySettingsRoute;
 
   const handleLogout = async () => {
     if (isLoggingOut) return;
@@ -211,6 +215,7 @@ export default function AdminDashboardScreen() {
   else if (isBotSettingsRoute) content = <AdminBotSettingsScreen />;
   else if (isLottoExposureRoute) content = <AdminLottoExposureScreen />;
   else if (isLottoRoute) content = <AdminLottoManagerScreen />;
+  else if (isWageringRoute) content = <AdminWageringScreen />;
   else if (isRiskSecurityRoute) content = <AdminRiskSecurityScreen />;
   else if (isAuditLogsRoute) content = <AdminAuditLogsScreen />;
   else if (isSecuritySettingsRoute) content = <AdminSecuritySettingsScreen />;

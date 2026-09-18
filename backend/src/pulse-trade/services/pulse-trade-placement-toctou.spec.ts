@@ -540,6 +540,9 @@ function makeService(h: ReturnType<typeof makeHarness>): PulseTradeService {
     new RiskService(),
     new LiquidityService(),
     configService as never,
+    {
+      recordWageredVolume: jest.fn(async () => ({ status: 'COUNTED' })),
+    } as never,
   );
 }
 

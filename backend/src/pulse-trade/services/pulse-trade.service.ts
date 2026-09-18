@@ -26,6 +26,12 @@ import { Queue } from 'bullmq';
 import { Balance } from '../../balances/balance.entity';
 import { LedgerEntry, LedgerType } from '../../ledger/ledger.entity';
 import {
+  TRADE_SOURCE_TYPE,
+  WageringActivityType,
+  WageringService,
+  netStakeAfterFees,
+} from '../../wagering/wagering.service';
+import {
   normalizePulseSymbol,
   PULSE_30S_CUTOFF_SECONDS,
   PULSE_30S_DURATION_SECONDS,
@@ -191,6 +197,7 @@ export class PulseTradeService {
     private readonly riskService: RiskService,
     private readonly liquidityService: LiquidityService,
     private readonly configService: ConfigService,
+    private readonly wageringService: WageringService,
     /**
      * HIGH-3 (settlement recovery): existing deterministic settlement queue.
      * Optional — unit tests / queue-less bootstrap break na hon; queue
@@ -2136,6 +2143,64 @@ export class PulseTradeService {
       // - abhi bhi ACTIVE hai → tabhi DELAYED/retry lagao.
       // - terminal (non-SETTLED) hai → waisa hi rehne do, original error pheko.
       return this.handleSettlementCommitFailure(tradeId, error);
+    } finally {
+      // Wagering volume hook — runs after the settlement transaction outcome
+      // is known. Only successfully SETTLED trades with a WIN/LOSS result count
+      // (DRAW returns the stake = refund-like; CANCELLED/SETTLEMENT_FAILED and
+      // reversals never count). Fees are excluded — the full stake is the
+      // wagered volume. Exactly-once via (sourceType, sourceId); failures are
+      // caught so wagering can never block or fail settlement.
+      try {
+        const finalTrade = await this.tradeRepo.findOne({
+          where: { id: tradeId },
+          select: { id: true, userId: true, status: true, result: true, amount: true },
+        });
+        if (
+          finalTrade &&
+          finalTrade.status === TradeStatus.SETTLED &&
+          (finalTrade.result === TradeResult.WIN ||
+            finalTrade.result === TradeResult.LOSS)
+        ) {
+          // Fee exclusion: the TRADE_ENTRY leg holds the debited stake and the
+          // dedicated TRADE_FEE_ALLOCATION leg holds the entry fee. Only
+          // stake minus fee counts as wagering volume (exact Decimal).
+          const ledgerRepo = this.dataSource.getRepository(LedgerEntry);
+          const entryLeg = await ledgerRepo.findOne({
+            where: {
+              referenceId: finalTrade.id,
+              type: LedgerType.TRADE_ENTRY,
+            },
+            select: { id: true, amount: true },
+          });
+          const feeLegs = await ledgerRepo.find({
+            where: {
+              referenceId: finalTrade.id,
+              type: LedgerType.TRADE_FEE,
+              referenceType:
+                PULSE_SETTLEMENT_POLICY.ledger.feeReferenceType,
+            },
+            select: { id: true, amount: true },
+          });
+
+          await this.wageringService.recordWageredVolume({
+            userId: finalTrade.userId,
+            activityType: WageringActivityType.TRADE,
+            sourceType: TRADE_SOURCE_TYPE,
+            sourceId: finalTrade.id,
+            amount: netStakeAfterFees(
+              entryLeg?.amount ?? finalTrade.amount,
+              feeLegs.map((leg) => leg.amount),
+            ),
+            ledgerType: 'TRADE_ENTRY',
+            settlementOutcome: 'SETTLED',
+          });
+        }
+      } catch (wageringError) {
+        console.warn(
+          `⚠️ Wagering volume hook failed for pulse trade ${tradeId}:`,
+          wageringError,
+        );
+      }
     }
   }
 

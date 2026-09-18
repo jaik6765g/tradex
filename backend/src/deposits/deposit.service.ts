@@ -18,6 +18,7 @@ import { LedgerType, LedgerEntry } from '../ledger/ledger.entity';
 import { BlockchainService } from '../blockchain/blockchain.service';
 import { AdminAuditLog } from '../admin/entities/admin-audit-log.entity';
 import { LimitsService } from '../limits/limits.service';
+import { WageringService } from '../wagering/wagering.service';
 
 /** Audit actions for the below-minimum deposit recovery decisions. */
 export const DEPOSIT_BELOW_MINIMUM_CREDITED_ACTION =
@@ -72,9 +73,11 @@ export class DepositService {
     private readonly limitsService: LimitsService,
     private readonly dataSource: DataSource,
     /**
+     * Wagering enforcement is created in the SAME transaction as the
      * below-minimum recovery credit so a credited deposit can never be
      * withdrawn before its obligation exists (H1).
      */
+    private readonly wageringService: WageringService,
   ) {}
 
   // ============================================================
@@ -251,6 +254,47 @@ export class DepositService {
       }
 
       const saved = await depositRepo.save(deposit);
+
+      if (decision === 'CREDIT') {
+        // H1 — close the withdrawal-enforcement gap: the wagering obligation
+        // is created inside THIS transaction, using the same deposit row
+        // (detection-time TDX amount + conversion rate) and the multiplier
+        // snapshot resolved by WageringService. Either the credit, the ledger
+        // entry and the obligation all commit, or nothing does — the deposit
+        // stays BELOW_MINIMUM and the admin can safely retry the decision.
+        // Idempotency is preserved by UNIQUE(wagering_obligations."depositId")
+        // plus the pre-check inside createObligationForDeposit, so a later
+        // reconciliation sweep can never add a second obligation.
+        const creditedEntry = await manager.getRepository(LedgerEntry).findOne({
+          where: {
+            referenceId: saved.id,
+            referenceType: 'deposit',
+            type: LedgerType.DEPOSIT,
+          },
+          select: { id: true },
+        });
+
+        if (!creditedEntry) {
+          // Refuse to commit a credit whose ledger anchor is missing — that
+          // would be exactly the "credited funds with no recoverable
+          // obligation" state this guard prevents.
+          throw new ConflictException({
+            statusCode: 409,
+            error: 'Conflict',
+            code: 'BELOW_MINIMUM_CREDIT_LEDGER_MISSING',
+            message:
+              'Credit ledger entry missing for this deposit — no changes were committed',
+          });
+        }
+
+        // Returns false (no obligation) only when the platform policy says so:
+        // wagering disabled, deposit predating activation, or zero TDX.
+        await this.wageringService.createObligationForDeposit(
+          saved,
+          creditedEntry.id,
+          manager,
+        );
+      }
 
       await auditRepo.save(
         auditRepo.create({

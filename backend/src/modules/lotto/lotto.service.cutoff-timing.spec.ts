@@ -102,6 +102,9 @@ describe('LottoService cutoff-first result timing', () => {
       {} as never,
       dataSource as never,
       {} as never,
+      {
+        recordWageredVolume: jest.fn(async () => ({ status: 'COUNTED' })),
+      } as never,
     );
 
     const drawSpy = jest

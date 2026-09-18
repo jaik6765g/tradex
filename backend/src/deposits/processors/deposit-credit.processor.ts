@@ -4,12 +4,14 @@ import { DepositService } from '../deposit.service';
 import { BalanceService } from '../../balances/balance.service';
 import { LedgerType } from '../../ledger/ledger.entity';
 import { DepositStatus } from '../deposit.entity';
+import { WageringService } from '../../wagering/wagering.service';
 
 @Injectable()
 export class DepositCreditProcessor {
   constructor(
     private depositService: DepositService,
     private balanceService: BalanceService,
+    private wageringService: WageringService,
   ) {}
 
   async handleDepositCredit(job: Job): Promise<void> {
@@ -96,6 +98,27 @@ export class DepositCreditProcessor {
         await this.depositService.getDepositById(depositId);
       updatedDeposit.creditedAt = new Date();
       await this.depositService['depositRepository'].save(updatedDeposit);
+
+      // Wagering obligation hook — non-blocking and idempotent by depositId.
+      // The credited DEPOSIT ledger entry is written inside creditTDX with
+      // referenceType='deposit', referenceId=depositId; wagering resolves the
+      // entry itself (ledger remains the source of truth). Failures are caught
+      // inside the service and repaired by the reconciliation sweep.
+      try {
+        const creditedEntry =
+          await this.wageringService.findDepositLedgerEntry(depositId);
+        if (creditedEntry) {
+          await this.wageringService.onDepositCredited(
+            updatedDeposit,
+            creditedEntry.id,
+          );
+        }
+      } catch (wageringError) {
+        console.warn(
+          `⚠️ Wagering hook skipped for deposit ${depositId}:`,
+          wageringError,
+        );
+      }
 
       console.log(
         `✅ Deposit credited: ${amountToCredit} TDX to user ${userId}`,
