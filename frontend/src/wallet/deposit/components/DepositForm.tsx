@@ -4,6 +4,7 @@
 
 import React from 'react';
 import { MIN_USDT_DEPOSIT, TDX_RATE } from '../../config/wallet';
+import { useWalletLimits } from '../../hooks/useWalletLimits';
 import type { DepositStatus } from '../types/deposit.types';
 
 interface DepositFormProps {
@@ -27,6 +28,10 @@ export function DepositForm({
 }: DepositFormProps) {
   const amountNumber = Number(amount);
   const hasValidAmount = Number.isFinite(amountNumber) && amountNumber > 0;
+  // Supplementary validation only — the backend enforces every limit.
+  const { depositMin, depositMax } = useWalletLimits();
+  const minDeposit = Number.isFinite(depositMin) ? depositMin : MIN_USDT_DEPOSIT;
+  const aboveMaximum = Number.isFinite(amountNumber) && amountNumber > depositMax;
 
   return (
     <div className="space-y-4">
@@ -36,7 +41,7 @@ export function DepositForm({
         </label>
         <input
           type="number"
-          min={MIN_USDT_DEPOSIT}
+          min={minDeposit}
           step="any"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
@@ -46,7 +51,14 @@ export function DepositForm({
         />
       </div>
 
-      <p className="text-xs text-[#A1A4AE]">Minimum deposit: {MIN_USDT_DEPOSIT} USDT</p>
+      <p className="text-xs text-[#A1A4AE]">
+        Minimum deposit: {minDeposit} USDT · Maximum per transaction: {depositMax} USDT
+      </p>
+      {aboveMaximum && (
+        <p className="text-xs text-[#F87171]">
+          Maximum deposit per transaction is {depositMax} USDT.
+        </p>
+      )}
 
       {amount && hasValidAmount && (
         <div className="p-4 bg-gradient-to-r from-[#211810] to-[#211810] rounded-xl border border-[#34261C]">
@@ -60,7 +72,7 @@ export function DepositForm({
 
       <button
         onClick={onSubmit}
-        disabled={!hasValidAmount || amountNumber < MIN_USDT_DEPOSIT || isLoading}
+        disabled={!hasValidAmount || amountNumber < minDeposit || aboveMaximum || isLoading}
         className="w-full py-3 px-4 bg-gradient-to-r from-[#FF7A18] to-[#E8650F] text-white font-medium rounded-xl hover:from-[#FF8F3D] hover:to-[#D2570E] disabled:from-[#34343E] disabled:to-[#34343E] disabled:cursor-not-allowed transition-all duration-200 shadow-md"
       >
         {isLoading ? '⏳ Processing...' : isSuccess ? '✅ Done!' : 'Deposit USDT'}

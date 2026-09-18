@@ -1035,6 +1035,23 @@ export class AdminService {
     return response.data as AdminSettingItem;
   }
 
+  /**
+   * Plan v3): CREDIT (captured detection-time rate) or REJECT. Reason is
+   * mandatory and is persisted in the immutable admin_audit_logs row.
+   */
+    depositId: string,
+  ): Promise<AdminDeposit> {
+    const trimmedReason = (payload.reason ?? '').trim();
+    if (!trimmedReason) {
+    }
+
+    const response = await apiClient.post<AdminDeposit>(
+      { decision: payload.decision, reason: trimmedReason },
+    );
+
+    return response.data as AdminDeposit;
+  }
+
   // ============================================================
   // ADMIN BOT SETTINGS
   // ============================================================

@@ -16,6 +16,21 @@ import { useWalletContext } from '../../../wallet/context/WalletContext';
 import { useWithdraw } from '../hooks/useWithdraw';
 import { apiClient } from '../../../core/api/client';
 
+import { useWalletLimits } from '../../../wallet/hooks/useWalletLimits';
+import { TDX_RATE } from '../../../wallet/config/wallet';
+import {
+  compareDecimalStrings,
+  formatDecimalString,
+  isPositiveDecimal,
+  trimDecimalZeros,
+  usdtToTdx,
+  tdxToUsdt,
+} from '../utils/money';
+import {
+  MAX_USDT_WITHDRAWAL,
+  MIN_USDT_WITHDRAWAL,
+} from '../../../wallet/config/wallet';
+
 // ============================================================
 // TYPES
 // ============================================================
@@ -41,6 +56,24 @@ export interface SavedPayout {
   chain: string;
   savedAt: number;
 }
+
+/**
+ * Renders a backend resetsAt ISO instant as a short local countdown/datetime
+ * string ("resets in 3h 12m" or the local date when far away). Pure display
+ * helper — no financial math.
+ */
+const formatResetCountdown = (iso: string): string => {
+  const target = new Date(iso).getTime();
+  if (Number.isNaN(target)) return 'at the next reset';
+  const diffMs = target - Date.now();
+  if (diffMs <= 0) return 'at the next reset';
+  const totalMinutes = Math.floor(diffMs / 60000);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours <= 0) return `in ${minutes}m`;
+  if (hours < 48) return `in ${hours}h ${minutes}m`;
+  return new Date(target).toLocaleString();
+};
 
 /** Supported payout chains (backend pays out on BSC/BEP-20). */
 const SUPPORTED_CHAINS = [{ id: 'BSC', label: 'BSC (BEP-20)' }] as const;
@@ -103,10 +136,82 @@ export default function WithdrawalScreen() {
 
   const { withdraw, status, error, isLoading, isSuccess, reset } = useWithdraw(userId);
 
+  // Supplementary limits UI only — the backend enforces every limit inside
+  // its locked transaction. The limits API returns exact USDT decimal
+  // strings; TDX equivalents are derived with string arithmetic only.
+  const { withdrawMin, withdrawMax, dailyWithdrawals } = useWalletLimits();
+
+  // Account readiness — a signed-in account is enough (no wallet connection
+  // hook call and the derived eligibility flags below depend on it.
+  const accountReady = Boolean(isAuthenticated && userId);
+
+  // final authority inside its locked withdrawal transaction.
+  const {
+    withdrawalEligible,
+    remainingTdx,
+
+  const trimInput = (raw: string): string => raw.trim();
+
+  // --- Exact-limit view model (strings from the backend, strings only) ---
+  const minUsdtRaw = Number.isFinite(withdrawMin) ? String(withdrawMin) : String(MIN_USDT_WITHDRAWAL);
+  const maxUsdtRaw = Number.isFinite(withdrawMax) ? String(withdrawMax) : String(MAX_USDT_WITHDRAWAL);
+  const minTdxExact = usdtToTdx(minUsdtRaw) ?? '0';
+  const maxTdxExact = usdtToTdx(maxUsdtRaw) ?? '0';
+
+  const amountTrimmed = trimInput(amount);
+  const hasTypedAmount = amountTrimmed.length > 0;
+  const amountValidDecimal = isPositiveDecimal(amountTrimmed);
+  const amountBelowMin =
+    amountValidDecimal && compareDecimalStrings(amountTrimmed, minTdxExact) === -1;
+  const amountAboveMax =
+    amountValidDecimal && compareDecimalStrings(amountTrimmed, maxTdxExact) === 1;
+
+  // USDT preview of the typed amount — string division only, never a float.
+  const usdtPreviewExact = amountValidDecimal ? tdxToUsdt(amountTrimmed) : null;
+
+  // --- Derived eligibility (guidance only; backend is authoritative) ---
+  // during the initial fetch.
+    withdrawalEligible === false;
+
+    remainingTdx !== null && remainingTdx !== undefined
+      ? trimDecimalZeros(String(remainingTdx))
+      : '0';
+
+  // Withdrawable balance: exact display math only.
+  const availableTdxRaw = String(tdxBalance ?? '0');
+  const availableTdxDisplay = isPositiveDecimal(availableTdxRaw)
+    ? trimDecimalZeros(availableTdxRaw)
+    : '0';
+
+  const withdrawableUsdtDisplay = !accountReady
+    ? '—'
+      ? '0'
+      : isPositiveDecimal(availableTdxDisplay)
+        ? (tdxToUsdt(availableTdxDisplay) ?? '0')
+        : '0';
+
+  // The withdrawal button stays disabled (blurred) until there is a real,
+  // withdrawable amount — a 0 USDT withdrawable balance can never be submitted.
+  const hasWithdrawableBalance =
+
+  // Today's remaining withdrawals from the limits API — never hardcoded.
+  const frequencyUnlimited = dailyWithdrawals.mode === 'UNLIMITED';
+  const frequencyLimitValue =
+    typeof dailyWithdrawals.value === 'number' ? dailyWithdrawals.value : null;
+  const frequencyUsed =
+    typeof dailyWithdrawals.usedToday === 'number' ? dailyWithdrawals.usedToday : null;
+  const remainingWithdrawalsToday =
+    frequencyUnlimited || frequencyLimitValue === null || frequencyUsed === null
+      ? null
+      : Math.max(0, frequencyLimitValue - frequencyUsed);
+  const dailyLimitReached =
+    remainingWithdrawalsToday !== null && remainingWithdrawalsToday <= 0;
+
   // No wallet connection required — a signed-in account with a payout
   // address is enough (the destination is entered by the user).
-  const accountReady = Boolean(isAuthenticated && userId);
   const addressValid = /^0x[a-fA-F0-9]{40}$/.test(payoutAddress.trim());
+
+  // --- Eligibility banner + submit gating ---
 
   const handlePayoutAddressChange = (value: string) => {
     setPayoutAddress(value);
@@ -134,22 +239,16 @@ export default function WithdrawalScreen() {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
   };
 
-  const formatTDX = (v: string | number) => {
-    const n = typeof v === 'string' ? parseFloat(v) : v;
-    return isNaN(n) ? '0.00' : n.toFixed(2);
-  };
+  // Display-only formatters. Financial values are formatted from exact decimal
+  // strings — never via floating-point parsing.
+  const formatTDX = (v: string | number | null | undefined): string =>
+    formatDecimalString(v, 2);
 
-  const formatUSDT = (v: string | number) => {
-    const n = typeof v === 'string' ? parseFloat(v) : v;
-    return isNaN(n) ? '0.00' : n.toFixed(2);
-  };
+  const formatUSDT = (v: string | number | null | undefined): string =>
+    formatDecimalString(v, 2);
 
-  // ✅ NEW: Format amount to 2 decimal places
-  const formatAmount = (amount: string | number): string => {
-    const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-    if (isNaN(num)) return '0.00';
-    return num.toFixed(2);
-  };
+  const formatAmount = (v: string | number | null | undefined): string =>
+    formatDecimalString(v, 2);
 
   const formatRelativeTime = (date: string) => {
     const diff = Date.now() - new Date(date).getTime();
@@ -211,7 +310,91 @@ export default function WithdrawalScreen() {
   // HANDLERS
   // ============================================================
 
-  const usdtAmount = amount ? parseFloat(amount) / 100 : 0;
+  // incomplete > daily limit reached > amount out of range. `blockReason`
+  // decides both the banner and the button.
+  type BlockReason =
+    | 'LOGIN'
+    | 'DAILY_LIMIT_REACHED'
+    | 'NO_WITHDRAWABLE_BALANCE'
+    | 'AMOUNT_BELOW_MIN'
+    | 'AMOUNT_ABOVE_MAX'
+    | 'AMOUNT_INVALID'
+    | 'ADDRESS_INVALID'
+    | null;
+
+  const blockReason: BlockReason = !accountReady
+    ? 'LOGIN'
+      : dailyLimitReached
+        ? 'DAILY_LIMIT_REACHED'
+        : !hasWithdrawableBalance
+          ? 'NO_WITHDRAWABLE_BALANCE'
+          : !hasTypedAmount
+            ? null
+            : !amountValidDecimal
+              ? 'AMOUNT_INVALID'
+              : amountBelowMin
+                ? 'AMOUNT_BELOW_MIN'
+                : amountAboveMax
+                  ? 'AMOUNT_ABOVE_MAX'
+                  : !addressValid
+                    ? 'ADDRESS_INVALID'
+                    : null;
+
+  const eligibilityBanner: {
+    tone: 'amber' | 'green' | 'red';
+    title: string;
+    body: string;
+  } | null = (() => {
+    if (!accountReady) return null;
+    switch (blockReason) {
+        return {
+          tone: 'amber',
+        };
+      case 'DAILY_LIMIT_REACHED':
+        return {
+          tone: 'red',
+          title: "Today's withdrawal limit reached",
+          body: dailyWithdrawals.resetsAt
+            ? `You have used all ${frequencyLimitValue ?? ''} withdrawals allowed today. New requests open after ${formatResetCountdown(dailyWithdrawals.resetsAt)}.`
+            : 'You have used all withdrawals allowed today. Please try again tomorrow.',
+        };
+      case 'NO_WITHDRAWABLE_BALANCE':
+        return {
+          tone: 'amber',
+          title: 'No withdrawable balance',
+        };
+      // Amount and address problems are shown inline (next to the amount
+      // input and the destination field), so they render no banner.
+      case 'AMOUNT_BELOW_MIN':
+      case 'AMOUNT_ABOVE_MAX':
+      case 'AMOUNT_INVALID':
+      case 'ADDRESS_INVALID':
+        return null;
+      default:
+          return {
+            tone: 'green',
+            title: 'Withdrawal available',
+          };
+        }
+        return null;
+    }
+  })();
+
+  const handleUseMax = () => {
+    // Gated by the same eligibility rules as the submit button: never writes
+    // an amount the backend would reject. Uses the smaller of the available
+    // balance and the per-transaction maximum, with exact string compares.
+    if (!accountReady || isLoading) return;
+    if (!isPositiveDecimal(availableTdxRaw)) return;
+    const avail = trimDecimalZeros(availableTdxRaw);
+    if (compareDecimalStrings(avail, minTdxExact) === -1) return;
+    const capped = compareDecimalStrings(avail, maxTdxExact) === 1 ? maxTdxExact : avail;
+    setAmount(capped);
+  };
+
+  // Exact string form of the USDT preview (display only).
+  const usdtAmountExact = usdtPreviewExact ?? '0';
+  void TDX_RATE;
 
   const handleWithdraw = async () => {
     if (!accountReady || !addressValid) return;
@@ -268,7 +451,6 @@ export default function WithdrawalScreen() {
           )}
 
           {/* Withdraw Panel */}
-          <section className="rounded-[20px] border border-[#292B33] bg-[#15161C] p-4">
             <div className="flex items-center justify-between">
               <h2 className="text-[16px] font-black text-[#F5F5F7]">Withdraw</h2>
               <button
@@ -314,31 +496,86 @@ export default function WithdrawalScreen() {
                       placeholder="0.00"
                       className="w-full px-4 py-3 border border-[#34343E] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF7A18] focus:border-transparent text-lg font-bold text-[#F5F5F7]"
                       disabled={isLoading}
-                      min="1"
+                      min={minTdxExact}
+                      max={maxTdxExact}
                       step="0.01"
                     />
                     <button
-                      onClick={() => {
-                        const max = parseFloat(tdxBalance || '0');
-                        if (max > 0) setAmount(max.toString());
-                      }}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#C99752] hover:text-[#C99752]"
+                      type="button"
+                      onClick={handleUseMax}
+                      disabled={
+                        !accountReady ||
+                        isLoading ||
+                        dailyLimitReached
+                      }
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#C99752] hover:text-[#C99752] disabled:opacity-40 disabled:cursor-not-allowed"
+                      title="Fill the largest withdrawable amount allowed by the current limits"
                     >
-                      MAX
+                      USE MAX
                     </button>
                   </div>
-                  <p className="text-xs text-[#70737E] mt-1">
-                    Min: 0.01 TDX • Max: {formatTDX(tdxBalance)} TDX
-                  </p>
                 </div>
+                {/* Withdrawable Balance — the amount actually available to withdraw */}
+                <p className="mt-2 text-xs font-semibold text-[#A1A4AE]">
+                  Withdrawable Balance:{' '}
+                  <span className={hasWithdrawableBalance ? 'text-[#4ADE80]' : 'text-[#FF8F3D]'}>
+                      ? '…'
+                      : `${formatDecimalString(withdrawableUsdtDisplay)} USDT`}
+                  </span>
+                </p>
+                {(amountBelowMin || amountAboveMax) && (
+                  <p className="text-xs text-[#F87171] mt-1">
+                    {amountBelowMin
+                      ? `Minimum withdrawal is ${formatDecimalString(minUsdtRaw)} USDT (${formatTDX(minTdxExact)} TDX).`
+                      : `Maximum withdrawal per transaction is ${formatDecimalString(maxUsdtRaw)} USDT (${formatTDX(maxTdxExact)} TDX).`}
+                  </p>
+                )}
+
+                {/* Eligibility banner — one prioritized status, never a stack */}
+                {accountReady && eligibilityBanner && (
+                  <div
+                    role="status"
+                    className={`mt-3 rounded-xl border p-3 ${
+                      eligibilityBanner.tone === 'green'
+                        ? 'border-[#123A24] bg-[#10251A]'
+                        : eligibilityBanner.tone === 'amber'
+                          ? 'border-[#8F4817] bg-[#2A190D]'
+                          : 'border-[#4A2323] bg-[#281313]'
+                    }`}
+                  >
+                    <div className="flex items-start gap-2">
+                      {eligibilityBanner.tone === 'green' ? (
+                        <Check size={16} className="mt-0.5 shrink-0 text-[#4ADE80]" />
+                      ) : eligibilityBanner.tone === 'amber' ? (
+                        <ShieldAlert size={16} className="mt-0.5 shrink-0 text-[#FF8F3D]" />
+                      ) : (
+                        <AlertCircle size={16} className="mt-0.5 shrink-0 text-[#F87171]" />
+                      )}
+                      <div>
+                        <p
+                          className={`text-sm font-extrabold ${
+                            eligibilityBanner.tone === 'green'
+                              ? 'text-[#4ADE80]'
+                              : eligibilityBanner.tone === 'amber'
+                                ? 'text-[#FF8F3D]'
+                                : 'text-[#F87171]'
+                          }`}
+                        >
+                          {eligibilityBanner.title}
+                        </p>
+                        <p className="mt-0.5 text-xs text-[#A1A4AE]">{eligibilityBanner.body}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* USDT Preview */}
-                {amount && parseFloat(amount) > 0 && (
+                {amountValidDecimal && (
                   <div className="mt-3 p-3 bg-[#10251A] rounded-xl border border-[#123A24]">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-[#A1A4AE]">You will receive:</span>
                       <span className="text-lg font-bold text-[#4ADE80]">
-                        {usdtAmount.toFixed(2)} USDT
+                        {formatDecimalString(usdtAmountExact)} USDT
                       </span>
                     </div>
                   </div>
@@ -425,8 +662,8 @@ export default function WithdrawalScreen() {
                 {/* Withdraw Button */}
                 <button
                   onClick={handleWithdraw}
-                  disabled={!amount || parseFloat(amount) <= 0 || isLoading || !accountReady || !addressValid}
-                  className="w-full mt-5 py-3 bg-[#FF7A18] text-white font-bold rounded-xl hover:bg-[#FF8F3D] disabled:bg-[#34343E] disabled:cursor-not-allowed transition transform hover:scale-[1.02] active:scale-[0.98]"
+                  disabled={blockReason !== null || isLoading}
+                  className="w-full mt-5 py-3 bg-[#FF7A18] text-white font-bold rounded-xl hover:bg-[#FF8F3D] disabled:bg-[#34343E] disabled:opacity-70 disabled:blur-[1px] disabled:cursor-not-allowed transition transform hover:scale-[1.02] active:scale-[0.98]"
                 >
                   {isLoading ? (
                     <span className="flex items-center justify-center gap-2">
@@ -482,18 +719,30 @@ export default function WithdrawalScreen() {
                   </div>
                 )}
 
-                {/* Info */}
                 <div className="mt-4 p-3 bg-[#2A190D] rounded-xl border border-[#3A281C]">
                   <div className="flex items-start gap-2">
                     <AlertCircle size={16} className="text-[#F59E0B] mt-0.5 shrink-0" />
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <p className="text-xs font-semibold text-[#F59E0B]">
                         Withdrawal Information
                       </p>
-                      <ul className="text-xs text-[#F59E0B] mt-1 space-y-0.5 list-disc list-inside">
-                        <li>Minimum: 1 TDX (0.01 USDT)</li>
-                        <li>Large withdrawals require admin approval</li>
-                        <li>Processing time: 5-30 minutes</li>
+                      <div className="mt-1.5 flex items-center justify-between gap-2 text-xs">
+                        <span
+                          className={`font-extrabold ${
+                          }`}
+                        >
+                            ? '…'
+                              : '—'}
+                        </span>
+                      </div>
+                      <ul className="mt-2 list-disc list-inside space-y-0.5 text-xs text-[#F59E0B]">
+                        <li>
+                          Min {formatDecimalString(minUsdtRaw)} USDT
+                          <span className="mx-1">•</span>
+                          Max {formatDecimalString(maxUsdtRaw)} USDT
+                        </li>
+                        <li>Check the address and network before submitting.</li>
+                        <li>Never share your password, OTP, or recovery phrase.</li>
                       </ul>
                     </div>
                   </div>

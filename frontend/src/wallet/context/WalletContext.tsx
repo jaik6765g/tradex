@@ -4,6 +4,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import {
@@ -76,8 +77,8 @@ interface WalletContextType {
   nativeSymbol: string;
   isLoading: boolean;
   error: string | null;
-  refresh: () => Promise<void>;
-  fetchBalance: () => Promise<void>;
+  refresh: (options?: { silent?: boolean }) => Promise<void>;
+  fetchBalance: (options?: { silent?: boolean }) => Promise<void>;
   fetchTransactions: () => Promise<void>;
   updateBalance: (balance: Partial<WalletBalance>) => void;
   addTransaction: (transaction: Transaction) => void;
@@ -85,6 +86,14 @@ interface WalletContextType {
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
+
+// HIGH-002: an unchanged balance must not allocate a new object. A fresh
+// object per fetch used to change the context value identity on every poll
+// cycle and re-render every useWalletContext() consumer app-wide.
+const isSameBalance = (prev: WalletBalance, next: WalletBalance): boolean =>
+  (Object.keys(next) as Array<keyof WalletBalance>).every(
+    (key) => prev[key] === next[key],
+  );
 
 export function WalletProvider({ children }: { children: React.ReactNode }) {
   const { address, isConnected, chainId, status } = useAccount();
@@ -121,6 +130,9 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // HIGH-002: memoised JSON signature of the last transaction list, so
+  // unchanged ledger data never reallocates the context value.
+  const transactionsSignatureRef = useRef('');
 
   const userId = auth.userId;
   const authUser = auth.user;
@@ -132,13 +144,19 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
   const formatBalance = (value: number): string => Number(value).toFixed(2);
 
-  const fetchBalance = useCallback(async () => {
+  // HIGH-002: `silent` marks a BACKGROUND refresh (e.g. the Lotto 5s poll).
+  // A silent refresh must not toggle `isLoading` — that flag is part of the
+  // context value, so toggling it twice per poll re-rendered every
+  // useWalletContext() consumer app-wide. Genuine errors are still recorded.
+  const fetchBalance = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     if (!userId || !AuthService.getToken()) {
       return;
     }
 
-    setIsLoading(true);
-    setError(null);
+    if (!silent) {
+      setIsLoading(true);
+      setError(null);
+    }
 
     try {
       const response = await WalletService.getMyBalance();
@@ -164,51 +182,82 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
                 formatUnits(nativeData.value, nativeData.decimals),
               ).toFixed(6),
             ).toString()
-          : balance.native;
+          : null;
 
-      setBalance({
-        usdt: usdtBalance,
-        native: nativeBalance,
-        nativeSymbol: nativeData?.symbol || 'BNB',
-        tdx: formatBalance(response.availableBalance ?? 0),
-        tdxAvailable: formatBalance(response.availableBalance ?? 0),
-        tdxLocked: formatBalance(response.lockedBalance ?? 0),
-        tdxTotal: formatBalance(response.totalBalance ?? 0),
-        gameLocked: formatBalance(response.gameLocked ?? 0),
-        tradingLocked: formatBalance(response.tradingLocked ?? 0),
-        withdrawalLocked: formatBalance(response.withdrawalLocked ?? 0),
+      // HIGH-002: diff before set — identical values keep the SAME balance
+      // object identity, so the context value memo does not recompute and
+      // consumers do not re-render. The previous native value is read
+      // functionally (prev.native) so `balance` is NOT needed in deps.
+      setBalance((prev) => {
+        const next: WalletBalance = {
+          usdt: usdtBalance,
+          native: nativeBalance ?? prev.native,
+          nativeSymbol: nativeData?.symbol || 'BNB',
+          tdx: formatBalance(response.availableBalance ?? 0),
+          tdxAvailable: formatBalance(response.availableBalance ?? 0),
+          tdxLocked: formatBalance(response.lockedBalance ?? 0),
+          tdxTotal: formatBalance(response.totalBalance ?? 0),
+          gameLocked: formatBalance(response.gameLocked ?? 0),
+          tradingLocked: formatBalance(response.tradingLocked ?? 0),
+          withdrawalLocked: formatBalance(response.withdrawalLocked ?? 0),
+        };
+        return isSameBalance(prev, next) ? prev : next;
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch balance');
     } finally {
-      setIsLoading(false);
+      if (!silent) {
+        setIsLoading(false);
+      }
     }
-  }, [userId, nativeData, address, isConnected, refetchUSDT, balance.native]);
+  }, [userId, nativeData, address, isConnected, refetchUSDT]);
 const fetchTransactions = useCallback(async () => {
     if (!userId || !AuthService.getToken()) {
       return;
     }
 
     try {
-      setTransactions(await WalletService.getTransactionHistory(userId));
+      const list = await WalletService.getTransactionHistory(userId);
+      // HIGH-002: skip the state update when the ledger list is unchanged —
+      // a fresh array of new objects per fetch used to change context
+      // identity on every poll cycle even when nothing visibly changed.
+      const signature = JSON.stringify(list);
+      setTransactions((prev) => {
+        if (signature === transactionsSignatureRef.current) {
+          return prev;
+        }
+        transactionsSignatureRef.current = signature;
+        return list;
+      });
     } catch {
       // ignore
     }
   }, [userId]);
 
-  const refresh = useCallback(async () => {
+  // HIGH-002: `options` is forwarded to fetchBalance so polling callers can
+  // request a silent background refresh. Default {} keeps every existing
+  // call site's behaviour identical.
+  const refresh = useCallback(async (options?: { silent?: boolean }) => {
     if (!userId || !AuthService.getToken()) {
       return;
     }
 
-    await Promise.all([fetchBalance(), fetchTransactions()]);
+    await Promise.all([fetchBalance(options), fetchTransactions()]);
   }, [userId, fetchBalance, fetchTransactions]);
 
   const updateBalance = useCallback((next: Partial<WalletBalance>) => {
-    setBalance((prev) => ({ ...prev, ...next }));
+    // HIGH-002: same identity guard as fetchBalance — a no-op merge must not
+    // allocate a new balance object.
+    setBalance((prev) => {
+      const merged: WalletBalance = { ...prev, ...next };
+      return isSameBalance(prev, merged) ? prev : merged;
+    });
   }, []);
 
   const addTransaction = useCallback((tx: Transaction) => {
+    // HIGH-002: a locally added transaction changes the list — invalidate the
+    // memoised signature so the next fetch applies the server's view.
+    transactionsSignatureRef.current = '';
     setTransactions((prev) => [tx, ...prev]);
   }, []);
 
@@ -281,6 +330,9 @@ const fetchTransactions = useCallback(async () => {
     await auth.logout();
     setBalance(INITIAL_BALANCE);
     setTransactions([]);
+    // HIGH-002: reset the memoised transaction signature so the next
+    // session's first fetch always applies fresh data.
+    transactionsSignatureRef.current = '';
     setError(null);
 
     try {

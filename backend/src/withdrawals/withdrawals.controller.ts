@@ -124,6 +124,21 @@ export class WithdrawalsController {
     };
   }
 
+  @Get('limits')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: 'Get deposit/withdrawal limits for the authenticated user',
+  })
+  @ApiBearerAuth()
+  async getLimits(@Request() req: AuthenticatedRequest) {
+    const data = await this.withdrawalsService.getUserLimits(req.user.id);
+
+    return {
+      success: true,
+      data,
+    };
+  }
+
   /**
    * ------------------------------------------------------------
    * USER WITHDRAWAL HISTORY

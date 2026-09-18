@@ -111,6 +111,7 @@ export default function AdminSettingsScreen() {
   } | null>(null);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [confirmReason, setConfirmReason] = useState('');
 
   const loadSettings = useCallback(async (options?: { withLoader?: boolean }) => {
     const withLoader = options?.withLoader ?? true;
@@ -175,25 +176,37 @@ export default function AdminSettingsScreen() {
     const payload: UpdateAdminSettingPayload = {
       value: editing.value,
       valueType: editing.setting.valueType,
+      // reason is captured in the confirm modal and attached there.
+      reason: '',
     };
+    setConfirmReason('');
     setConfirming({ setting: editing.setting, payload });
   }, [editing]);
 
   const executeUpdate = useCallback(async () => {
     if (!confirming) return;
+    const trimmedReason = confirmReason.trim();
+    if (!trimmedReason) {
+      setFeedback({ type: 'error', message: 'A reason is required for every setting change' });
+      return;
+    }
     setSaving(true);
     try {
-      await AdminService.updateAdminSetting(confirming.setting.key, confirming.payload);
+      await AdminService.updateAdminSetting(confirming.setting.key, {
+        ...confirming.payload,
+        reason: trimmedReason,
+      });
       setFeedback({ type: 'success', message: `Updated ${confirming.setting.key} successfully` });
       setEditing(null);
       setConfirming(null);
+      setConfirmReason('');
       await loadSettings({ withLoader: false });
     } catch (updateError) {
       setFeedback({ type: 'error', message: AdminService.getErrorMessage(updateError) });
     } finally {
       setSaving(false);
     }
-  }, [confirming, loadSettings]);
+  }, [confirming, confirmReason, loadSettings]);
 
   return (
     <div className="space-y-3">
@@ -471,14 +484,35 @@ export default function AdminSettingsScreen() {
                 {confirming.payload.value}
               </pre>
             </div>
+            <div className="mt-3">
+              <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#A1A4AE]">
+                Reason <span className="text-[#F87171]">*</span>
+              </label>
+              <textarea
+                value={confirmReason}
+                onChange={(e) => setConfirmReason(e.target.value)}
+                placeholder="Mandatory — recorded in the immutable audit log"
+                className="min-h-[64px] w-full rounded-[10px] border border-[#34343E] bg-[#15161C] p-2.5 text-xs text-[#F5F5F7] placeholder:text-[#70737E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A18]"
+              />
+              {!confirmReason.trim() && (
+                <p className="mt-1 text-[10px] text-[#F87171]">A reason is required before this change can be applied.</p>
+              )}
+            </div>
             <p className="mt-3 text-[11px] text-[#A1A4AE]">
               On success, settings data will refresh and backend will create an audit record for this update.
             </p>
             <div className="mt-4 flex justify-end gap-2">
-              <Button variant="secondary" size="sm" className="h-8 px-3 text-xs" disabled={saving} onClick={() => setConfirming(null)}>
+              <Button variant="secondary" size="sm" className="h-8 px-3 text-xs" disabled={saving} onClick={() => { setConfirming(null); setConfirmReason(''); }}>
                 Cancel
               </Button>
-              <Button variant="primary" size="sm" className="h-8 px-3 text-xs" loading={saving} onClick={() => void executeUpdate()}>
+              <Button
+                variant="primary"
+                size="sm"
+                className="h-8 px-3 text-xs"
+                loading={saving}
+                disabled={!confirmReason.trim()}
+                onClick={() => void executeUpdate()}
+              >
                 Confirm Update
               </Button>
             </div>

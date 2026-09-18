@@ -6,7 +6,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, EntityManager } from 'typeorm';
 import Decimal from 'decimal.js';
 import { Balance } from './balance.entity';
 import { LedgerEntry, LedgerType } from '../ledger/ledger.entity';
@@ -50,10 +50,11 @@ export class BalanceService {
     return balance;
   }
 
-  async createBalance(userId: string): Promise<Balance> {
+  async createBalance(userId: string, manager?: EntityManager): Promise<Balance> {
     const zero = '0.000000000000000000';
-    return this.balanceRepo.save(
-      this.balanceRepo.create({
+    const repo = manager ? manager.getRepository(Balance) : this.balanceRepo;
+    return repo.save(
+      repo.create({
         userId,
         availableBalance: zero,
         lockedBalance: zero,
@@ -76,63 +77,103 @@ export class BalanceService {
     description: string,
     referenceId?: string,
     metadata?: Record<string, unknown>,
+    /**
+     * Optional caller-owned transaction. When provided, the balance + ledger
+     * mutations join that transaction so callers (e.g. the admin
+     * below-minimum deposit recovery flow) can make the decision, the
+     * credit and the audit log atomic. When omitted, behavior is unchanged:
+     * an own transaction is opened.
+     */
+    manager?: EntityManager,
   ): Promise<Balance> {
     const amountNum = typeof amount === 'string' ? parseFloat(amount) : amount;
     if (!Number.isFinite(amountNum) || amountNum <= 0) {
       throw new ConflictException(`Invalid credit amount: ${amount}`);
     }
 
-    return this.dataSource.transaction(async (manager) => {
-      const balanceRepo = manager.getRepository(Balance);
-      const ledgerRepo = manager.getRepository(LedgerEntry);
-
-      let balance = await balanceRepo.findOne({ where: { userId } });
-      if (!balance) balance = await this.createBalance(userId);
-
-      if (referenceId) {
-        const existingEntry = await ledgerRepo.findOne({
-          where: {
-            referenceId,
-            type,
-          },
-        });
-
-        if (existingEntry) {
-          console.log(
-            `⚠️ Skipping duplicate credit entry for reference ${referenceId} (${type})`,
-          );
-
-          return balance;
-        }
-      }
-
-      const before = this.toDecimal(balance.availableBalance);
-      const credit = this.toDecimal(amountNum);
-      const after = before.plus(credit);
-      const totalBefore = this.toDecimal(balance.totalBalance);
-      const totalAfter = totalBefore.plus(credit);
-
-      balance.availableBalance = this.toFixed(after);
-      balance.totalBalance = this.toFixed(totalAfter);
-      balance.lastUpdatedAt = new Date();
-      await balanceRepo.save(balance);
-
-      const entry = ledgerRepo.create({
+    if (manager) {
+      return this.applyCredit(
+        manager,
         userId,
+        amountNum,
         type,
-        amount: this.toFixed(credit),
-        balanceBefore: this.toFixed(before),
-        balanceAfter: this.toFixed(after),
-        referenceId,
-        referenceType: 'deposit',
         description,
-        metadata: metadata ?? {},
-      });
-      await ledgerRepo.save(entry);
+        referenceId,
+        metadata,
+      );
+    }
 
-      console.log(`💳 TDX credit: ${before.toFixed(4)} → ${after.toFixed(4)}`);
-      return balance;
+    return this.dataSource.transaction((txManager) =>
+      this.applyCredit(
+        txManager,
+        userId,
+        amountNum,
+        type,
+        description,
+        referenceId,
+        metadata,
+      ),
+    );
+  }
+
+  private async applyCredit(
+    manager: EntityManager,
+    userId: string,
+    amountNum: number,
+    type: LedgerType,
+    description: string,
+    referenceId?: string,
+    metadata?: Record<string, unknown>,
+  ): Promise<Balance> {
+    const balanceRepo = manager.getRepository(Balance);
+    const ledgerRepo = manager.getRepository(LedgerEntry);
+
+    let balance = await balanceRepo.findOne({ where: { userId } });
+    if (!balance) balance = await this.createBalance(userId, manager);
+
+    if (referenceId) {
+      const existingEntry = await ledgerRepo.findOne({
+        where: {
+          referenceId,
+          type,
+        },
+      });
+
+      if (existingEntry) {
+        console.log(
+          `⚠️ Skipping duplicate credit entry for reference ${referenceId} (${type})`,
+        );
+
+        return balance;
+      }
+    }
+
+    const before = this.toDecimal(balance.availableBalance);
+    const credit = this.toDecimal(amountNum);
+    const after = before.plus(credit);
+    const totalBefore = this.toDecimal(balance.totalBalance);
+    const totalAfter = totalBefore.plus(credit);
+
+    balance.availableBalance = this.toFixed(after);
+    balance.totalBalance = this.toFixed(totalAfter);
+    balance.lastUpdatedAt = new Date();
+    await balanceRepo.save(balance);
+
+    const entry = ledgerRepo.create({
+      userId,
+      type,
+      amount: this.toFixed(credit),
+      balanceBefore: this.toFixed(before),
+      balanceAfter: this.toFixed(after),
+      referenceId,
+      referenceType: 'deposit',
+      description,
+      metadata: metadata ?? {},
     });
+    await ledgerRepo.save(entry);
+
+    console.log(`💳 TDX credit: ${before.toFixed(4)} → ${after.toFixed(4)}`);
+    return balance;
   }
 
   // ============================================================

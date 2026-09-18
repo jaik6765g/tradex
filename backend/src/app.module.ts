@@ -56,6 +56,7 @@ import { DepositModule } from './deposits/deposit.module';
 import { LedgerModule } from './ledger/ledger.module';
 import { BlockchainModule } from './blockchain/blockchain.module';
 import { WithdrawalsModule } from './withdrawals/withdrawals.module';
+import { LimitsModule } from './limits/limits.module';
 import { AdminModule } from './admin/admin.module';
 import { LottoModule } from './modules/lotto/lotto.module';
 import { PeriodSyncModule } from './modules/period-sync/period-sync.module';
@@ -151,6 +152,7 @@ import { DepositGatewayModule } from './deposit-gateway/gateway.module';
       },
     }),
     RedisModule,
+    LimitsModule,
     SupabaseModule,
     AuthModule,
     AdminAuthModule,

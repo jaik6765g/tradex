@@ -21,6 +21,54 @@ import { LedgerEntry, LedgerType } from '../ledger/ledger.entity';
 import { WalletsService } from '../wallets/wallets.service';
 import { Withdrawal, WithdrawalStatus } from './entities/withdrawal.entity';
 import { AdminSetting } from '../admin/entities/admin-setting.entity';
+import {
+  DAILY_WITHDRAWAL_LIMIT_EXCEEDED_CODE,
+  DailyWithdrawalFrequency,
+  getIstDayWindow,
+  LimitsService,
+} from '../limits/limits.service';
+
+// ============================================================
+// PER-USER ADVISORY LOCK (Architecture Plan v3, correction 1)
+// ============================================================
+//
+// `SELECT ... FOR UPDATE` over existing withdrawal rows cannot serialize a
+// user with ZERO withdrawal rows (nothing is locked), so concurrent first
+// requests could both pass the daily-limit count. The daily-frequency check
+// therefore serializes on a PostgreSQL TRANSACTION-SCOPED advisory lock
+// keyed by userId, acquired as the FIRST statement of the createWithdrawal
+// transaction. Concurrent requests block on the lock; each re-counts under
+// the lock; releases automatically on COMMIT/ROLLBACK (no leaks).
+//
+// Two-key form: (NAMESPACE, hash32(userId)).
+// - NAMESPACE is a reserved constant so this lock family never collides
+//   with any other advisory-lock usage in this database. Any future
+//   advisory-lock usage MUST register its own distinct namespace here.
+// - hash32 maps the userId UUID to an int32 deterministically. Two distinct
+//   users colliding on hash32 is harmless for correctness (they would only
+//   momentarily serialize); correctness never depends on collision-freeness.
+const WITHDRAWAL_DAILY_LIMIT_LOCK_NAMESPACE = 0x5458444c; // 'TXDL' (int32-safe)
+
+/** Deterministic int32 key from a UUID (first 8 hex chars -> uint32). */
+export function withdrawalDailyLimitLockKeys(userId: string): [number, number] {
+  const hash32 = parseInt(userId.replace(/-/g, '').slice(0, 8), 16) >>> 0;
+  // Map uint32 into signed int32 range required by Postgres int arguments.
+  const signed = hash32 > 0x7fffffff ? hash32 - 0x100000000 : hash32;
+  return [WITHDRAWAL_DAILY_LIMIT_LOCK_NAMESPACE, signed];
+}
+
+/**
+ * Lifecycle statuses that CONSUME the daily withdrawal quota: every
+ * successfully created / accepted withdrawal (REQUESTED through COMPLETED,
+ * including those awaiting admin approval) EXCEPT REJECTED / FAILED /
+ * CANCELLED (Architecture Plan v3, decision 3).
+ */
+const DAILY_COUNT_EXCLUDED_STATUSES = [
+  WithdrawalStatus.REJECTED,
+  WithdrawalStatus.FAILED,
+  WithdrawalStatus.CANCELLED,
+];
+
 
 const ACTIVE_STATUSES = [
   WithdrawalStatus.REQUESTED,
@@ -41,9 +89,8 @@ const BLOCKING_STATUSES = [
   WithdrawalStatus.PENDING_ADMIN_APPROVAL,
 ];
 
-const MAX_WITHDRAWALS_PER_USER_PER_DAY_KEY = 'maxWithdrawalsPerUserPerDay';
-const DEFAULT_MAX_WITHDRAWALS_PER_USER_PER_DAY = 3;
-
+// Daily-withdrawal-frequency key/defaults live in LimitsService
+// (`maxWithdrawalsPerUserPerDay`), the single source of truth for limits.
 interface CountVolumeMetric {
   count: number;
   volume: string;
@@ -94,6 +141,7 @@ export class WithdrawalsService {
     private readonly blockchainService: BlockchainService,
     private readonly walletsService: WalletsService,
     private readonly configService: ConfigService,
+    private readonly limitsService: LimitsService,
   ) {}
 
   // ============================================================
@@ -119,8 +167,26 @@ export class WithdrawalsService {
       throw new BadRequestException('Withdrawal amount is below token precision');
     }
 
+    // Min/max withdrawal limits (5 / 500 USDT defaults) — fast-fail BEFORE
+    // the transaction and re-asserted inside the locked transaction below
+    // (backend is the single source of truth; limits are read from the DB
+    // WITHDRAWAL_ABOVE_MAXIMUM with zero mutations.
+    await this.limitsService.assertWithdrawalAmount(
+      this.decimal(usdtAmount),
+    );
+
     const withdrawal = await this.dataSource.transaction(async (manager) => {
       const repo = manager.getRepository(Withdrawal);
+
+      // 1. Per-user serialization lock (transaction-scoped advisory lock).
+      //    Guarantees the daily-frequency count+insert are atomic even when
+      //    the user has zero existing withdrawal rows. Auto-released on
+      //    commit/rollback.
+      const [lockKey1, lockKey2] = withdrawalDailyLimitLockKeys(userId);
+      await manager.query('SELECT pg_advisory_xact_lock($1, $2)', [
+        lockKey1,
+        lockKey2,
+      ]);
 
       await repo
         .createQueryBuilder('w')
@@ -136,7 +202,17 @@ export class WithdrawalsService {
         throw new ConflictException('An active withdrawal request already exists');
       }
 
+      // 2. Daily withdrawal frequency (accepted lifecycle entries, IST day,
+      //    machine-readable 409 on exceed). Runs under the advisory lock.
       await this.assertWithinDailyWithdrawalLimit(userId, manager);
+
+      // 3. Min/max withdrawal limits — authoritative re-check inside the
+      //    locked transaction (settings read fresh from the DB, no cache).
+      await this.limitsService.assertWithdrawalAmount(
+        this.decimal(usdtAmount),
+      );
+
+      //    transaction, BEFORE any withdrawal row is created. Throws 403
 
       const created = await repo.save(
         repo.create({
@@ -1242,58 +1318,126 @@ export class WithdrawalsService {
   }
 
   // ============================================================
-  // REJECT BEFORE PAYOUT
+  // DAILY WITHDRAWAL FREQUENCY (Architecture Plan v3)
   // ============================================================
+  //
+  // Quota semantics (approved):
+  // - Counts every successfully created / accepted withdrawal for the user
+  //   in the current Asia/Kolkata calendar day: all lifecycle statuses from
+  //   REQUESTED through COMPLETED, INCLUDING those awaiting admin approval.
+  // - Excludes only REJECTED / FAILED / CANCELLED.
+  // - Rejected validation attempts never create a row, so they can never
+  //   consume quota.
+  // - {"mode":"UNLIMITED"} skips the check entirely.
+  //
+  // Race safety: this runs inside the createWithdrawal transaction, which
+  // holds the per-user transaction-scoped advisory lock (see
+  // withdrawalDailyLimitLockKeys) — correct even when the user has zero
+  // existing withdrawal rows.
 
-  private async getDailyWithdrawalLimit(): Promise<number> {
-    try {
-      const setting = await this.adminSettingRepo.findOne({
-        where: { key: MAX_WITHDRAWALS_PER_USER_PER_DAY_KEY },
-      });
-
-      if (!setting) {
-        return DEFAULT_MAX_WITHDRAWALS_PER_USER_PER_DAY;
-      }
-
-      const parsed = Number(setting.value);
-      if (!Number.isFinite(parsed) || parsed <= 0) {
-        return 0;
-      }
-      return Math.floor(parsed);
-    } catch {
-      return DEFAULT_MAX_WITHDRAWALS_PER_USER_PER_DAY;
-    }
-  }
-
-  private async countCompletedWithdrawalsToday(
+  private async countAcceptedWithdrawalsToday(
     userId: string,
     manager: EntityManager,
-  ): Promise<number> {
+    now: Date = new Date(),
+  ): Promise<{ count: number; resetsAtIso: string }> {
     const repo = manager.getRepository(Withdrawal);
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
+    const { startUtc, endUtc, resetsAtIso } = getIstDayWindow(now);
 
-    return repo
+    const count = await repo
       .createQueryBuilder('w')
       .where('w.userId = :userId', { userId })
-      .andWhere('w.status = :status', { status: WithdrawalStatus.COMPLETED })
-      .andWhere('w.createdAt >= :startOfDay', { startOfDay })
+      .andWhere('w.status NOT IN (:...excluded)', {
+        excluded: DAILY_COUNT_EXCLUDED_STATUSES,
+      })
+      .andWhere('w.createdAt >= :startUtc', { startUtc })
+      .andWhere('w.createdAt < :endUtc', { endUtc })
       .getCount();
+
+    return { count, resetsAtIso };
   }
 
   private async assertWithinDailyWithdrawalLimit(
     userId: string,
     manager: EntityManager,
+    now: Date = new Date(),
   ): Promise<void> {
-    const limit = await this.getDailyWithdrawalLimit();
-    if (limit <= 0) return;
+    const frequency: DailyWithdrawalFrequency =
+      await this.limitsService.getDailyWithdrawalFrequency();
 
-    const completedToday = await this.countCompletedWithdrawalsToday(userId, manager);
-    if (completedToday >= limit) {
-      throw new ConflictException(
-        `Daily withdrawal limit reached (${limit} per day). Please try again tomorrow.`,
-      );
+    if (frequency.mode === 'UNLIMITED') {
+      return;
     }
+
+    const limit = frequency.value;
+    const { count, resetsAtIso } = await this.countAcceptedWithdrawalsToday(
+      userId,
+      manager,
+      now,
+    );
+
+    if (count >= limit) {
+      throw new ConflictException({
+        statusCode: 409,
+        error: 'Conflict',
+        code: DAILY_WITHDRAWAL_LIMIT_EXCEEDED_CODE,
+        message: `Daily withdrawal limit reached (${limit} per day). Please try again after ${resetsAtIso}.`,
+        limit,
+        usedToday: count,
+        resetsAt: resetsAtIso,
+      });
+    }
+  }
+
+  // ============================================================
+  // REJECT BEFORE PAYOUT
+  // ============================================================
+
+  // ============================================================
+  // USER LIMITS VIEW (supplementary frontend validation only)
+  // ============================================================
+  //
+  // Backend remains the single source of truth: the frontend uses this only
+  // to guide input before submission.
+  async getUserLimits(userId: string): Promise<{
+    deposit: { minUsdt: string; maxUsdt: string };
+    withdraw: { minUsdt: string; maxUsdt: string };
+    dailyWithdrawals: {
+      mode: 'COUNT' | 'UNLIMITED';
+      value: number | null;
+      usedToday: number | null;
+      resetsAt: string | null;
+    };
+  }> {
+    const view = await this.limitsService.getUserLimitsView();
+
+    if (view.dailyWithdrawals.mode === 'UNLIMITED') {
+      return {
+        deposit: view.deposit,
+        withdraw: view.withdraw,
+        dailyWithdrawals: {
+          mode: 'UNLIMITED',
+          value: null,
+          usedToday: null,
+          resetsAt: null,
+        },
+      };
+    }
+
+    const { count, resetsAtIso } = await this.countAcceptedWithdrawalsToday(
+      userId,
+      this.dataSource.manager,
+    );
+
+    return {
+      deposit: view.deposit,
+      withdraw: view.withdraw,
+      dailyWithdrawals: {
+        mode: 'COUNT',
+        value: view.dailyWithdrawals.value,
+        usedToday: count,
+        resetsAt: resetsAtIso,
+      },
+    };
   }
 
   private async rejectBeforeBroadcast(

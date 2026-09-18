@@ -73,6 +73,7 @@ type WithdrawalApiErrorPayload = {
   statusCode?: number;
   message?: string | string[];
   error?: string;
+  code?: string;
 };
 
 const ACTIVE_WITHDRAWAL_CONFLICT_MESSAGE =
@@ -107,6 +108,15 @@ export const parseWithdrawalApiError = (error: unknown): Error => {
 
   if (status === 401) {
     return new Error('Authentication expired. Please reconnect wallet and login again.');
+  }
+
+    const trimmed =
+      remaining !== undefined && remaining !== null
+        ? String(remaining).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '')
+        : null;
+    return new Error(
+      trimmed
+    );
   }
 
   if (status === 409) {

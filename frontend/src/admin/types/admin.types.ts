@@ -139,7 +139,7 @@ export type AdminDepositStatus =
   | 'CONFIRMING'
   | 'VERIFIED'
   | 'COMPLETED'
-  | 'FAILED';
+  | 'FAILED'
 
 export type AdminDepositFilterStatus = AdminDepositStatus | 'ALL';
 
@@ -456,6 +456,17 @@ export interface UpdateAdminSettingPayload {
   valueType?: AdminSettingValueType;
   description?: string;
   editable?: boolean;
+  /** Mandatory reason for every setting change (persisted in admin_audit_logs). */
+  reason: string;
+}
+
+// ============================================================
+// BELOW-MINIMUM DEPOSIT REVIEW (Architecture Plan v3)
+// ============================================================
+
+  decision: 'CREDIT' | 'REJECT';
+  /** Mandatory — recorded in the immutable admin_audit_logs row. */
+  reason: string;
 }
 
 // ============================================================

@@ -11,6 +11,7 @@ import { BlockchainModule } from '../blockchain/blockchain.module';
 import { WalletsModule } from '../wallets/wallets.module';
 import { UsersModule } from '../users/users.module';
 import { AdminAuthModule } from '../auth/admin-auth.module';
+import { LimitsModule } from '../limits/limits.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { AdminAuthModule } from '../auth/admin-auth.module';
 
     AdminAuthModule,
 
+    LimitsModule,
     LedgerModule,
 
     BlockchainModule,

@@ -15,6 +15,7 @@ import { BalanceService } from '../balances/balance.service';
 import { LedgerService } from '../ledger/ledger.service';
 import { LedgerType } from '../ledger/ledger.entity';
 import { BlockchainService } from '../blockchain/blockchain.service';
+import { LimitsService } from '../limits/limits.service';
 
 interface CountVolumeMetric {
   count: number;
@@ -56,6 +57,7 @@ export class DepositService {
     private ledgerService: LedgerService,
     private readonly blockchainService: BlockchainService,
     private readonly configService: ConfigService,
+    private readonly limitsService: LimitsService,
   ) {}
 
   // ============================================================
@@ -71,10 +73,13 @@ export class DepositService {
       throw new ConflictException('Transaction already processed');
     }
 
+    const { minUsdt } = await this.limitsService.getDepositLimits();
+      detectedUsdt.isFinite() && detectedUsdt.lt(new Decimal(minUsdt));
     const deposit = this.depositRepository.create({
       ...depositData,
       status: DepositStatus.PENDING,
       detectedAt: new Date(),
+              minimumAtDetection: minUsdt,
     });
 
     return this.depositRepository.save(deposit);

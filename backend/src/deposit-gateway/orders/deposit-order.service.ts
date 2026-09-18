@@ -13,6 +13,7 @@ import { DepositOrder, DepositOrderStatus } from './deposit-order.entity';
 import { DepositAddressService } from '../addresses/deposit-address.service';
 import { TokenRegistryService } from '../tokens/token-registry.service';
 import { NetworkRegistryService } from '../networks/network-registry.service';
+import { LimitsService } from '../../limits/limits.service';
 
 export interface CreateOrderInput {
   userId: string;
@@ -63,6 +64,7 @@ export class DepositOrderService {
     private readonly networkRegistry: NetworkRegistryService,
     private readonly configService: ConfigService,
     private readonly dataSource: DataSource,
+    private readonly limitsService: LimitsService,
   ) {}
 
   async createOrder(input: CreateOrderInput): Promise<DepositOrder> {
@@ -83,12 +85,12 @@ export class DepositOrderService {
       throw new BadRequestException('Invalid amount');
     }
 
-    const min = new Decimal(
-      this.configService.get<string>('MIN_USDT_DEPOSIT') ?? '1',
-    );
-    if (amount.lt(min)) {
-      throw new BadRequestException(`Minimum deposit is ${min.toString()} ${asset}`);
-    }
+    // Deposit min/max limits (10 / 10,000 USDT defaults) — backend is the
+    // single source of truth; limits are read fresh from admin_settings on
+    // every call (no cache). Rejects with machine-readable codes
+    // DEPOSIT_BELOW_MINIMUM / DEPOSIT_ABOVE_MAXIMUM before ANY row is
+    // written (no order, no address allocation, no balance/ledger touch).
+    await this.limitsService.assertDepositAmount(amount);
 
     const expectedTdx = amount.mul(token.tdxRate);
     const expiryMinutes = Number(

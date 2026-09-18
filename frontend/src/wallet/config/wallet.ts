@@ -183,7 +183,13 @@ export const DEPOSIT_VAULT_ADDRESS =
 export const TDX_RATE = 100;
 
 // Minimum on-chain deposit accepted by TradeX vault.
-export const MIN_USDT_DEPOSIT = 1;
+// FALLBACK ONLY — the backend is the single source of truth
+// (admin_settings: minDepositUsdt / maxDepositUsdt / minWithdrawalUsdt /
+// maxWithdrawalUsdt, read live via GET /withdrawals/limits).
+export const MIN_USDT_DEPOSIT = 10;
+export const MAX_USDT_DEPOSIT = 10000;
+export const MIN_USDT_WITHDRAWAL = 5;
+export const MAX_USDT_WITHDRAWAL = 500;
 
 
 // ============================================================

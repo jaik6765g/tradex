@@ -25,6 +25,16 @@ import {
 } from './dto/update-admin-setting.dto';
 import { AdminAuditLog } from './entities/admin-audit-log.entity';
 import { AdminSetting } from './entities/admin-setting.entity';
+import {
+  isDailyWithdrawalFrequencySettingKey,
+  isNumericLimitSettingKey,
+  LIMIT_MIN_EXCEEDS_MAX_CODE,
+  LIMIT_PAIR_MAX_KEY,
+  LIMIT_PAIR_MIN_KEY,
+  LIMIT_SETTING_PAIRS,
+  MISSING_REASON_CODE,
+  normalizeDailyWithdrawalFrequencySettingValue,
+} from '../limits/limits.service';
 
 /** Ledger reference type written for every manual admin bonus distribution. */
 export const ADMIN_BONUS_REFERENCE_TYPE = 'ADMIN_BONUS';
@@ -294,14 +304,11 @@ export class AdminService {
     existingEntry: LedgerEntry,
     idempotencyKey: string,
   ): AdminBonusDistributionResult {
-    const replayedMetadata = (existingEntry.metadata ?? {}) as Record<
-      string,
-      unknown
-    >;
+    const replayedMetadata = existingEntry.metadata ?? {};
 
     const pickString = (key: string, fallback: string): string =>
       typeof replayedMetadata[key] === 'string'
-        ? (replayedMetadata[key] as string)
+        ? replayedMetadata[key]
         : fallback;
 
     return {
@@ -380,7 +387,7 @@ export class AdminService {
     }
 
     const items = entries.map((entry) => {
-      const metadata = (entry.metadata ?? {}) as Record<string, unknown>;
+      const metadata = entry.metadata ?? {};
 
       return {
         id: entry.id,
@@ -391,12 +398,9 @@ export class AdminService {
           typeof metadata.description === 'string'
             ? metadata.description
             : (entry.description ?? ''),
-        adminId:
-          typeof metadata.adminId === 'string' ? metadata.adminId : null,
+        adminId: typeof metadata.adminId === 'string' ? metadata.adminId : null,
         adminEmail:
-          typeof metadata.adminEmail === 'string'
-            ? metadata.adminEmail
-            : null,
+          typeof metadata.adminEmail === 'string' ? metadata.adminEmail : null,
         createdAt: entry.createdAt.toISOString(),
       };
     });
@@ -519,6 +523,21 @@ export class AdminService {
     };
   }
 
+  /**
+   * Atomic admin setting update (Architecture Plan v3, correction 3).
+   *
+   * For the financial min/max limit pairs the whole read-lock-validate-write
+   * sequence runs in ONE transaction:
+   *   1. Lock the target row AND its min/max counterpart FOR UPDATE.
+   *   2. Read the latest values under the lock (no stale/cached reads).
+   *   3. Validate the min <= max invariant with exact Decimal.js math.
+   *   4. Update the setting and write the admin_audit_logs row atomically.
+   *
+   * Concurrent admin updates serialize on the row locks and can never leave
+   * the pair in an invariant-violating state. The mandatory `reason` is
+   * enforced here (defence in depth on top of the DTO) and persisted in the
+   * audit row metadata.
+   */
   async updateSetting(
     key: string,
     dto: UpdateAdminSettingDto,
@@ -530,72 +549,185 @@ export class AdminService {
       throw new BadRequestException('Setting key is required');
     }
 
-    const existing = await this.adminSettingRepository.findOne({
-      where: {
-        key: normalizedKey,
-      },
-    });
-
-    if (!existing) {
-      throw new NotFoundException('Setting not found');
+    const reason = (dto.reason ?? '').trim();
+    if (!reason) {
+      throw new BadRequestException({
+        statusCode: 400,
+        error: 'Bad Request',
+        code: MISSING_REASON_CODE,
+        message: 'A reason is required for every admin setting change',
+      });
     }
 
-    if (!existing.editable) {
+    // Validate + serialize the incoming value before opening the transaction
+    // (pure computation, no DB access).
+    const preflight = await this.adminSettingRepository.findOne({
+      where: { key: normalizedKey },
+    });
+
+    if (!preflight) {
+      throw new NotFoundException('Setting not found');
+    }
+    if (!preflight.editable) {
       throw new ConflictException('Setting is not editable');
     }
 
-    const nextValueType = dto.valueType ?? existing.valueType;
-    const parsedIncomingValue = this.parseIncomingValue(
-      dto.value,
-      nextValueType,
-    );
-    const serializedValue = this.serializeValue(
-      parsedIncomingValue,
-      nextValueType,
-    );
+    const requestedValueType = dto.valueType ?? preflight.valueType;
 
-    const oldValue: Record<string, unknown> = {
-      key: existing.key,
-      value: existing.value,
-      valueType: existing.valueType,
-      description: existing.description,
-      editable: existing.editable,
-      updatedBy: existing.updatedBy,
-    };
+    // ------------------------------------------------------------
+    // WRITE-TIME KEY VALIDATION (pre-migration hardening)
+    // ------------------------------------------------------------
+    // The four monetary limit keys are money values and MUST be stored as
+    // valueType 'number'. A non-number valueType would silently disable the
+    // min/max invariant and fall back to built-in defaults, so it is
+    // rejected outright.
+    if (
+      isNumericLimitSettingKey(normalizedKey) &&
+      requestedValueType !== 'number'
+    ) {
+      throw new BadRequestException({
+        statusCode: 400,
+        error: 'Bad Request',
+        code: 'INVALID_SETTING_VALUE',
+        message: `${normalizedKey} must be updated with valueType "number"`,
+      });
+    }
 
-    existing.value = serializedValue;
-    existing.valueType = nextValueType;
-    existing.description = dto.description ?? existing.description;
-    existing.editable = dto.editable ?? existing.editable;
-    existing.updatedBy = context.adminId;
+    let nextValueType: AdminSettingValueType = requestedValueType;
+    let serializedValue: string;
 
-    const updated = await this.adminSettingRepository.save(existing);
+    if (isDailyWithdrawalFrequencySettingKey(normalizedKey)) {
+      // Strict structural validation + canonicalization. Legacy numeric input
+      // is still accepted and converted to the canonical JSON form, so the
+      // admin UI keeps working across the migration.
+      nextValueType = 'json';
+      serializedValue = normalizeDailyWithdrawalFrequencySettingValue(
+        dto.value,
+      );
+    } else {
+      const parsedIncomingValue = this.parseIncomingValue(
+        dto.value,
+        nextValueType,
+      );
+      serializedValue = this.serializeValue(parsedIncomingValue, nextValueType);
+    }
 
-    const newValue: Record<string, unknown> = {
-      key: updated.key,
-      value: updated.value,
-      valueType: updated.valueType,
-      description: updated.description,
-      editable: updated.editable,
-      updatedBy: updated.updatedBy,
-    };
+    // Only the financial limit keys participate in the min <= max invariant.
+    const counterpartKey = LIMIT_SETTING_PAIRS[normalizedKey] ?? null;
+    const lockKeys = counterpartKey
+      ? [normalizedKey, counterpartKey]
+      : [normalizedKey];
+    const updated = await this.dataSource.transaction(async (manager) => {
+      const repo = manager.getRepository(AdminSetting);
 
-    await this.adminAuditLogRepository.save(
-      this.adminAuditLogRepository.create({
-        adminId: context.adminId,
-        action: 'ADMIN_SETTING_UPDATED',
-        targetType: 'admin_setting',
-        targetId: updated.id,
-        oldValue,
-        newValue,
-        ipAddress: context.ipAddress,
-        userAgent: context.userAgent,
-        metadata: {
-          key: updated.key,
-          valueType: updated.valueType,
-        },
-      }),
-    );
+      // 1. Lock every involved setting row FOR UPDATE (sorted order avoids
+      //    deadlocks between concurrent pair updates).
+      for (const lockKey of [...lockKeys].sort()) {
+        await repo
+          .createQueryBuilder('s')
+          .setLock('pessimistic_write')
+          .where('s.key = :key', { key: lockKey })
+          .getMany();
+      }
+
+      // 2. Read the latest values under the lock.
+      const locked = await repo.find({
+        where: lockKeys.map((k) => ({ key: k })),
+      });
+
+      const setting = locked.find((s) => s.key === normalizedKey);
+      if (!setting) {
+        throw new NotFoundException('Setting not found');
+      }
+      if (!setting.editable) {
+        throw new ConflictException('Setting is not editable');
+      }
+
+      // 3. Invariant validation on the EFFECTIVE post-update pair.
+      if (counterpartKey && nextValueType === 'number') {
+        const effectiveValue = (settingKey: string): Decimal => {
+          const raw =
+            settingKey === normalizedKey
+              ? String(serializedValue)
+              : (locked.find((s) => s.key === settingKey)?.value ?? '0');
+          return new Decimal(raw);
+        };
+
+        const pairMin = effectiveValue(LIMIT_PAIR_MIN_KEY[normalizedKey]);
+        const pairMax = effectiveValue(LIMIT_PAIR_MAX_KEY[normalizedKey]);
+
+        if (
+          !pairMin.isFinite() ||
+          pairMin.lt(0) ||
+          !pairMax.isFinite() ||
+          pairMax.lt(0)
+        ) {
+          throw new BadRequestException({
+            statusCode: 400,
+            error: 'Bad Request',
+            code: 'INVALID_SETTING_VALUE',
+            message: 'Limit values must be non-negative finite numbers',
+          });
+        }
+        if (pairMin.gt(pairMax)) {
+          throw new BadRequestException({
+            statusCode: 400,
+            error: 'Bad Request',
+            code: LIMIT_MIN_EXCEEDS_MAX_CODE,
+            message: `Minimum limit (${pairMin.toString()}) must not exceed maximum limit (${pairMax.toString()})`,
+            min: pairMin.toString(),
+            max: pairMax.toString(),
+          });
+        }
+      }
+
+      const oldValue: Record<string, unknown> = {
+        key: setting.key,
+        value: setting.value,
+        valueType: setting.valueType,
+        description: setting.description,
+        editable: setting.editable,
+        updatedBy: setting.updatedBy,
+      };
+
+      setting.value = serializedValue;
+      setting.valueType = nextValueType;
+      setting.description = dto.description ?? setting.description;
+      setting.editable = dto.editable ?? setting.editable;
+      setting.updatedBy = context.adminId;
+
+      const saved = await repo.save(setting);
+
+      // 4. Audit row written in the SAME transaction — atomic with the change
+      //    (a rejected validation writes neither the setting nor the audit).
+      const auditRepo = manager.getRepository(AdminAuditLog);
+      await auditRepo.save(
+        auditRepo.create({
+          adminId: context.adminId,
+          action: 'ADMIN_SETTING_UPDATED',
+          targetType: 'admin_setting',
+          targetId: saved.id,
+          oldValue,
+          newValue: {
+            key: saved.key,
+            value: saved.value,
+            valueType: saved.valueType,
+            description: saved.description,
+            editable: saved.editable,
+            updatedBy: saved.updatedBy,
+          },
+          ipAddress: context.ipAddress,
+          userAgent: context.userAgent,
+          metadata: {
+            key: saved.key,
+            valueType: saved.valueType,
+            reason,
+          },
+        }),
+      );
+
+      return saved;
+    });
 
     return this.toAdminSettingItem(updated);
   }
