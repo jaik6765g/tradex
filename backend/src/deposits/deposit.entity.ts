@@ -16,6 +16,14 @@ export enum DepositStatus {
   VERIFIED = 'VERIFIED',
   COMPLETED = 'COMPLETED',
   FAILED = 'FAILED',
+  /**
+   * On-chain deposit detected below the configured minimum deposit
+   * (Architecture Plan v3, correction 2). Reviewable, never auto-credited:
+   * it stays auditable and recoverable via the authorized admin CREDIT /
+   * REJECT recovery actions. `deposits.status` is a VARCHAR column, so no
+   * database enum migration is required.
+   */
+  BELOW_MINIMUM = 'BELOW_MINIMUM',
 }
 
 @Entity('deposits')

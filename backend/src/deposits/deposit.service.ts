@@ -9,13 +9,23 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like, FindOptionsWhere } from 'typeorm';
+import { Repository, Like, FindOptionsWhere, DataSource } from 'typeorm';
+import Decimal from 'decimal.js';
 import { Deposit, DepositStatus } from './deposit.entity';
 import { BalanceService } from '../balances/balance.service';
 import { LedgerService } from '../ledger/ledger.service';
-import { LedgerType } from '../ledger/ledger.entity';
+import { LedgerType, LedgerEntry } from '../ledger/ledger.entity';
 import { BlockchainService } from '../blockchain/blockchain.service';
+import { AdminAuditLog } from '../admin/entities/admin-audit-log.entity';
 import { LimitsService } from '../limits/limits.service';
+
+/** Audit actions for the below-minimum deposit recovery decisions. */
+export const DEPOSIT_BELOW_MINIMUM_CREDITED_ACTION =
+  'DEPOSIT_BELOW_MINIMUM_CREDITED';
+export const DEPOSIT_BELOW_MINIMUM_REJECTED_ACTION =
+  'DEPOSIT_BELOW_MINIMUM_REJECTED';
+
+export type BelowMinimumReviewDecision = 'CREDIT' | 'REJECT';
 
 interface CountVolumeMetric {
   count: number;
@@ -53,11 +63,18 @@ export class DepositService {
   constructor(
     @InjectRepository(Deposit)
     private depositRepository: Repository<Deposit>,
+    @InjectRepository(AdminAuditLog)
+    private readonly adminAuditLogRepository: Repository<AdminAuditLog>,
     private balanceService: BalanceService,
     private ledgerService: LedgerService,
     private readonly blockchainService: BlockchainService,
     private readonly configService: ConfigService,
     private readonly limitsService: LimitsService,
+    private readonly dataSource: DataSource,
+    /**
+     * below-minimum recovery credit so a credited deposit can never be
+     * withdrawn before its obligation exists (H1).
+     */
   ) {}
 
   // ============================================================
@@ -73,16 +90,199 @@ export class DepositService {
       throw new ConflictException('Transaction already processed');
     }
 
+    // ------------------------------------------------------------
+    // BELOW-MINIMUM ON-CHAIN DEPOSIT (Architecture Plan v3, correction 2)
+    // ------------------------------------------------------------
+    // Detected deposits below the configured minimum are RECORDED with the
+    // reviewable BELOW_MINIMUM status, never auto-credited, and remain
+    // auditable/recoverable via the authorized admin CREDIT/REJECT actions.
+    // Idempotency is unchanged: the unique transaction_hash remains the
+    // exactly-once anchor (checked above and enforced by the DB unique
+    // index), so a re-detection cannot double-record or double-credit.
     const { minUsdt } = await this.limitsService.getDepositLimits();
+    const detectedUsdt = new Decimal(depositData.usdtAmount ?? '0');
+    const isBelowMinimum =
       detectedUsdt.isFinite() && detectedUsdt.lt(new Decimal(minUsdt));
+
+    const detectedAt = new Date();
+
     const deposit = this.depositRepository.create({
       ...depositData,
-      status: DepositStatus.PENDING,
-      detectedAt: new Date(),
+      status: isBelowMinimum
+        ? DepositStatus.BELOW_MINIMUM
+        : DepositStatus.PENDING,
+      detectedAt,
+      metadata: isBelowMinimum
+        ? {
+            ...(depositData.metadata ?? {}),
+            belowMinimum: {
+              detected: true,
+              usdtAmount: detectedUsdt.toFixed(18),
               minimumAtDetection: minUsdt,
+              tdxAmount: depositData.tdxAmount ?? null,
+              // Captured conversion rate reused by any later admin credit.
+              rateApplied: 100,
+              detectedAt: detectedAt.toISOString(),
+            },
+          }
+        : (depositData.metadata ?? {}),
     });
 
     return this.depositRepository.save(deposit);
+  }
+
+  // ============================================================
+  // ADMIN: BELOW-MINIMUM DEPOSIT RECOVERY
+  // ============================================================
+  //
+  // Authorized admins (AdminGuard + MFA/AAL2, mandatory reason) decide a
+  // BELOW_MINIMUM deposit exactly once:
+  // - CREDIT: credits the captured detection-time TDX amount through the
+  //   existing balance/ledger source-of-truth path (BalanceService.creditTDX
+  //   joining THIS transaction) — no second balance or ledger system.
+  // - REJECT: marks the deposit reviewed/declined, no credit.
+  //
+  // The decision, the balance/ledger mutation (CREDIT only) and the
+  // admin_audit_logs row are written in ONE transaction and are idempotent:
+  // the deposit row is locked FOR UPDATE and must still be BELOW_MINIMUM, so
+  // a repeated decision cannot double-credit or double-log.
+  async reviewBelowMinimumDeposit(
+    depositId: string,
+    decision: BelowMinimumReviewDecision,
+    reason: string,
+    context: {
+      adminId: string;
+      ipAddress: string | null;
+      userAgent: string | null;
+    },
+  ): Promise<Deposit> {
+    const normalizedReason = (reason ?? '').trim();
+    if (!normalizedReason) {
+      throw new BadRequestException({
+        statusCode: 400,
+        error: 'Bad Request',
+        code: 'MISSING_REASON',
+        message: 'A reason is required for every deposit review decision',
+      });
+    }
+
+    return this.dataSource.transaction(async (manager) => {
+      const depositRepo = manager.getRepository(Deposit);
+      const auditRepo = manager.getRepository(AdminAuditLog);
+
+      const deposit = await depositRepo.findOne({
+        where: { id: depositId },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (!deposit) {
+        throw new NotFoundException('Deposit not found');
+      }
+
+      if (deposit.status !== DepositStatus.BELOW_MINIMUM) {
+        throw new ConflictException({
+          statusCode: 409,
+          error: 'Conflict',
+          code: 'DEPOSIT_NOT_AWAITING_BELOW_MINIMUM_REVIEW',
+          message: `Deposit is not awaiting below-minimum review. Current status: ${deposit.status}`,
+          currentStatus: deposit.status,
+        });
+      }
+
+      const capturedRate =
+        (deposit.metadata?.belowMinimum as { rateApplied?: number })
+          ?.rateApplied ?? 100;
+
+      const before = {
+        id: deposit.id,
+        status: deposit.status,
+        usdtAmount: deposit.usdtAmount,
+        tdxAmount: deposit.tdxAmount,
+        creditedAt: deposit.creditedAt,
+        metadata: deposit.metadata ?? {},
+      };
+
+      if (decision === 'CREDIT') {
+        // Captured detection-time conversion: the stored tdxAmount IS the
+        // detection-time conversion, so the captured rate is preserved and
+        // reused — never re-quoted at credit time.
+        await this.balanceService.creditTDX(
+          deposit.userId,
+          deposit.tdxAmount,
+          LedgerType.DEPOSIT,
+          `Below-minimum deposit recovery: ${deposit.usdtAmount} USDT credited with detection-time rate`,
+          deposit.id,
+          {
+            usdtAmount: deposit.usdtAmount,
+            tdxAmount: deposit.tdxAmount,
+            rateApplied: capturedRate,
+            rateCapturedAtDetection: true,
+            transactionHash: deposit.transactionHash,
+            chainId: deposit.chainId,
+            recoveredBy: context.adminId,
+            reason: normalizedReason,
+          },
+          manager,
+        );
+
+        deposit.status = DepositStatus.COMPLETED;
+        deposit.creditedAt = new Date();
+        deposit.metadata = {
+          ...(deposit.metadata ?? {}),
+          belowMinimumReview: {
+            decision: 'CREDIT',
+            reason: normalizedReason,
+            adminId: context.adminId,
+            decidedAt: new Date().toISOString(),
+            rateApplied: capturedRate,
+          },
+        };
+      } else {
+        deposit.status = DepositStatus.FAILED;
+        deposit.metadata = {
+          ...(deposit.metadata ?? {}),
+          belowMinimumReview: {
+            decision: 'REJECT',
+            reason: normalizedReason,
+            adminId: context.adminId,
+            decidedAt: new Date().toISOString(),
+          },
+        };
+      }
+
+      const saved = await depositRepo.save(deposit);
+
+      await auditRepo.save(
+        auditRepo.create({
+          adminId: context.adminId,
+          action:
+            decision === 'CREDIT'
+              ? DEPOSIT_BELOW_MINIMUM_CREDITED_ACTION
+              : DEPOSIT_BELOW_MINIMUM_REJECTED_ACTION,
+          targetType: 'DEPOSIT',
+          targetId: deposit.id,
+          oldValue: before,
+          newValue: {
+            id: saved.id,
+            status: saved.status,
+            usdtAmount: saved.usdtAmount,
+            tdxAmount: saved.tdxAmount,
+            creditedAt: saved.creditedAt,
+            metadata: saved.metadata ?? {},
+          },
+          ipAddress: context.ipAddress,
+          userAgent: context.userAgent,
+          metadata: {
+            reason: normalizedReason,
+            decision,
+            transactionHash: deposit.transactionHash,
+            chainId: deposit.chainId,
+          },
+        }),
+      );
+
+      return saved;
+    });
   }
 
   async updateConfirmations(
@@ -169,6 +369,24 @@ export class DepositService {
       where: { userId },
       order: { createdAt: 'DESC' },
     });
+  }
+
+  /**
+   * Lists deposits awaiting below-minimum review (Architecture Plan v3).
+   * They are auditable and recoverable — never silently discarded.
+   */
+  async listBelowMinimumDeposits(
+    limit: number,
+    offset: number,
+  ): Promise<{ items: Deposit[]; total: number; limit: number; offset: number }> {
+    const [items, total] = await this.depositRepository.findAndCount({
+      where: { status: DepositStatus.BELOW_MINIMUM },
+      order: { createdAt: 'ASC' },
+      skip: offset,
+      take: Math.min(limit, 200),
+    });
+
+    return { items, total, limit, offset };
   }
 
   /**

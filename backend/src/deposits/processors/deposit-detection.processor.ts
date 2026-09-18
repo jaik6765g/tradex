@@ -46,6 +46,7 @@ import { Injectable } from '@nestjs/common';
 import { ethers } from 'ethers';
 
 import { DepositService } from '../deposit.service';
+import { DepositStatus } from '../deposit.entity';
 
 import { WalletsService } from '../../wallets/wallets.service';
 
@@ -559,6 +560,16 @@ export class DepositDetectionProcessor extends WorkerHost {
       console.log(
         `🔐 Confirmations: ${confirmations}/${this.requiredConfirmations}`,
       );
+
+      // Below-minimum on-chain deposit: recorded with the reviewable
+      // BELOW_MINIMUM status and NEVER auto-credited — no confirmation or
+      // credit job is enqueued (Architecture Plan v3, correction 2).
+      if (deposit.status === DepositStatus.BELOW_MINIMUM) {
+        console.log(
+          `⚠️ Deposit ${deposit.id} recorded as BELOW_MINIMUM — awaiting admin review (no auto-credit)`,
+        );
+        return;
+      }
 
       // ======================================================
       // QUEUE CONFIRMATION

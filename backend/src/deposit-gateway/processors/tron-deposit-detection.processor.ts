@@ -128,6 +128,16 @@ export class TronDepositDetectionProcessor extends WorkerHost {
       throw error;
     }
 
+    // Below-minimum on-chain deposit: recorded with the reviewable
+    // BELOW_MINIMUM status and NEVER auto-credited, so neither confirmation
+    // nor credit is enqueued; an authorized admin decides later.
+    if (deposit.status === DepositStatus.BELOW_MINIMUM) {
+      this.logger.warn(
+        `Deposit ${deposit.id} (${data.txId}) recorded as BELOW_MINIMUM — no auto-credit; awaiting admin review`,
+      );
+      return;
+    }
+
     if (confirmations >= network.confirmations) {
       await this.depositService.updateConfirmations(deposit.id, confirmations);
       await this.enqueueCredit(deposit.id, userId);

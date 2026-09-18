@@ -59,6 +59,7 @@ import type {
   BotSettings,
   UpdateBotSettingsPayload,
   DistributeBonusPayload,
+  ReviewBelowMinimumDepositPayload,
 } from '../types/admin.types';
 import {
   USDT_DECIMALS,
@@ -1036,16 +1037,21 @@ export class AdminService {
   }
 
   /**
+   * Authorized admin decision on a below-minimum deposit (Architecture
    * Plan v3): CREDIT (captured detection-time rate) or REJECT. Reason is
    * mandatory and is persisted in the immutable admin_audit_logs row.
    */
+  static async reviewBelowMinimumDeposit(
     depositId: string,
+    payload: ReviewBelowMinimumDepositPayload,
   ): Promise<AdminDeposit> {
     const trimmedReason = (payload.reason ?? '').trim();
     if (!trimmedReason) {
+      throw new Error('A reason is required for every below-minimum review decision');
     }
 
     const response = await apiClient.post<AdminDeposit>(
+      `/admin/deposits/${encodeURIComponent(depositId)}/below-minimum/review`,
       { decision: payload.decision, reason: trimmedReason },
     );
 

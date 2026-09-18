@@ -15,10 +15,12 @@ import { BotActivation } from '../bot/entities/bot-activation.entity';
 import { BotWalletTransaction } from '../bot/entities/bot-wallet-transaction.entity';
 import { AdminPool } from '../modules/lotto/entities/admin-pool.entity';
 import { AdminAuthModule } from '../auth/admin-auth.module';
+import { DepositModule } from '../deposits/deposit.module';
 
 @Module({
   imports: [
     AdminAuthModule,
+    DepositModule,
     TypeOrmModule.forFeature([
       AdminAuditLog,
       AdminSetting,

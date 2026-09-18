@@ -19,6 +19,7 @@ const DEPOSIT_STATUS_OPTIONS: Array<{
   { label: 'Verified', value: 'VERIFIED' },
   { label: 'Completed', value: 'COMPLETED' },
   { label: 'Failed', value: 'FAILED' },
+  { label: 'Below Minimum', value: 'BELOW_MINIMUM' },
 ];
 
 const DEPOSIT_STATUS_BADGE_VARIANTS: Record<
@@ -30,6 +31,7 @@ const DEPOSIT_STATUS_BADGE_VARIANTS: Record<
   VERIFIED: 'info',
   COMPLETED: 'success',
   FAILED: 'error',
+  BELOW_MINIMUM: 'neutral',
 };
 
 function formatDateTime(value?: string | null): string {
@@ -142,6 +144,7 @@ function DepositTableRow({
   isAnyActionRunning,
   onUpdateStatus,
   onCredit,
+  onReview,
 }: {
   deposit: AdminDeposit;
   isUpdatingStatus: boolean;
@@ -149,10 +152,12 @@ function DepositTableRow({
   isAnyActionRunning: boolean;
   onUpdateStatus: (id: string, status: AdminDepositStatus) => Promise<void>;
   onCredit: (id: string) => Promise<void>;
+  onReview: (deposit: AdminDeposit) => void;
 }) {
   const canMarkVerified = deposit.status === 'PENDING' || deposit.status === 'CONFIRMING';
   const canMarkFailed = deposit.status !== 'FAILED' && deposit.status !== 'COMPLETED';
   const canCredit = deposit.status === 'VERIFIED';
+  const canReview = deposit.status === 'BELOW_MINIMUM';
 
   return (
     <tr className="align-top transition-colors hover:bg-[#111217]">
@@ -197,6 +202,17 @@ function DepositTableRow({
               Credit
             </Button>
           )}
+          {canReview && (
+            <Button
+              variant="secondary"
+              size="sm"
+              className="h-7 px-2.5 text-[11px]"
+              disabled={isAnyActionRunning}
+              onClick={() => onReview(deposit)}
+            >
+              Review
+            </Button>
+          )}
           {canMarkFailed && (
             <Button
               variant="danger"
@@ -209,7 +225,7 @@ function DepositTableRow({
               Mark Failed
             </Button>
           )}
-          {!canMarkVerified && !canCredit && !canMarkFailed && (
+          {!canMarkVerified && !canCredit && !canMarkFailed && !canReview && (
             <span className="text-[#70737E]">—</span>
           )}
         </div>
@@ -308,6 +324,37 @@ export default function AdminDepositsScreen() {
 
   const isAnyActionRunning = Boolean(pendingStatusId || pendingCreditId);
 
+  // Below-minimum review (Architecture Plan v3): mandatory reason, atomic
+  // CREDIT (detection-time rate) or REJECT, audited server-side.
+  const [reviewing, setReviewing] = useState<{
+    deposit: AdminDeposit;
+    decision: 'CREDIT' | 'REJECT';
+    reason: string;
+  } | null>(null);
+  const [reviewSaving, setReviewSaving] = useState(false);
+
+  const handleReviewSubmit = useCallback(async () => {
+    if (!reviewing) return;
+    const reason = reviewing.reason.trim();
+    if (!reason) {
+      setError('A reason is required for every below-minimum review decision');
+      return;
+    }
+    setReviewSaving(true);
+    try {
+      await AdminService.reviewBelowMinimumDeposit(reviewing.deposit.id, {
+        decision: reviewing.decision,
+        reason,
+      });
+      setReviewing(null);
+      await loadDeposits({ withLoader: false });
+    } catch (err) {
+      setError(AdminService.getErrorMessage(err));
+    } finally {
+      setReviewSaving(false);
+    }
+  }, [reviewing, loadDeposits]);
+
   const totalPages = Math.max(1, Math.ceil(total / limit));
   const currentPage = Math.floor(offset / limit) + 1;
   const canGoPrev = offset > 0;
@@ -403,6 +450,7 @@ export default function AdminDepositsScreen() {
                         isAnyActionRunning={isAnyActionRunning}
                         onUpdateStatus={handleUpdateStatus}
                         onCredit={handleCredit}
+                        onReview={(deposit) => setReviewing({ deposit, decision: 'CREDIT', reason: '' })}
                       />
                     ))}
                   </tbody>
@@ -429,6 +477,61 @@ export default function AdminDepositsScreen() {
             </>
           )}
         </section>
+      )}
+
+      {/* Below-Minimum Review Modal */}
+      {reviewing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#101828]/50 p-4">
+          <div className="w-full max-w-lg rounded-[16px] border border-[#292B33] bg-[#15161C] p-4 shadow-xl">
+            <h2 className="text-base font-black text-[#F5F5F7]">Review Below-Minimum Deposit</h2>
+            <p className="mt-2 text-xs text-[#A1A4AE]">
+              Detected amount <span className="font-bold text-[#F5F5F7]">{formatTokenAmount(reviewing.deposit.usdtAmount, 'USDT')}</span> is
+              below the configured minimum. It was recorded but never auto-credited.
+            </p>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setReviewing((prev) => (prev ? { ...prev, decision: 'CREDIT' } : prev))}
+                className={`rounded-[10px] border px-3 py-2 text-xs font-bold ${reviewing.decision === 'CREDIT' ? 'border-[#1E4A32] bg-[#10251A] text-[#4ADE80]' : 'border-[#34343E] bg-[#15161C] text-[#A1A4AE]'}`}
+              >
+                CREDIT (detection-time rate)
+              </button>
+              <button
+                type="button"
+                onClick={() => setReviewing((prev) => (prev ? { ...prev, decision: 'REJECT' } : prev))}
+                className={`rounded-[10px] border px-3 py-2 text-xs font-bold ${reviewing.decision === 'REJECT' ? 'border-[#4A2323] bg-[#281313] text-[#F87171]' : 'border-[#34343E] bg-[#15161C] text-[#A1A4AE]'}`}
+              >
+                REJECT (no credit)
+              </button>
+            </div>
+            <div className="mt-3">
+              <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#A1A4AE]">
+                Reason <span className="text-[#F87171]">*</span>
+              </label>
+              <textarea
+                value={reviewing.reason}
+                onChange={(e) => setReviewing((prev) => (prev ? { ...prev, reason: e.target.value } : prev))}
+                placeholder="Mandatory — recorded in the immutable audit log"
+                className="min-h-[72px] w-full rounded-[10px] border border-[#34343E] bg-[#15161C] p-2.5 text-xs text-[#F5F5F7] placeholder:text-[#70737E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A18]"
+              />
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <Button variant="secondary" size="sm" className="h-8 px-3 text-xs" disabled={reviewSaving} onClick={() => setReviewing(null)}>
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                className="h-8 px-3 text-xs"
+                loading={reviewSaving}
+                disabled={!reviewing.reason.trim()}
+                onClick={() => void handleReviewSubmit()}
+              >
+                {reviewing.decision === 'CREDIT' ? 'Confirm Credit' : 'Confirm Reject'}
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

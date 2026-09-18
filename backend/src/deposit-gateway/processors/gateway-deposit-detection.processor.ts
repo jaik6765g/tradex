@@ -4,6 +4,7 @@ import type { Job, Queue } from 'bullmq';
 import { ethers } from 'ethers';
 
 import { DepositService } from '../../deposits/deposit.service';
+import { DepositStatus } from '../../deposits/deposit.entity';
 import { DepositAddressService } from '../addresses/deposit-address.service';
 import { TokenRegistryService } from '../tokens/token-registry.service';
 import { ChainRegistryService } from '../chains/chain-registry.service';
@@ -111,6 +112,17 @@ export class GatewayDepositDetectionProcessor extends WorkerHost {
         confirmations,
         requiredConfirmations: adapter.getRequiredConfirmations(),
       });
+
+      // Below-minimum on-chain deposit: recorded with the reviewable
+      // BELOW_MINIMUM status and NEVER auto-credited, so no confirmation /
+      // credit job is enqueued. An authorized admin decides CREDIT or REJECT
+      // later (Architecture Plan v3, correction 2).
+      if (deposit.status === DepositStatus.BELOW_MINIMUM) {
+        this.logger.warn(
+          `Deposit ${deposit.id} (${data.transactionHash}) recorded as BELOW_MINIMUM — no auto-credit; awaiting admin review`,
+        );
+        return;
+      }
 
       await this.confirmationQueue.add(
         'confirm-deposit',

@@ -22,7 +22,9 @@ import {
 import { QueryAdminAuditLogsDto } from './dto/query-admin-audit-logs.dto';
 import { QueryAdminSettingsDto } from './dto/query-admin-settings.dto';
 import { UpdateAdminSettingDto } from './dto/update-admin-setting.dto';
+import { ReviewBelowMinimumDepositDto } from './dto/review-below-minimum-deposit.dto';
 import { AdminService } from './admin.service';
+import { DepositService } from '../deposits/deposit.service';
 
 @ApiTags('admin')
 @Controller('admin')
@@ -32,6 +34,7 @@ export class AdminController {
   constructor(
     private readonly adminService: AdminService,
     private readonly financialOverviewService: AdminFinancialOverviewService,
+    private readonly depositService: DepositService,
   ) {}
 
   @Get('audit-logs')
@@ -157,6 +160,68 @@ export class AdminController {
       success: true,
       data,
       message: 'Bonus history loaded',
+    };
+  }
+
+  // ============================================================
+  // ADMIN: BELOW-MINIMUM DEPOSIT REVIEW (Architecture Plan v3)
+  // ============================================================
+  //
+  // On-chain deposits below the configured minimum are recorded with the
+  // reviewable BELOW_MINIMUM status and never auto-credited. These endpoints
+  // let an authorized admin (AdminGuard + MFA/AAL2, mandatory reason) inspect
+  // them and decide CREDIT (detection-time rate) or REJECT. The decision,
+  // the balance/ledger mutation and the audit row are atomic and idempotent.
+
+  @Get('deposits/below-minimum')
+  @ApiOperation({ summary: 'List deposits awaiting below-minimum review' })
+  async listBelowMinimumDeposits(
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ) {
+    const parsedLimit = Number(limit ?? '50');
+    const parsedOffset = Number(offset ?? '0');
+
+    const data = await this.depositService.listBelowMinimumDeposits(
+      Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 50,
+      Number.isFinite(parsedOffset) && parsedOffset > 0 ? parsedOffset : 0,
+    );
+
+    return {
+      success: true,
+      data: data.items,
+      total: data.total,
+      message: 'Below-minimum deposits loaded',
+    };
+  }
+
+  @Post('deposits/:id/below-minimum/review')
+  @ApiOperation({
+    summary: 'Decide a below-minimum deposit (CREDIT with detection-time rate, or REJECT); reason required',
+  })
+  async reviewBelowMinimumDeposit(
+    @Request() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() dto: ReviewBelowMinimumDepositDto,
+  ) {
+    const result = await this.depositService.reviewBelowMinimumDeposit(
+      id,
+      dto.decision,
+      dto.reason,
+      {
+        adminId: req.user.id,
+        ipAddress: this.extractClientIp(req),
+        userAgent: req.get('user-agent') ?? null,
+      },
+    );
+
+    return {
+      success: true,
+      data: result,
+      message:
+        dto.decision === 'CREDIT'
+          ? 'Below-minimum deposit credited with the captured detection-time rate'
+          : 'Below-minimum deposit rejected (no credit)',
     };
   }
 
