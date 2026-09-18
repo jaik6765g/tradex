@@ -218,6 +218,10 @@ export const useLottoGame = () => {
 
   const isMountedRef = useRef(false);
   const pollRef = useRef(null);
+  // HIGH-002: holds the latest refreshLottoState so the 5s poll interval
+  // never depends on callback identity (wallet balance churn used to tear
+  // down and recreate the interval, firing an extra 4-call burst each time).
+  const refreshLottoStateRef = useRef(null);
   // HIGH-001: flips once after the first refreshLottoState completes; every
   // later call is a background refresh (isRefreshing), never a blocking load.
   const hasCompletedInitialLoadRef = useRef(false);
@@ -257,7 +261,10 @@ export const useLottoGame = () => {
     }
 
     try {
-      await refreshWallet();
+      // HIGH-002: the poll is a BACKGROUND refresh — silent keeps `isLoading`
+      // (part of the wallet context value) untouched, so the 5s poll can no
+      // longer re-render every wallet consumer twice per cycle.
+      await refreshWallet({ silent: true });
     } catch (apiError) {
       if (!isMountedRef.current) return;
       setError(lottoApi.getErrorMessage(apiError, 'Failed to fetch wallet balance'));
@@ -690,8 +697,10 @@ export const useLottoGame = () => {
 
       if (isAuthenticated && userId) {
         tasks.push(fetchBalance(), getHistory({ limit: 5, offset: 0, append: false }));
-      } else if (isMountedRef.current && isFirstLoad) {
-        // Only wipe history on the genuine first load — never mid-session.
+      } else if (isMountedRef.current) {
+        // Unauthenticated session: never keep another session's ticket list
+        // (original behaviour). Runs on logout too, where the poll effect
+        // re-subscribes on the isAuthenticated change.
         setHistory([]);
       }
 
@@ -709,6 +718,13 @@ export const useLottoGame = () => {
       }
     }
   }, [fetchBalance, getActiveRound, getHistory, getLastResult, isAuthenticated, userId]);
+
+  // HIGH-002: keep the latest refreshLottoState in a ref. Declared BEFORE
+  // the poll effect so, on any render where both run, the ref is already
+  // updated when the interval (re)subscribes.
+  useEffect(() => {
+    refreshLottoStateRef.current = refreshLottoState;
+  }, [refreshLottoState]);
 
   const placeBet = useCallback(
     async (roundId, numbers, amount) => {
@@ -896,10 +912,10 @@ export const useLottoGame = () => {
   useEffect(() => {
     isMountedRef.current = true;
 
-    void refreshLottoState();
+    void refreshLottoStateRef.current();
 
     pollRef.current = window.setInterval(() => {
-      void refreshLottoState();
+      void refreshLottoStateRef.current();
     }, POLL_INTERVAL_MS);
 
     return () => {
@@ -909,7 +925,10 @@ export const useLottoGame = () => {
         window.clearInterval(pollRef.current);
       }
     };
-  }, [refreshLottoState]);
+    // HIGH-002: keyed on session identity only (userId / auth state). The
+    // callback itself is read through the ref, so wallet-balance churn can
+    // no longer tear down and recreate the interval mid-session.
+  }, [userId, isAuthenticated]);
 
   return {
     loading: loading || placingBet,
