@@ -179,6 +179,20 @@ export class UsersService {
         if (!referrer) {
           throw new BadRequestException('Invalid referral code');
         }
+
+        // Self-referral guard (mirrors createWithReferral's wallet-address
+        // guard): an invitee may never be credited against their own account.
+        // Identity duplicates are normally rejected by the checks above; this
+        // makes the rule explicit and covers legacy rows whose stored
+        // email/mobile differ in formatting from the normalized input.
+        const referrerEmail = referrer.email?.trim().toLowerCase() ?? null;
+        const referrerMobile = referrer.mobileNumber?.trim() ?? null;
+        if (
+          (referrerEmail !== null && referrerEmail === email.trim().toLowerCase()) ||
+          (referrerMobile !== null && referrerMobile === mobileNumber.trim())
+        ) {
+          throw new BadRequestException('Self-referral is not allowed');
+        }
       }
 
       const ownReferralCode = await this.generateNextReferralCode(manager);

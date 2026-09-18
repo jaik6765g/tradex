@@ -184,6 +184,7 @@ export default function App() {
   const isAuthPath =
     location.pathname === '/login' ||
     location.pathname === '/signup' ||
+    location.pathname === '/register' ||
     location.pathname === '/forgot-password' ||
     location.pathname === '/admin/login';
   const hideChrome = isAdminRoute || isAuthPath;
@@ -201,6 +202,10 @@ export default function App() {
                     <Routes>
                       <Route path="/login" element={<LoginScreen />} />
                       <Route path="/signup" element={<SignupScreen />} />
+                      {/* Alias: the backend builds referral links as
+                          <origin>/register?ref=CODE (UsersService.buildReferralLink),
+                          so /register must open the signup screen. */}
+                      <Route path="/register" element={<SignupScreen />} />
                       <Route path="/forgot-password" element={<ForgotPasswordScreen />} />
                       <Route path="/admin/login" element={<AdminLoginScreen />} />
                       {/* MFA bootstrap screens: rendered UNDER the single
@@ -281,6 +286,7 @@ function AuthGate({ children }: { children: React.ReactElement }) {
   const isAuthPath =
     location.pathname === '/login' ||
     location.pathname === '/signup' ||
+    location.pathname === '/register' ||
     location.pathname === '/forgot-password' ||
     isAdminLogin ||
     isAdminMfaFlow;

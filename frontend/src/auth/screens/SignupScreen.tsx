@@ -15,18 +15,7 @@ import {
 } from 'lucide-react';
 
 import { useAppAuth } from '../authContext';
-
-function getReferralFromUrl(): string {
-  try {
-    const url = new URL(window.location.href);
-    const query = url.searchParams.get('ref');
-    const pathMatch = url.pathname.match(/^\/ref\/([^/]+)/i);
-
-    return (query ?? pathMatch?.[1] ?? '').trim().toUpperCase();
-  } catch {
-    return '';
-  }
-}
+import { readReferralFromUrl } from '../utils/referralLink';
 
 function passwordStrength(password: string): number {
   if (!password) {
@@ -47,17 +36,29 @@ export default function SignupScreen() {
   const { signup } = useAppAuth();
   const navigate = useNavigate();
 
-  const initialReferral = useMemo(getReferralFromUrl, []);
+  // Read once on mount: the code must survive every re-render and stay
+  // visible while the user fills mobile/email/password.
+  const initialReferral = useMemo(
+    () => readReferralFromUrl(window.location.href),
+    [],
+  );
 
   const [mobile, setMobile] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
-  const [referral, setReferral] = useState(initialReferral);
+  const [referral, setReferral] = useState(initialReferral.code);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+
+  // The invitation hint stays only while the untouched link code is applied.
+  // The field itself remains editable — existing rules treat it as optional
+  // and the backend re-validates it authoritatively.
+  const linkReferralApplied =
+    initialReferral.fromLink &&
+    referral.trim().toUpperCase() === initialReferral.code;
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -147,21 +148,11 @@ return (
               </div>
             </div>
 
-            {/* Heading */}
-            <h1 className="mt-6 text-[28px] font-black leading-tight tracking-tight text-[#F5F5F7]">
-              Create your{' '}
-              <span
-                className="bg-clip-text text-transparent"
-                style={{
-                  backgroundImage: 'linear-gradient(90deg, #FF8F3D, #FF7A18)',
-                }}
-              >
-                premium
-              </span>{' '}
-              account
-            </h1>
-            <p className="mt-2 text-sm text-[#A1A4AE]">
-              Join TradeX and start trading in seconds — no OTP required.
+            {/* Tagline — now the primary heading (the "Create your premium
+                account" heading was removed by request). `mt-6` kept so the
+                card spacing is unchanged. */}
+            <p className="mt-6 text-[22px] font-black leading-tight tracking-tight text-[#F5F5F7]">
+              Join TradeX and start trading.
             </p>
 
             {/* Form */}
@@ -233,7 +224,12 @@ return (
                 value={referral}
                 onChange={(e) => setReferral(e.target.value.toUpperCase())}
                 optional
-                hint="Have a code? Unlock exclusive rewards."
+                hint={
+                  linkReferralApplied
+                    ? 'Referral code applied from invitation link.'
+                    : 'Have a code? Unlock exclusive rewards.'
+                }
+                hintTone={linkReferralApplied ? 'success' : 'muted'}
               />
 
               {error && (
@@ -304,6 +300,7 @@ function Field({
   icon,
   right,
   hint,
+  hintTone = 'muted',
   optional,
   ...inputProps
 }: {
@@ -311,6 +308,7 @@ function Field({
   icon: React.ReactNode;
   right?: React.ReactNode;
   hint?: string;
+  hintTone?: 'muted' | 'success';
   optional?: boolean;
 } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
@@ -343,7 +341,17 @@ function Field({
         )}
       </div>
 
-      {hint && <p className="mt-1 text-[11px] text-[#70737E]">{hint}</p>}
+      {hint && (
+        <p
+          className={`mt-1 text-[11px] ${
+            hintTone === 'success'
+              ? 'font-semibold text-[#22C55E]'
+              : 'text-[#70737E]'
+          }`}
+        >
+          {hint}
+        </p>
+      )}
     </div>
   );
 }
