@@ -97,6 +97,74 @@ const formatCountdown = (milliseconds: number): string => {
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 };
 
+const clampNumber = (value: number, min: number, max: number): number =>
+  Math.min(Math.max(value, min), max);
+
+/**
+ * Active-trade card box. Width mirrors the original design
+ * (w-[180px] on phones / sm:w-[200px] from the sm breakpoint) and the
+ * height is the reserved drag box, so the card can be clamped to stay
+ * FULLY inside the chart area — it must never be clipped on the right
+ * or bottom edge.
+ */
+const TRADE_CARD_HEIGHT_PX = 180;
+const TRADE_CARD_MARGIN_PX = 6;
+
+const resolveTradeCardWidth = (containerWidth: number): number =>
+  containerWidth >= 640 ? 200 : 180;
+
+const getTradeCardBounds = (containerWidth: number, containerHeight: number) => {
+  const width = resolveTradeCardWidth(containerWidth);
+  return {
+    width,
+    maxLeft: Math.max(0, containerWidth - width - TRADE_CARD_MARGIN_PX),
+    maxTop: Math.max(0, containerHeight - TRADE_CARD_HEIGHT_PX - TRADE_CARD_MARGIN_PX),
+  };
+};
+
+/** Approximate rendered half-width of the single-row position label. */
+const ENTRY_LABEL_HALF_PX = 96;
+
+/** Width of the filled price tag drawn over the right price scale. */
+const ENTRY_AXIS_TAG_WIDTH_PX = 62;
+
+/** Gap kept between the position label and the chart edges / price tag. */
+const ENTRY_LABEL_EDGE_GAP_PX = 2;
+
+/** Rendered height of the position-line label row (used for edge clamping). */
+const ENTRY_LABEL_HEIGHT_PX = 26;
+
+/** Same idea for the EXPIRY / countdown labels on the expiry line. */
+const EXPIRY_LABEL_SAFE_HALF_PX = 52;
+
+/**
+ * Stake shown in the position-line label (e.g. `100`). Kept as a plain
+ * number string so it reads like the exchange qty block in the design.
+ */
+const formatStakeAmount = (value: number): string => {
+  if (!Number.isFinite(value) || value <= 0) return '--';
+  return value.toLocaleString('en-US', { maximumFractionDigits: 2 });
+};
+
+/**
+ * Maps a price LEVEL to a vertical pixel coordinate on the chart, so the
+ * entry price can be drawn as a horizontal line (TradingView position
+ * tool style). Returns null when there is no series or the price is
+ * outside the current price scale — callers must then hide the line
+ * instead of rendering a stale/incorrect one.
+ */
+const priceToChartY = (
+  series: ISeriesApi<'Candlestick', Time> | null,
+  price: number,
+): number | null => {
+  if (!series || !Number.isFinite(price) || price <= 0) return null;
+  const coord = series.priceToCoordinate(price);
+  if (typeof coord !== 'number' || !Number.isFinite(coord)) return null;
+  // Whole pixels only — sub-pixel deltas would re-render the overlay on
+  // every tick (visible jitter) without any visual benefit.
+  return Math.round(coord);
+};
+
 // ============================================================
 // COMPONENT
 // ============================================================
@@ -133,10 +201,12 @@ export const RealChart: React.FC<RealChartProps> = ({
   const [activeInterval, setActiveInterval] = useState(interval);
   const [remainingMs, setRemainingMs] = useState(0);
   const [entryChartX, setEntryChartX] = useState<number | null>(null);
+  const [entryChartY, setEntryChartY] = useState<number | null>(null);
   const [expiryChartX, setExpiryChartX] = useState<number | null>(null);
   const [cardPosition, setCardPosition] = useState({ left: 70, top: 5 });
   const [isDragging, setIsDragging] = useState(false);
   const [chartReady, setChartReady] = useState(false);
+  const [chartAreaSize, setChartAreaSize] = useState({ width: 0, height: 0 });
 
   // ==========================================================
   // SYMBOL
@@ -174,6 +244,9 @@ export const RealChart: React.FC<RealChartProps> = ({
   }
   const liveMovePositive = liveMovePercent >= 0;
 
+  /** Stake shown as the qty block on the position line (stake → amount). */
+  const tradeStake = Number(activeTrade?.stake ?? activeTrade?.amount ?? 0);
+
   // ==========================================================
   // INTERVAL SYNC
   // ==========================================================
@@ -187,6 +260,105 @@ export const RealChart: React.FC<RealChartProps> = ({
   useEffect(() => {
     if (hasActiveTrade) setCardPosition({ left: 70, top: 5 });
   }, [activeTrade?.id]);
+
+  // ==========================================================
+  // CHART AREA SIZE (for clamping the overlays inside the chart)
+  // ==========================================================
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return undefined;
+
+    const updateSize = () => {
+      setChartAreaSize({
+        width: container.clientWidth,
+        height: container.clientHeight,
+      });
+    };
+
+    updateSize();
+
+    const observer = new ResizeObserver(updateSize);
+    observer.observe(container);
+    window.addEventListener('resize', updateSize);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', updateSize);
+    };
+  }, [height]);
+
+  // Clamped card box — keeps the draggable card fully inside the chart
+  // area on EVERY viewport (previously left:70% + 180px overflowed to
+  // the right on phones and got clipped by the rounded card).
+  const tradeCardBounds = useMemo(
+      () => getTradeCardBounds(chartAreaSize.width, chartAreaSize.height),
+      [chartAreaSize.width, chartAreaSize.height]
+  );
+
+  const tradeCardLeftPx = useMemo(
+      () => clampNumber((cardPosition.left / 100) * chartAreaSize.width, 0, tradeCardBounds.maxLeft),
+      [cardPosition.left, chartAreaSize.width, tradeCardBounds.maxLeft]
+  );
+
+  const tradeCardTopPx = useMemo(
+      () => clampNumber((cardPosition.top / 100) * chartAreaSize.height, 0, tradeCardBounds.maxTop),
+      [cardPosition.top, chartAreaSize.height, tradeCardBounds.maxTop]
+  );
+
+  // ==========================================================
+  // POSITION-LINE LABEL (single row on the entry price line)
+  // ==========================================================
+
+  /** True → LONG (green), false → SHORT (red). Mirrors the card styling. */
+  const isLongDirection = activeTrade?.direction !== 'SHORT';
+
+  /**
+   * The entry PRICE level must be inside the visible chart area — if the
+   * market has moved far away from it the line is off-screen and showing
+   * a clamped label would misrepresent the level, so we hide it instead.
+   */
+  const entryLevelVisible =
+      entryChartY !== null &&
+      chartAreaSize.height > 0 &&
+      entryChartY >= 0 &&
+      entryChartY <= chartAreaSize.height;
+
+  /**
+   * Top offset that keeps the single-row label fully inside the chart
+   * area even when the entry price line sits on the very top/bottom edge
+   * (otherwise the row would be half-cut by the container).
+   */
+  const entryLabelTopPx = useMemo(() => {
+    if (entryChartY === null) return null;
+    const maxTop = Math.max(
+        ENTRY_LABEL_EDGE_GAP_PX,
+        chartAreaSize.height - ENTRY_LABEL_HEIGHT_PX - ENTRY_LABEL_EDGE_GAP_PX
+    );
+    return clampNumber(
+        Math.round(entryChartY - ENTRY_LABEL_HEIGHT_PX / 2),
+        ENTRY_LABEL_EDGE_GAP_PX,
+        maxTop
+    );
+  }, [entryChartY, chartAreaSize.height]);
+
+  /**
+   * Left offset (px, centre-anchored) for the position label. It follows
+   * the entry-time marker but is clamped so the whole single row stays
+   * inside the chart AND clear of the price tag on every viewport — a
+   * pure CSS `clamp()` cannot do the tag part on very narrow charts.
+   */
+  const entryLabelLeftPx = useMemo(() => {
+    const width = chartAreaSize.width;
+    const minLeft = ENTRY_LABEL_HALF_PX + ENTRY_LABEL_EDGE_GAP_PX;
+    if (width <= 0) return minLeft;
+    const maxLeft = Math.max(
+        minLeft,
+        width - ENTRY_LABEL_HALF_PX - ENTRY_AXIS_TAG_WIDTH_PX - ENTRY_LABEL_EDGE_GAP_PX
+    );
+    const anchor = entryChartX === null ? minLeft : entryChartX;
+    return clampNumber(anchor, minLeft, maxLeft);
+  }, [entryChartX, chartAreaSize.width]);
 
   // ==========================================================
   // COUNTDOWN
@@ -325,6 +497,7 @@ export const RealChart: React.FC<RealChartProps> = ({
   useEffect(() => {
     if (!chartRef.current || !hasActiveTrade || !chartReady) {
       setEntryChartX(null);
+      setEntryChartY(null);
       setExpiryChartX(null);
       return;
     }
@@ -333,6 +506,7 @@ export const RealChart: React.FC<RealChartProps> = ({
     const expirySeconds = getUnixSeconds(activeTrade?.expiresAt);
 
     let lastEntryX: number | null = null;
+    let lastEntryY: number | null = null;
     let lastExpiryX: number | null = null;
 
     const updatePositions = () => {
@@ -363,6 +537,16 @@ export const RealChart: React.FC<RealChartProps> = ({
       if (entryX !== lastEntryX) {
         lastEntryX = entryX;
         setEntryChartX(entryX);
+      }
+
+      // Horizontal entry PRICE line (position tool). Recomputed together
+      // with the time coordinate because panning/zooming changes the
+      // vertical price scale as well as the time scale.
+      const entryY = priceToChartY(seriesRef.current, entryPrice);
+
+      if (entryY !== lastEntryY) {
+        lastEntryY = entryY;
+        setEntryChartY(entryY);
       }
 
       if (expiryX !== lastExpiryX) {
@@ -408,7 +592,7 @@ export const RealChart: React.FC<RealChartProps> = ({
         timeScale.unsubscribeVisibleTimeRangeChange(handleVisibleRangeChange);
       }
     };
-  }, [hasActiveTrade, activeTrade?.entryAt, activeTrade?.expiresAt, candles.length, chartReady]);
+  }, [hasActiveTrade, activeTrade?.entryAt, activeTrade?.expiresAt, entryPrice, candles.length, chartReady]);
 
   // ==========================================================
   // FORCE UPDATE ON CANDLE CHANGE
@@ -429,9 +613,14 @@ export const RealChart: React.FC<RealChartProps> = ({
           const coord = timeScale.timeToCoordinate(expirySeconds as Time);
           if (typeof coord === 'number') setExpiryChartX(coord);
         }
+
+        // Live candles move the autoscaled price scale, so the entry
+        // PRICE line must be re-projected on every candle tick too —
+        // otherwise the horizontal line drifts off the real level.
+        setEntryChartY(priceToChartY(seriesRef.current, entryPrice));
       }
     }
-  }, [candles.length, chartReady, hasActiveTrade, activeTrade?.entryAt, activeTrade?.expiresAt]);
+  }, [candles.length, chartReady, hasActiveTrade, activeTrade?.entryAt, activeTrade?.expiresAt, entryPrice]);
 
   // ==========================================================
   // DRAG CARD
@@ -442,8 +631,11 @@ export const RealChart: React.FC<RealChartProps> = ({
         if (!containerRef.current) return;
         const container = containerRef.current;
         const rect = container.getBoundingClientRect();
-        const startLeftPx = (cardPosition.left / 100) * rect.width;
-        const startTopPx = (cardPosition.top / 100) * rect.height;
+        const bounds = getTradeCardBounds(rect.width, rect.height);
+        // Start from the CLAMPED (rendered) px so dragging never jumps
+        // when the card was auto-clamped away from its % position.
+        const startLeftPx = clampNumber((cardPosition.left / 100) * rect.width, 0, bounds.maxLeft);
+        const startTopPx = clampNumber((cardPosition.top / 100) * rect.height, 0, bounds.maxTop);
 
         dragRef.current = {
           pointerId: event.pointerId,
@@ -471,16 +663,10 @@ export const RealChart: React.FC<RealChartProps> = ({
         const deltaX = event.clientX - drag.startX;
         const deltaY = event.clientY - drag.startY;
 
-        const cardWidth = Math.min(200, Math.max(160, rect.width * 0.35));
-        const cardHeight = 180;
+        const bounds = getTradeCardBounds(rect.width, rect.height);
 
-        const minLeft = 4;
-        const maxLeft = Math.max(minLeft, rect.width - cardWidth - 4);
-        const minTop = 4;
-        const maxTop = Math.max(minTop, rect.height - cardHeight - 4);
-
-        const nextLeftPx = Math.min(maxLeft, Math.max(minLeft, drag.startLeft + deltaX));
-        const nextTopPx = Math.min(maxTop, Math.max(minTop, drag.startTop + deltaY));
+        const nextLeftPx = clampNumber(drag.startLeft + deltaX, 0, bounds.maxLeft);
+        const nextTopPx = clampNumber(drag.startTop + deltaY, 0, bounds.maxTop);
 
         setCardPosition({
           left: rect.width > 0 ? (nextLeftPx / rect.width) * 100 : 70,
@@ -516,7 +702,11 @@ export const RealChart: React.FC<RealChartProps> = ({
   // ==========================================================
 
   return (
-      <div className="overflow-hidden rounded-2xl border border-[#202229] bg-[#15161C] shadow-[0_4px_20px_rgba(16,24,40,0.04)]">
+      /* Full-bleed on phones: the negative margin cancels the page's
+         `px-2` gutter so the chart card spans the entire screen width
+         (left↔right fit), while staying inside the normal rounded card
+         layout from the `sm` breakpoint upwards. */
+      <div className="-mx-2 overflow-hidden rounded-none border-y border-[#202229] bg-[#15161C] shadow-[0_4px_20px_rgba(16,24,40,0.04)] sm:mx-0 sm:rounded-2xl sm:border">
         {/* HEADER */}
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#202229] px-3 py-2.5 sm:px-4 sm:py-3">
           <div className="flex min-w-0 items-center gap-2 sm:gap-3">
@@ -570,53 +760,131 @@ export const RealChart: React.FC<RealChartProps> = ({
               style={height ? { height: `${height}px` } : undefined}
           />
 
-          {/* ENTRY VERTICAL LINE */}
-          {hasActiveTrade && entryChartX !== null && entryChartX > 0 && (
-              <div
-                  className="pointer-events-none absolute bottom-0 top-0 z-10"
-                  style={{ left: `${entryChartX}px` }}
-              >
+          {/* ENTRY POSITION LINE (TradingView-style) */}
+          {hasActiveTrade && entryLevelVisible && entryLabelTopPx !== null && (
+              <>
+                {/* Faint vertical marker for the entry TIME */}
+                {entryChartX !== null && entryChartX > 0 && (
+                    <div
+                        className="pointer-events-none absolute bottom-0 top-0 z-10"
+                        style={{ left: `${entryChartX}px` }}
+                    >
+                      <div
+                          className={`h-full w-px ${
+                              isLongDirection ? 'bg-[#4ADE80]' : 'bg-[#DC2626]'
+                          } opacity-30`}
+                      />
+                    </div>
+                )}
+
+                {/* Horizontal line at the ENTRY PRICE level */}
                 <div
-                    className={`h-full w-[2px] ${
-                        activeTrade?.direction === 'LONG' ? 'bg-[#4ADE80]' : 'bg-[#DC2626]'
-                    } opacity-70`}
-                />
-                <div
-                    className={`absolute left-1/2 top-2 -translate-x-1/2 whitespace-nowrap rounded-md px-2 py-1 text-[9px] font-bold shadow-lg ${
-                        activeTrade?.direction === 'LONG' ? 'bg-[#4ADE80] text-white' : 'bg-[#DC2626] text-white'
-                    }`}
+                    className="pointer-events-none absolute left-0 right-0 z-10"
+                    style={{ top: `${entryChartY ?? 0}px` }}
                 >
-                  {activeTrade?.direction === 'LONG' ? '▲ LONG ENTRY' : '▼ SHORT ENTRY'}
+                  <div
+                      className={`h-[2px] w-full ${
+                          isLongDirection ? 'bg-[#4ADE80]' : 'bg-[#DC2626]'
+                      } opacity-80`}
+                  />
                 </div>
-                <div className="absolute left-1/2 top-9 -translate-x-1/2 whitespace-nowrap rounded-md border border-[#202229] bg-[#15161C]/90 px-2 py-1 font-mono text-[9px] text-[#F5F5F7] backdrop-blur-md">
+
+                {/* Price tag over the right price scale (exchange position
+                    tool style) — shows the finalized entry price level. */}
+                <div
+                    className="pointer-events-none absolute right-0 z-20 flex -translate-y-1/2 items-center justify-center rounded-[3px] px-1 py-[3px] text-[9px] font-bold text-white shadow-md sm:text-[10px]"
+                    style={{
+                      top: `${entryChartY ?? 0}px`,
+                      width: `${ENTRY_AXIS_TAG_WIDTH_PX}px`,
+                      backgroundColor: isLongDirection ? '#4ADE80' : '#DC2626',
+                    }}
+                >
                   {formatUsd(entryPrice)}
                 </div>
-              </div>
+
+                {/* Single-row label sitting ON the line:
+                    direction | stake | indicative move | countdown.
+                    `clamp()` keeps the whole row inside the chart area
+                    (and clear of the price-axis tag) on every viewport. */}
+                <div
+                    className={`pointer-events-none absolute z-20 flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-md border px-1.5 py-1 shadow-lg backdrop-blur-md ${
+                        isLongDirection ? 'border-[#4ADE80]/60' : 'border-[#DC2626]/60'
+                    } ${
+                        liveMovePositive ? 'bg-[#0E1C14]/95' : 'bg-[#221111]/95'
+                    }`}
+                    style={{ left: `${entryLabelLeftPx}px`, top: `${entryLabelTopPx}px` }}
+                >
+                  <span
+                      className={`text-[9px] font-bold ${
+                          isLongDirection ? 'text-[#4ADE80]' : 'text-[#DC2626]'
+                      }`}
+                  >
+                    {isLongDirection ? '▲ LONG' : '▼ SHORT'}
+                  </span>
+                  <span className="h-3.5 w-px bg-[#F5F5F7]/15" />
+                  <span
+                      className={`rounded-[3px] px-1.5 py-[1px] font-mono text-[10px] font-bold text-white ${
+                          isLongDirection ? 'bg-[#4ADE80]' : 'bg-[#DC2626]'
+                      }`}
+                  >
+                    {formatStakeAmount(tradeStake)}
+                  </span>
+                  <span
+                      className={`font-mono text-[10px] font-bold ${
+                          liveMovePositive ? 'text-[#4ADE80]' : 'text-[#DC2626]'
+                      }`}
+                  >
+                    {liveMovePositive ? '+' : '-'}
+                    {Math.abs(liveMovePercent).toFixed(4)}%
+                  </span>
+                  <span className="h-3.5 w-px bg-[#F5F5F7]/15" />
+                  <span
+                      className={`font-mono text-[10px] font-bold ${
+                          timerFinished ? 'text-[#FF7A18]' : 'text-[#F5F5F7]'
+                      }`}
+                  >
+                    {timerFinished ? 'SETTLING' : formatCountdown(remainingMs)}
+                  </span>
+                </div>
+              </>
           )}
 
           {/* EXPIRY VERTICAL LINE */}
           {hasActiveTrade && expiryChartX !== null && expiryChartX > 0 && (
-              <div
-                  className="pointer-events-none absolute bottom-0 top-0 z-10"
-                  style={{ left: `${expiryChartX}px` }}
-              >
-                <div className="h-full w-[2px] bg-[#FF7A18] opacity-80" />
-                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-[#FF7A18] px-2 py-1 text-[9px] font-bold text-white shadow-lg">
+              <>
+                <div
+                    className="pointer-events-none absolute bottom-0 top-0 z-10"
+                    style={{ left: `${expiryChartX}px` }}
+                >
+                  <div className="h-full w-[2px] bg-[#FF7A18] opacity-80" />
+                </div>
+                <div
+                    className="pointer-events-none absolute bottom-2 z-20 -translate-x-1/2 whitespace-nowrap rounded-md bg-[#FF7A18] px-2 py-1 text-[9px] font-bold text-white shadow-lg"
+                    style={{
+                      left: `clamp(${EXPIRY_LABEL_SAFE_HALF_PX}px, ${expiryChartX}px, calc(100% - ${EXPIRY_LABEL_SAFE_HALF_PX}px))`,
+                    }}
+                >
                   EXPIRY
                 </div>
-                <div className="absolute bottom-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md border border-[#FF7A18]/40 bg-[#15161C]/90 px-2 py-1 font-mono text-[11px] font-bold text-[#FF7A18] backdrop-blur-md">
+                <div
+                    className="pointer-events-none absolute bottom-9 z-20 -translate-x-1/2 whitespace-nowrap rounded-md border border-[#FF7A18]/40 bg-[#15161C]/90 px-2 py-1 font-mono text-[11px] font-bold text-[#FF7A18] backdrop-blur-md"
+                    style={{
+                      left: `clamp(${EXPIRY_LABEL_SAFE_HALF_PX}px, ${expiryChartX}px, calc(100% - ${EXPIRY_LABEL_SAFE_HALF_PX}px))`,
+                    }}
+                >
                   {timerFinished ? 'SETTLING...' : formatCountdown(remainingMs)}
                 </div>
-              </div>
+              </>
           )}
 
           {/* GLASS ACTIVE TRADE CARD (LIGHT) */}
           {hasActiveTrade && (
               <div
-                  className="absolute z-30 w-[180px] max-w-[calc(100%-8px)] sm:w-[200px]"
+                  className="absolute z-30 max-w-[calc(100%-8px)]"
                   style={{
-                    left: `${cardPosition.left}%`,
-                    top: `${cardPosition.top}%`,
+                    left: `${tradeCardLeftPx}px`,
+                    top: `${tradeCardTopPx}px`,
+                    width: `${tradeCardBounds.width}px`,
                     touchAction: 'none',
                   }}
               >

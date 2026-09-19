@@ -247,7 +247,6 @@ export function PulseTrade() {
     openTrades,
     history,
     activeTrade,
-    risk,
     message,
     loading,
     placingTrade,
@@ -329,43 +328,6 @@ export function PulseTrade() {
 
           <div className="overflow-hidden rounded-2xl border border-[#202229] bg-[#15161C] shadow-[0_4px_20px_rgba(16,24,40,0.04)]">
 
-            {/* HEADER */}
-
-            <div className="border-b border-[#202229] px-4 py-2.5 sm:px-5">
-
-              <div className="flex items-center justify-between gap-3">
-
-                <div>
-
-                  <h3 className="text-sm font-bold text-[#F5F5F7] sm:text-base">
-                    Place Trade
-                  </h3>
-
-                  <p className="mt-0.5 text-[10px] text-[#A1A4AE] sm:text-xs">
-                    Select amount, duration and direction
-                  </p>
-
-                </div>
-
-                {/* SMALL BALANCE */}
-
-                <div className="shrink-0 rounded-lg border border-[#202229] bg-[#15161C] px-2.5 py-1.5 text-right">
-
-                  <p className="text-[9px] uppercase tracking-wide text-[#A1A4AE]">
-                    Balance
-                  </p>
-
-                  <p className="text-sm font-bold text-[#F5F5F7] sm:text-base">
-                    {formatAmount(walletAvailable, 2)}{' '}
-                    TDX
-                  </p>
-
-                </div>
-
-              </div>
-
-            </div>
-
             {/* FORM (Vertical Layout) */}
 
             <div className="p-4 sm:p-5">
@@ -415,9 +377,27 @@ export function PulseTrade() {
 
               <div className="mb-4">
 
-                <p className="mb-1 text-xs text-[#A1A4AE]">
-                  Direction
-                </p>
+                {/* Label row — small balance on the right, sitting just
+                    above the LONG/SHORT buttons (single source of truth;
+                    the big header balance box was removed). */}
+
+                <div className="mb-1 flex items-center justify-between gap-2">
+
+                  <p className="text-xs text-[#A1A4AE]">
+                    Direction
+                  </p>
+
+                  <p className="text-[10px] font-semibold text-[#A1A4AE]">
+
+                    Balance:{' '}
+
+                    <span className="font-bold text-[#F5F5F7]">
+                      {formatAmount(walletAvailable, 2)} TDX
+                    </span>
+
+                  </p>
+
+                </div>
 
                 <div className="grid grid-cols-2 gap-2">
 
@@ -478,22 +458,6 @@ export function PulseTrade() {
                   ))}
 
                 </div>
-
-              </div>
-
-              {/* WALLET / RISK */}
-
-              <div className="mb-3 flex items-center justify-between gap-2 text-[11px] text-[#A1A4AE]">
-
-              <span>
-                Wallet: {formatAmount(walletAvailable, 2)} TDX
-              </span>
-
-                {risk && (
-                    <span>
-                  Risk: {String((risk as unknown as Record<string, unknown>).state ?? '-')}
-                </span>
-                )}
 
               </div>
 

@@ -11,9 +11,9 @@ import { useWalletContext } from '../../../wallet/context/WalletContext';
 import { formatBalanceAmount } from '../../../wallet/services/wallet.service';
 
 // ============================================================
-// LOGO IMPORT - frontend/assets/logo.png
+// LOGO IMPORT - src/assets/logo.png (transparent background)
 // ============================================================
-import logo from '/assets/logo.png';
+import logo from '../../../assets/logo.png';
 
 export default function Header() {
   const {
