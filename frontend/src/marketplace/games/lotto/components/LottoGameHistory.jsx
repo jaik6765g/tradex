@@ -1,9 +1,12 @@
 // src/marketplace/games/lotto/components/LottoGameHistory.jsx
 // Public game history — recent draws shown as a compact table:
 //   Period | Number | Even/Odd | Colour
-// Date removed. Colour shows BOTH overlapping groups (primary + secondary)
-// as compact rounded dice chips — same two-colour look as before, but tight
-// spacing so everything fits on one screen without scrolling.
+// Date removed. The Number chip AND the Even/Odd text are tinted with the
+// drawn number's ACTUAL colour group (GREEN 0-7 / RED 8-F) — the same
+// source the Colour column uses — so a green-group draw reads green and a
+// red-group draw reads red end-to-end. The Colour column itself still
+// shows BOTH overlapping groups (primary + secondary) as compact rounded
+// dice chips.
 
 import React from 'react';
 
@@ -13,7 +16,6 @@ import {
   DOT_PATTERNS_2x2,
   getNumberGroups,
   GROUP_TONE,
-  symbolToneClassName,
 } from '../utils/lottoUi';
 
 /** Result symbol → 'Even' | 'Odd' (hex: A=10 … F=15). */
@@ -76,6 +78,10 @@ const LottoGameHistory = ({
                 const isValidSymbol = /^[0-9A-F]$/.test(resultValue);
                 const evenOdd = toEvenOdd(resultValue);
                 const groups = getNumberGroups(resultValue);
+                // History tone follows the number's ACTUAL colour group
+                // (GREEN 0-7 / RED 8-F) — same source as the Colour column,
+                // not the 4-tone digit scheme used by the number grid.
+                const groupTone = groups ? GROUP_TONE[groups.primary] : null;
 
                 return (
                   <tr
@@ -89,7 +95,12 @@ const LottoGameHistory = ({
                     <td className="px-2 py-1">
                       {isValidSymbol ? (
                         <span
-                          className={`inline-flex h-5 w-5 items-center justify-center rounded-md border border-[#26262E] bg-[#101014] text-[10px] font-black ${symbolToneClassName(resultValue)}`}
+                          className="inline-flex h-5 w-5 items-center justify-center rounded-md border text-[10px] font-black"
+                          style={{
+                            color: groupTone,
+                            borderColor: `${groupTone}73`,
+                            backgroundColor: `${groupTone}1F`,
+                          }}
                           title={`Result: ${resultValue}`}
                         >
                           {resultValue}
@@ -102,7 +113,8 @@ const LottoGameHistory = ({
                     <td className="px-1.5 py-1">
                       {evenOdd ? (
                         <span
-                          className={`text-[10px] font-bold ${evenOdd === 'Even' ? 'text-[#4ADE80]' : 'text-[#F87171]'}`}
+                          className="text-[10px] font-bold"
+                          style={{ color: groupTone }}
                         >
                           {evenOdd}
                         </span>
