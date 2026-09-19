@@ -36,6 +36,8 @@ import {
 
 import type { WinLossPopupData } from '../../../shared/components/WinLossPopup';
 
+import { resolvePulseResultCard } from '../utils/pulseResultCard';
+
 // ============================================================
 // DEFAULTS
 // ============================================================
@@ -903,6 +905,15 @@ export function usePulseTrade() {
 
       const isDraw = result === 'DRAW';
 
+      // Movement card resolved ONLY from the finalized backend result
+      // (direction + result) via the pure resolver — never from
+      // animations or temporary prices. LONG+WIN->UP/GREEN,
+      // LONG+LOSS->DOWN/RED, SHORT+WIN->DOWN/GREEN, SHORT+LOSS->UP/RED.
+      const cardResolution = resolvePulseResultCard({
+        direction: trade.direction,
+        outcome: trade.result,
+      });
+
       const stake = Number(trade.stake ?? 0);
 
       const payout = Number(trade.payout ?? 0);
@@ -946,6 +957,14 @@ export function usePulseTrade() {
           : isDraw
             ? 'Stake refunded to your wallet'
             : 'Better luck next trade!',
+        // UP/DOWN artwork only for finalized WIN/LOSS; DRAW keeps the
+        // existing icon. Keyed by trade id (see below) so each new
+        // settlement replaces the previous card — no stale artwork.
+        movement: cardResolution.isWinLoss ? cardResolution.card ?? undefined : undefined,
+        // Colour state from the SAME finalized resolution (GREEN win /
+        // RED loss) so artwork + colour can never disagree.
+        tone: cardResolution.tone,
+        pairLabel: trade.symbol,
       });
 
       break;
@@ -1116,7 +1135,10 @@ export function usePulseTrade() {
 
     settlementPopup,
 
-    dismissSettlementPopup: () => setSettlementPopup(null),
+    dismissSettlementPopup: useCallback(
+      () => setSettlementPopup(null),
+      [],
+    ),
 
     // --------------------------------------------------------
     // PORTFOLIO / RISK
