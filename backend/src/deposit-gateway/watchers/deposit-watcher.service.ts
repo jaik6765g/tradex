@@ -1,8 +1,8 @@
 import {
   Injectable,
   Logger,
+  OnApplicationBootstrap,
   OnModuleDestroy,
-  OnModuleInit,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -22,7 +22,7 @@ import { GATEWAY_DETECTION_QUEUE } from '../processors/gateway-deposit-detection
  * is persisted in PostgreSQL so the watcher resumes safely after restart.
  */
 @Injectable()
-export class DepositWatcherService implements OnModuleInit, OnModuleDestroy {
+export class DepositWatcherService implements OnApplicationBootstrap, OnModuleDestroy {
   private readonly logger = new Logger(DepositWatcherService.name);
   private intervalHandle: ReturnType<typeof setInterval> | null = null;
   private scanning = false;
@@ -43,8 +43,48 @@ export class DepositWatcherService implements OnModuleInit, OnModuleDestroy {
     private readonly detectionQueue: Queue,
   ) {}
 
-  async onModuleInit(): Promise<void> {
-    await this.seedStates();
+  // ============================================================
+  // STARTUP — NON-BLOCKING (cold-start safety)
+  // ============================================================
+  //
+  // Nest awaits every onModuleInit hook before the HTTP port binds
+  // (main.ts -> app.listen()). Seeding here used to delay readiness on DB
+  // and per-chain RPC calls. Startup now happens in the BACKGROUND:
+  //   - the port binds immediately,
+  //   - seeding runs once, guarded, with per-chain error isolation,
+  //   - a failed seed self-heals: scanChain() re-seeds missing state on the
+  //     next scan (see scanChain), so no seeding failure is fatal,
+  //   - the scan interval starts exactly once (guarded below + by the
+  //     existing `scanning` re-entrancy flag).
+  // ============================================================
+
+  /** One-shot guard so background startup can never run twice. */
+  private startupStarted = false;
+
+  onApplicationBootstrap(): void {
+    if (this.startupStarted) {
+      return;
+    }
+    this.startupStarted = true;
+    void this.startup();
+  }
+
+  private async startup(): Promise<void> {
+    try {
+      await this.seedStates();
+    } catch (error) {
+      this.logger.warn(
+        `Watcher state seeding failed (will self-heal on next scan): ${(error as Error).message}`,
+      );
+    }
+    this.startWatching();
+  }
+
+  /** Starts the scan interval exactly once. */
+  private startWatching(): void {
+    if (this.intervalHandle) {
+      return;
+    }
     this.intervalHandle = setInterval(() => void this.scan(), this.intervalMs());
     this.logger.log('Deposit gateway watcher started');
   }

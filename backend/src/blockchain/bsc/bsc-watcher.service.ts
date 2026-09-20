@@ -1,4 +1,4 @@
-import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnApplicationBootstrap, OnModuleDestroy } from '@nestjs/common';
 
 import { ConfigService } from '@nestjs/config';
 
@@ -42,7 +42,7 @@ interface DepositJobData {
 }
 
 @Injectable()
-export class BscWatcherService implements OnModuleInit, OnModuleDestroy {
+export class BscWatcherService implements OnApplicationBootstrap, OnModuleDestroy {
   // ==========================================================
   // PROVIDERS
   // ==========================================================
@@ -239,7 +239,81 @@ export class BscWatcherService implements OnModuleInit, OnModuleDestroy {
   // MODULE INIT
   // ==========================================================
 
-  async onModuleInit(): Promise<void> {
+  // ==========================================================
+  // MODULE INIT — NON-BLOCKING (cold-start safety)
+  // ==========================================================
+  //
+  // Nest awaits every onModuleInit hook BEFORE NestFactory.create() returns
+  // and before main.ts binds the HTTP port (app.listen()). Awaiting an
+  // external BSC RPC here used to delay readiness by seconds and — when RPC
+  // was unavailable at boot — REJECTED into a process crash/restart loop
+  // that made every request (including auth) fail.
+  //
+  // Startup therefore happens in the BACKGROUND from onApplicationBootstrap:
+  //   - the port binds immediately,
+  //   - the same priming + lookback scan + startWatching sequence runs,
+  //   - RPC failure is caught, logged, and retried (bounded per attempt,
+  //     repeating until the RPC recovers) instead of crashing,
+  //   - duplicate startup is prevented by a one-shot guard plus the
+  //     existing intervalHandle / isScanning protections.
+  // ==========================================================
+
+  /** One-shot guard so background startup can never run twice. */
+  private startupStarted = false;
+
+  /** Pending delayed retry of background startup (cleared on destroy). */
+  private startupRetryTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /** Delay between background startup retries (overridable in tests). */
+  private readonly startupRetryDelayMs = 30_000;
+
+  onApplicationBootstrap(): void {
+    if (this.startupStarted) {
+      return;
+    }
+    this.startupStarted = true;
+    void this.initializeWatcher();
+  }
+
+  private async initializeWatcher(): Promise<void> {
+    try {
+      await this.primeWatcher();
+    } catch (error) {
+      // RPC failure must never crash the Nest process: log, keep serving,
+      // and retry priming in the background until the RPC recovers.
+      console.error(
+        `❌ BSC Watcher startup could not read the current block — retrying in ${this.startupRetryDelayMs}ms`,
+        error,
+      );
+      this.scheduleStartupRetry();
+      return;
+    }
+
+    // ========================================================
+    // IMPORTANT
+    // ========================================================
+    //
+    // Do NOT run a huge startup scan.
+    //
+    // First scan the controlled lookback window.
+    //
+    // (scanMissedBlocks catches its own errors; the try/catch below is a
+    // final guarantee that a background rejection can never become an
+    // unhandled promise rejection / process crash.)
+    try {
+      await this.scanMissedBlocks();
+    } catch (error) {
+      console.error('❌ BSC Watcher startup scan failed:', error);
+    }
+
+    this.startWatching();
+  }
+
+  /**
+   * Reads the current block and seeds lastProcessedBlock with the SAME
+   * startup lookback as before. Throws on RPC failure (caller retries).
+   */
+  private async primeWatcher(): Promise<void> {
     const currentBlock = await this.getCurrentBlock();
 
     this.lastProcessedBlock = Math.max(
@@ -254,20 +328,17 @@ export class BscWatcherService implements OnModuleInit, OnModuleDestroy {
     console.log(`📍 Current block: ${currentBlock}`);
 
     console.log(`📍 Starting scan from: ${this.lastProcessedBlock}`);
+  }
 
-    // ========================================================
-    // IMPORTANT
-    // ========================================================
-    //
-    // Do NOT run a huge startup scan.
-    //
-    // First scan the controlled lookback window.
-    //
-    // ========================================================
-
-    await this.scanMissedBlocks();
-
-    this.startWatching();
+  private scheduleStartupRetry(): void {
+    if (this.startupRetryTimer) {
+      return;
+    }
+    this.startupRetryTimer = setTimeout(() => {
+      this.startupRetryTimer = null;
+      void this.initializeWatcher();
+    }, this.startupRetryDelayMs);
+    this.startupRetryTimer.unref?.();
   }
 
   // ==========================================================
@@ -275,6 +346,11 @@ export class BscWatcherService implements OnModuleInit, OnModuleDestroy {
   // ==========================================================
 
   onModuleDestroy(): void {
+    if (this.startupRetryTimer) {
+      clearTimeout(this.startupRetryTimer);
+      this.startupRetryTimer = null;
+    }
+
     if (this.intervalHandle) {
       clearInterval(this.intervalHandle);
 

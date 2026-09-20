@@ -80,64 +80,117 @@ import { DepositGatewayModule } from './deposit-gateway/gateway.module';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.get<string>('DATABASE_HOST', 'localhost'),
-        port: Number(configService.get<string>('DATABASE_PORT', '5432')),
-        username: configService.get<string>('DATABASE_USERNAME'),
-        password: configService.get<string>('DATABASE_PASSWORD') || '',
-        database: configService.get<string>('DATABASE_NAME', 'tradex'),
-        entities: [
-          User,
-          Wallet,
-          Balance,
-          Deposit,
-          DepositOrder,
-          DepositAddress,
-          GatewayWatcherState,
-          DepositSweep,
-          BscGasBatch,
-          BscGasTransfer,
-          LedgerEntry,
-          Withdrawal,
-          Trade,
-          TradeSnapshot,
-          AdminAuditLog,
-          AdminSetting,
-          LottoRound,
-          LottoTicket,
-          LottoResult,
-          LottoSettlement,
-          ReferralBonus,
-          AdminPool,
-          AdminPoolTransaction,
-          AdminAction,
-          SystemSetting,
-          // Bot System
-          BotAccount,
-          BotWallet,
-          BotWalletTransaction,
-          BotActivation,
-          SystemSetting,
-          WingoPeriod,
-          // Bot System
-          BotMonthlySettlement,
-          BotSetting,
-          // Wagering System
-          WageringSettings,
-          WageringUserOverride,
-          WageringObligation,
-          WageringEvent,
-          WageringNotification,
-        ],
-        synchronize: false,
-        // Query logging floods production logs with every SELECT —
-        // enable only outside production (or via DATABASE_LOGGING=true).
-        logging:
-          configService.get<string>('NODE_ENV', 'development') !==
-            'production' ||
-          configService.get<boolean>('DATABASE_LOGGING', false) === true,
-      }),
+      useFactory: (configService: ConfigService) => {
+        // Consistent with data-source.ts (used by the migration CLI):
+        //   - DATABASE_URL takes priority when present (Render injects it),
+        //   - discrete DATABASE_HOST/PORT/USERNAME/PASSWORD/NAME remain fully
+        //     supported as the local-development fallback,
+        //   - the SAME SSL policy as data-source.ts (production -> SSL).
+        // Credentials / connection strings are NEVER logged here.
+        const databaseUrl =
+          configService.get<string>('DATABASE_URL')?.trim() || undefined;
+        const isProduction =
+          configService.get<string>('NODE_ENV', 'development') === 'production';
+        const databaseSsl =
+          isProduction || configService.get<string>('DATABASE_SSL') === 'true'
+            ? { rejectUnauthorized: false }
+            : false;
+
+        const connectTimeoutMs = Number(
+          configService.get<string | number>(
+            'DATABASE_CONNECT_TIMEOUT_MS',
+            15_000,
+          ),
+        );
+        const retryAttempts = Number(
+          configService.get<string | number>('DATABASE_RETRY_ATTEMPTS', 10),
+        );
+        const retryDelay = Number(
+          configService.get<string | number>('DATABASE_RETRY_DELAY_MS', 3_000),
+        );
+
+        return {
+          type: 'postgres' as const,
+
+          // Render PostgreSQL DATABASE_URL gets priority (same as data-source.ts).
+          ...(databaseUrl ? { url: databaseUrl } : {}),
+
+          // Local development fallback (unchanged behavior).
+          host: configService.get<string>('DATABASE_HOST', 'localhost'),
+          port: Number(configService.get<string>('DATABASE_PORT', '5432')),
+          username: configService.get<string>('DATABASE_USERNAME'),
+          password: configService.get<string>('DATABASE_PASSWORD') || '',
+          database: configService.get<string>('DATABASE_NAME', 'tradex'),
+
+          ssl: databaseSsl,
+
+          // Fail fast on a cold/unreachable database instead of hanging
+          // indefinitely, then let Nest's bounded retry re-attempt.
+          connectTimeoutMS:
+            Number.isFinite(connectTimeoutMs) && connectTimeoutMs > 0
+              ? connectTimeoutMs
+              : 15_000,
+          retryAttempts:
+            Number.isFinite(retryAttempts) && retryAttempts > 0
+              ? retryAttempts
+              : 10,
+          retryDelay:
+            Number.isFinite(retryDelay) && retryDelay >= 0
+              ? retryDelay
+              : 3_000,
+
+          entities: [
+            User,
+            Wallet,
+            Balance,
+            Deposit,
+            DepositOrder,
+            DepositAddress,
+            GatewayWatcherState,
+            DepositSweep,
+            BscGasBatch,
+            BscGasTransfer,
+            LedgerEntry,
+            Withdrawal,
+            Trade,
+            TradeSnapshot,
+            AdminAuditLog,
+            AdminSetting,
+            LottoRound,
+            LottoTicket,
+            LottoResult,
+            LottoSettlement,
+            ReferralBonus,
+            AdminPool,
+            AdminPoolTransaction,
+            AdminAction,
+            SystemSetting,
+            // Bot System
+            BotAccount,
+            BotWallet,
+            BotWalletTransaction,
+            BotActivation,
+            SystemSetting,
+            WingoPeriod,
+            // Bot System
+            BotMonthlySettlement,
+            BotSetting,
+            // Wagering System
+            WageringSettings,
+            WageringUserOverride,
+            WageringObligation,
+            WageringEvent,
+            WageringNotification,
+          ],
+          synchronize: false,
+          // Query logging floods production logs with every SELECT —
+          // enable only outside production (or via DATABASE_LOGGING=true).
+          logging:
+            configService.get<string>('NODE_ENV', 'development') !==
+              'production' ||
+            configService.get<boolean>('DATABASE_LOGGING', false) === true,
+        };
+      },
     }),
     BullModule.forRootAsync({
       imports: [ConfigModule],

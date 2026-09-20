@@ -14,6 +14,13 @@ export function parseRedisUrl(redisUrl: string): RedisOptions {
     const connection: RedisOptions = {
       host: parsed.hostname || 'localhost',
       port: parsed.port ? Number(parsed.port) : 6379,
+      // BullMQ REQUIRES `maxRetriesPerRequest: null`: its blocking commands
+      // (BRPOPLPUSH etc.) must never be failed by ioredis' per-request retry
+      // cap, which otherwise breaks workers and schedulers whenever the Redis
+      // connection drops (e.g. right after a cold start / wake-up).
+      // Consumers that need different behavior (the RedisModule fail-closed
+      // throttle client) override this key AFTER spreading the parsed options.
+      maxRetriesPerRequest: null,
     };
     if (parsed.username) connection.username = parsed.username;
     if (parsed.password) connection.password = parsed.password;

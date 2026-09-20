@@ -1,5 +1,5 @@
 // backend/src/modules/period-sync/period-sync.service.ts
-import { Injectable, Logger, OnModuleInit, OnApplicationBootstrap } from '@nestjs/common';
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -58,7 +58,7 @@ interface GameState {
 }
 
 @Injectable()
-export class PeriodSyncService implements OnModuleInit, OnApplicationBootstrap {
+export class PeriodSyncService implements OnApplicationBootstrap {
   private readonly logger = new Logger(PeriodSyncService.name);
   /** One independent state + timer per game code (WinGo_30S / 1M / 3M / 5M). */
   private readonly states = new Map<string, GameState>();
@@ -66,15 +66,43 @@ export class PeriodSyncService implements OnModuleInit, OnApplicationBootstrap {
 
   constructor(@InjectRepository(WingoPeriod) private readonly repo: Repository<WingoPeriod>, private readonly config: ConfigService) {}
 
-  async onModuleInit(): Promise<void> {
-    if (!this.enabled()) return;
-    // 30-second game first (unchanged bootstrap contract), then the longer
-    // durations — independent, and their failure can never break boot or 30S.
-    await this.syncGame(PRIMARY_WINGO_GAME);
-    await Promise.all(WINGO_GAMES.filter((g) => g.code !== PRIMARY_WINGO_GAME).map((g) =>
-      this.syncGame(g.code).catch((e) => this.logger.warn('[PeriodSync:' + g.code + '] initial sync failed: ' + String(e)))));
+  // ============================================================
+  // STARTUP — NON-BLOCKING (cold-start safety)
+  // ============================================================
+  //
+  // Nest awaits every onModuleInit hook before the HTTP port binds. The
+  // initial external reference syncs used to run there, delaying readiness
+  // by up to the full fetch timeout for four games. They now run in the
+  // BACKGROUND from onApplicationBootstrap with the exact same ordering and
+  // semantics: 30-second game first, then the longer durations in parallel;
+  // fetch/validate failures keep the previous behavior (logged, degraded
+  // snapshot kept). persist() errors are caught so a DB hiccup can never
+  // crash the process. Loops start only after the initial sync attempt,
+  // preserving the original bootstrap ordering.
+  // ============================================================
+
+  /** One-shot guard so background startup can never run twice. */
+  private startupStarted = false;
+
+  onApplicationBootstrap(): void {
+    if (!this.enabled() || this.startupStarted) return;
+    this.startupStarted = true;
+    void this.startup();
   }
-  onApplicationBootstrap(): void { if (this.enabled()) { for (const g of WINGO_GAMES) this.startLoop(g); this.logger.log('[PeriodSync] loops started: ' + WINGO_GAMES.map((g) => g.code).join(', ')); } }
+
+  private async startup(): Promise<void> {
+    try {
+      await this.syncGame(PRIMARY_WINGO_GAME);
+      await Promise.all(WINGO_GAMES.filter((g) => g.code !== PRIMARY_WINGO_GAME).map((g) =>
+        this.syncGame(g.code).catch((e) => this.logger.warn('[PeriodSync:' + g.code + '] initial sync failed: ' + String(e)))));
+    } catch (e) {
+      // syncGame() swallows fetch/validate errors internally; only an
+      // unexpected persistence error can land here. Log and continue.
+      this.logger.error('[PeriodSync] initial sync failed: ' + String(e));
+    }
+    for (const g of WINGO_GAMES) this.startLoop(g);
+    this.logger.log('[PeriodSync] loops started: ' + WINGO_GAMES.map((g) => g.code).join(', '));
+  }
   onModuleDestroy(): void { this.closed = true; for (const s of this.states.values()) { if (s.timer) { clearTimeout(s.timer); s.timer = null; } } }
 
   /** Authoritative snapshot for the 30-second game (unchanged contract). */

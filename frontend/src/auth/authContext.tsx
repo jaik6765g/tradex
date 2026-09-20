@@ -8,11 +8,13 @@ import React, {
 } from 'react';
 
 import { supabase } from '../lib/supabaseClient';
+import { warmUpBackend } from '../core/api/client';
 import {
   AuthService,
   type AuthSession,
   type LinkWalletPayload,
 } from './services/auth.service';
+import { isAuthRejectedError } from './services/auth-resilience';
 import type { AuthUser, AuthWallet } from './hooks/auth.types';
 
 export interface AuthContextValue {
@@ -77,8 +79,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       syncUser(await AuthService.fetchMe());
-    } catch {
-      setUser(null);
+    } catch (err) {
+      // Cold-start resilience: a network timeout / 5xx while the backend is
+      // waking up must NOT log the user out. Only a CONFIRMED auth rejection
+      // (401/403) drops the in-memory user; stored-session clearing is
+      // handled by the API client's confirmation flow.
+      if (isAuthRejectedError(err)) {
+        setUser(null);
+      }
     }
   }, [syncUser]);
 
@@ -102,6 +110,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let active = true;
+
+    // Best-effort, non-blocking: start a sleeping backend booting while the
+    // UI renders. Never awaited and never affects the auth flow.
+    warmUpBackend();
 
     (async () => {
       try {

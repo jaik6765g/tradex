@@ -1,5 +1,6 @@
 import { apiClient } from '../../core/api/client';
 
+import { withTransientRetry } from './auth-resilience';
 import type { AuthUser, AuthWallet } from '../hooks/auth.types';
 
 export interface AuthSession {
@@ -41,12 +42,26 @@ export class AuthService {
     return data;
   }
 
+  /**
+   * Bounded retry for TRANSIENT failures only (network error / timeout / 5xx)
+   * so a sleeping backend does not fail the first login attempt. Invalid
+   * credentials (401) and validation errors (4xx) are never retried, and
+   * maxRetries stays low so a login is never submitted in bulk.
+   */
   static async login(params: {
     mobileNumber: string;
     password: string;
   }): Promise<AuthSession> {
-    const { data } = await apiClient.post<AuthSession>('/auth/login', params);
-    return data;
+    return withTransientRetry(
+      async () => {
+        const { data } = await apiClient.post<AuthSession>(
+          '/auth/login',
+          params,
+        );
+        return data;
+      },
+      { maxRetries: 1, backoffMs: 1500 },
+    );
   }
 
   static async forgotPassword(mobileNumber: string): Promise<void> {
@@ -63,9 +78,29 @@ export class AuthService {
     await apiClient.post<MessageResponse>('/auth/reset-password', params);
   }
 
+  /** In-flight dedupe: concurrent callers share ONE /auth/me request. */
+  private static meInFlight: Promise<AuthUser> | null = null;
+
+  /**
+   * Session check with bounded transient retry (network/timeout/5xx only).
+   * A 401/403 is surfaced to the caller immediately and is never retried.
+   */
   static async fetchMe(): Promise<AuthUser> {
-    const response = await apiClient.get<{ user: AuthUser }>('/auth/me');
-    return response.data.user;
+    if (AuthService.meInFlight) {
+      return AuthService.meInFlight;
+    }
+
+    AuthService.meInFlight = withTransientRetry(
+      async () => {
+        const response = await apiClient.get<{ user: AuthUser }>('/auth/me');
+        return response.data.user;
+      },
+      { maxRetries: 2, backoffMs: 1500 },
+    ).finally(() => {
+      AuthService.meInFlight = null;
+    });
+
+    return AuthService.meInFlight;
   }
 
   static async linkWallet(payload: LinkWalletPayload): Promise<AuthWallet> {

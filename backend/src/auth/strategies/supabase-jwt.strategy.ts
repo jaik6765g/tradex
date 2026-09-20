@@ -7,6 +7,9 @@ import * as crypto from 'crypto';
 import { UsersService } from '../../users/users.service';
 import { User } from '../../users/user.entity';
 
+/** Bounded timeout for the Supabase JWKS fetch (overridable via env). */
+const DEFAULT_JWKS_FETCH_TIMEOUT_MS = 5_000;
+
 /** Authentication methods recorded in the verified token's `amr` claim. */
 interface SupabaseAmrEntry {
   method?: string;
@@ -125,16 +128,56 @@ export class SupabaseJwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('SUPABASE_URL is not configured');
     }
 
-    const response = await fetch(`${baseUrl}/auth/v1/.well-known/jwks.json`);
+    // Bounded fetch: a slow/hung Supabase JWKS endpoint must never hang
+    // request handling (cold start / degraded network). Failures are NOT
+    // cached, so the next request retries the fetch. Verification strength is
+    // unchanged — an unverifiable token is still rejected with 401.
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.jwksFetchTimeoutMs());
+
+    let response: Response;
+    try {
+      response = await fetch(`${baseUrl}/auth/v1/.well-known/jwks.json`, {
+        signal: controller.signal,
+      });
+    } catch {
+      // Network error OR timeout — fail closed.
+      throw new UnauthorizedException('Unable to load Supabase signing keys');
+    } finally {
+      clearTimeout(timer);
+    }
 
     if (!response.ok) {
       throw new UnauthorizedException('Unable to load Supabase signing keys');
     }
 
-    const body = (await response.json()) as { keys?: SupabaseJwk[] };
+    let body: { keys?: SupabaseJwk[] };
+    try {
+      body = (await response.json()) as { keys?: SupabaseJwk[] };
+    } catch {
+      throw new UnauthorizedException('Unable to load Supabase signing keys');
+    }
+
     this.jwksCache = { keys: body.keys ?? [], fetchedAt: now };
 
     return this.jwksCache;
+  }
+
+  /**
+   * Bounded timeout for the JWKS fetch. Defaults to 5s; overridable via
+   * SUPABASE_JWKS_TIMEOUT_MS for ops/tests. Read lazily (never from a class
+   * field initializer) so the DI-provided ConfigService is always available.
+   */
+  private jwksFetchTimeoutMs(): number {
+    const configured = Number(
+      this.configService.get<string | number>(
+        'SUPABASE_JWKS_TIMEOUT_MS',
+        DEFAULT_JWKS_FETCH_TIMEOUT_MS,
+      ),
+    );
+    return Number.isFinite(configured) && configured > 0
+      ? configured
+      : DEFAULT_JWKS_FETCH_TIMEOUT_MS;
   }
 
   private jwkToPem(jwk: SupabaseJwk): string {
