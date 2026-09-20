@@ -29,6 +29,13 @@ import { WageringService } from '../wagering/wagering.service';
 import { WalletSourceService } from '../wagering/wallet-source.service';
 import { FUND_SOURCE_TYPE } from '../wagering/wagering-source';
 import {
+  BONUS_CATEGORY,
+  isWageringDisabledForCategory,
+  normalizeBonusCategory,
+  validateBonusWageringMultiplier,
+  type BonusCategory,
+} from '../wagering/bonus-categories';
+import {
   isDailyWithdrawalFrequencySettingKey,
   isNumericLimitSettingKey,
   LIMIT_MIN_EXCEEDS_MAX_CODE,
@@ -41,6 +48,13 @@ import {
 
 /** Ledger reference type written for every manual admin bonus distribution. */
 export const ADMIN_BONUS_REFERENCE_TYPE = 'ADMIN_BONUS';
+
+/**
+ * Ledger reference type for admin-distributed REFERRAL_BONUS-category
+ * bonuses, so ledger-evidence classification always lands them in the
+ * non-wagerable REFERRAL_COMMISSION bucket.
+ */
+export const REFERRAL_BONUS_LEDGER_REFERENCE = 'REFERRAL_BONUS';
 
 /** Audit log action recorded for every manual admin bonus distribution. */
 export const ADMIN_BONUS_AUDIT_ACTION = 'ADMIN_BONUS_DISTRIBUTED';
@@ -98,6 +112,11 @@ export interface AdminBonusDistributionResult {
   idempotencyKey: string | null;
   replayed: boolean;
   distributedAt: string;
+  bonusCategory: string | null;
+  wageringRequired: boolean | null;
+  wageringMultiplier: string | null;
+  expiresAt: string | null;
+  obligationCreated: boolean;
 }
 
 export interface AdminBonusHistoryItem {
@@ -108,6 +127,8 @@ export interface AdminBonusHistoryItem {
   description: string;
   adminId: string | null;
   adminEmail: string | null;
+  bonusCategory: string | null;
+  wageringRequired: boolean | null;
   createdAt: string;
 }
 
@@ -169,7 +190,99 @@ export class AdminService {
     }
 
     const description = dto.description.trim();
+    if (description.length < 3) {
+      // Mirror of the DTO rule, enforced at the service boundary too, so the
+      // mandatory-reason guarantee never depends on transport validation.
+      throw new BadRequestException({
+        statusCode: 400,
+        error: 'Bad Request',
+        code: 'MISSING_BONUS_REASON',
+        message: 'A reason (description) of at least 3 characters is required',
+      });
+    }
     const idempotencyKey = dto.idempotencyKey?.trim() || null;
+
+    // ---- Bonus category + wagering policy (backend-enforced) ----
+    const bonusCategory =
+      normalizeBonusCategory(dto.bonusCategory) ?? BONUS_CATEGORY.MANUAL_BONUS;
+    const wageringLockedByCategory =
+      isWageringDisabledForCategory(bonusCategory);
+
+    if (wageringLockedByCategory && dto.wageringRequired === true) {
+      // REFERRAL_BONUS can never carry a wagering requirement — reject the
+      // request instead of silently downgrading it (no silent policy bypass).
+      throw new BadRequestException({
+        statusCode: 400,
+        error: 'Bad Request',
+        code: 'BONUS_WAGERING_NOT_ALLOWED',
+        message: `Wagering cannot be required for ${bonusCategory}: referral bonuses are always non-wagerable`,
+      });
+    }
+
+    const wageringRequired = wageringLockedByCategory
+      ? false
+      : (dto.wageringRequired ?? true);
+
+    let multiplierDecimal: string | null = null;
+    if (
+      wageringRequired &&
+      dto.wageringMultiplier !== undefined &&
+      dto.wageringMultiplier !== null
+    ) {
+      const parsed = validateBonusWageringMultiplier(dto.wageringMultiplier);
+      if (!parsed.ok) {
+        throw new BadRequestException({
+          statusCode: 400,
+          error: 'Bad Request',
+          code: 'INVALID_WAGERING_MULTIPLIER',
+          message: parsed.reason,
+        });
+      }
+      multiplierDecimal = parsed.multiplier.toFixed(18);
+    }
+
+    let expiresAt: Date | null = null;
+    if (dto.expiresAt) {
+      const parsedExpiry = new Date(dto.expiresAt);
+      if (Number.isNaN(parsedExpiry.getTime())) {
+        throw new BadRequestException({
+          statusCode: 400,
+          error: 'Bad Request',
+          code: 'INVALID_BONUS_EXPIRY',
+          message: 'expiresAt must be a valid ISO 8601 date-time',
+        });
+      }
+      if (parsedExpiry.getTime() <= Date.now()) {
+        throw new BadRequestException({
+          statusCode: 400,
+          error: 'Bad Request',
+          code: 'BONUS_EXPIRY_IN_PAST',
+          message: 'expiresAt must be in the future',
+        });
+      }
+      expiresAt = parsedExpiry;
+    }
+
+    if (wageringRequired) {
+      // A wagering requirement demanded by the admin is hard policy: if
+      // global wagering is disabled (or the activation cutoff has not
+      // passed), the obligation could not be enforced. Reject instead of
+      // crediting unenforced wagerable funds.
+      const settings = await this.wageringService.getSettings();
+      if (
+        !settings.wageringEnabled ||
+        !settings.activationTimestamp ||
+        settings.activationTimestamp.getTime() > Date.now()
+      ) {
+        throw new ConflictException({
+          statusCode: 409,
+          error: 'Conflict',
+          code: 'WAGERING_REQUIRED_UNAVAILABLE',
+          message:
+            'Wagering is currently disabled — distribute with wageringRequired=false or enable wagering first',
+        });
+      }
+    }
 
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -183,6 +296,7 @@ export class AdminService {
         normalizedAmount,
         description,
         idempotencyKey,
+        { bonusCategory, wageringRequired, multiplierDecimal, expiresAt },
       );
     } catch (error) {
       await queryRunner.rollbackTransaction();
@@ -199,13 +313,22 @@ export class AdminService {
     normalizedAmount: Decimal,
     description: string,
     idempotencyKey: string | null,
+    policy: {
+      bonusCategory: BonusCategory;
+      wageringRequired: boolean;
+      multiplierDecimal: string | null;
+      expiresAt: Date | null;
+    },
   ): Promise<AdminBonusDistributionResult> {
     // 1. Idempotency replay check — same key must never double-credit.
     if (idempotencyKey) {
       const existingEntry = await queryRunner.manager
         .createQueryBuilder(LedgerEntry, 'entry')
-        .where('entry.referenceType = :referenceType', {
-          referenceType: ADMIN_BONUS_REFERENCE_TYPE,
+        .where('entry.referenceType IN (:...referenceTypes)', {
+          referenceTypes: [
+            ADMIN_BONUS_REFERENCE_TYPE,
+            REFERRAL_BONUS_LEDGER_REFERENCE,
+          ],
         })
         .andWhere("entry.metadata ->> 'idempotencyKey' = :idempotencyKey", {
           idempotencyKey,
@@ -251,6 +374,15 @@ export class AdminService {
     await queryRunner.manager.save(balance);
 
     // 5. Ledger entry — the permanent bonus record with the reason.
+    // REFERRAL_BONUS gets its own ledger reference type so ledger-evidence
+    // classification (classifyLedgerCredit) always lands it in the
+    // non-wagerable REFERRAL_COMMISSION bucket. All other categories keep
+    // the ADMIN_BONUS anchor.
+    const ledgerReferenceType =
+      policy.bonusCategory === BONUS_CATEGORY.REFERRAL_BONUS
+        ? REFERRAL_BONUS_LEDGER_REFERENCE
+        : ADMIN_BONUS_REFERENCE_TYPE;
+
     const ledgerEntry = queryRunner.manager.create(LedgerEntry, {
       userId: dto.userId,
       type: LedgerType.ADMIN_ADJUSTMENT,
@@ -258,14 +390,18 @@ export class AdminService {
       balanceBefore: availableBefore.toFixed(18),
       balanceAfter: availableAfter.toFixed(18),
       referenceId: idempotencyKey ?? undefined,
-      referenceType: ADMIN_BONUS_REFERENCE_TYPE,
+      referenceType: ledgerReferenceType,
       description: `Admin bonus: ${description}`,
       metadata: {
         category: ADMIN_BONUS_REFERENCE_TYPE,
+        bonusCategory: policy.bonusCategory,
         description,
         adminId: context.adminId,
         adminEmail: context.adminEmail ?? null,
         idempotencyKey,
+        wageringRequired: policy.wageringRequired,
+        wageringMultiplier: policy.multiplierDecimal,
+        expiresAt: policy.expiresAt ? policy.expiresAt.toISOString() : null,
         availableBalanceBefore: availableBefore.toFixed(2),
         availableBalanceAfter: availableAfter.toFixed(2),
         totalBalanceBefore: totalBefore.toFixed(2),
@@ -280,27 +416,58 @@ export class AdminService {
     await this.walletSourceService.recordCredit({
       manager: queryRunner.manager,
       userId: dto.userId,
-      sourceType: FUND_SOURCE_TYPE.BONUS,
+      sourceType:
+        policy.bonusCategory === BONUS_CATEGORY.REFERRAL_BONUS
+          ? FUND_SOURCE_TYPE.REFERRAL_COMMISSION
+          : FUND_SOURCE_TYPE.BONUS,
       sourceId: savedEntry.id,
       ledgerEntryId: savedEntry.id,
       amountTdx: normalizedAmount.toFixed(18),
       metadata: {
         category: ADMIN_BONUS_REFERENCE_TYPE,
+        bonusCategory: policy.bonusCategory,
+        wageringRequired: policy.wageringRequired,
         idempotencyKey,
         adminId: context.adminId,
       },
     });
 
-    await this.wageringService.createObligationForBonus(
-      {
-        userId: dto.userId,
-        bonusReference: savedEntry.id,
-        ledgerEntryId: savedEntry.id,
-        amountTdx: normalizedAmount.toFixed(18),
-        creditedAt: savedEntry.createdAt,
-      },
-      queryRunner.manager,
-    );
+    // Wagering obligation ONLY when the admin required it. REFERRAL_BONUS can
+    // never reach this branch (wageringRequired is forced false above), so a
+    // referral bonus can never become wagerable.
+    let obligationCreated = false;
+    if (policy.wageringRequired) {
+      obligationCreated = await this.wageringService.createObligationForBonus(
+        {
+          userId: dto.userId,
+          bonusReference: savedEntry.id,
+          ledgerEntryId: savedEntry.id,
+          amountTdx: normalizedAmount.toFixed(18),
+          creditedAt: savedEntry.createdAt,
+          multiplierOverride: policy.multiplierDecimal,
+          expiresAtOverride: policy.expiresAt,
+          metadata: {
+            bonusCategory: policy.bonusCategory,
+            source: 'ADMIN_BONUS_DISTRIBUTION',
+            idempotencyKey,
+          },
+        },
+        queryRunner.manager,
+      );
+
+      if (!obligationCreated) {
+        // The admin explicitly required wagering — a credited bonus without
+        // its obligation must never commit. Throwing rolls back balance,
+        // ledger entry and attribution bucket together.
+        throw new ConflictException({
+          statusCode: 409,
+          error: 'Conflict',
+          code: 'WAGERING_OBLIGATION_NOT_CREATED',
+          message:
+            'Wagering obligation could not be created — bonus distribution rolled back',
+        });
+      }
+    }
 
     // 6. Audit log — admin identity + reason, permanent trail.
     const auditLog = queryRunner.manager.create(AdminAuditLog, {
@@ -316,6 +483,12 @@ export class AdminService {
         description,
         ledgerEntryId: savedEntry.id,
         idempotencyKey,
+        bonusCategory: policy.bonusCategory,
+        wageringRequired: policy.wageringRequired,
+        wageringMultiplier: policy.multiplierDecimal,
+        expiry: policy.expiresAt ? policy.expiresAt.toISOString() : null,
+        obligationCreated,
+        result: 'DISTRIBUTED',
       },
     });
     await queryRunner.manager.save(auditLog);
@@ -335,6 +508,11 @@ export class AdminService {
       idempotencyKey,
       replayed: false,
       distributedAt: savedEntry.createdAt.toISOString(),
+      bonusCategory: policy.bonusCategory,
+      wageringRequired: policy.wageringRequired,
+      wageringMultiplier: policy.multiplierDecimal,
+      expiresAt: policy.expiresAt ? policy.expiresAt.toISOString() : null,
+      obligationCreated,
     };
   }
 
@@ -374,6 +552,23 @@ export class AdminService {
       idempotencyKey,
       replayed: true,
       distributedAt: existingEntry.createdAt.toISOString(),
+      bonusCategory:
+        typeof replayedMetadata['bonusCategory'] === 'string'
+          ? replayedMetadata['bonusCategory']
+          : null,
+      wageringRequired:
+        typeof replayedMetadata['wageringRequired'] === 'boolean'
+          ? replayedMetadata['wageringRequired']
+          : null,
+      wageringMultiplier:
+        typeof replayedMetadata['wageringMultiplier'] === 'string'
+          ? replayedMetadata['wageringMultiplier']
+          : null,
+      expiresAt:
+        typeof replayedMetadata['expiresAt'] === 'string'
+          ? replayedMetadata['expiresAt']
+          : null,
+      obligationCreated: replayedMetadata['wageringRequired'] === true,
     };
   }
 
@@ -397,8 +592,11 @@ export class AdminService {
 
     const query = this.ledgerEntryRepository
       .createQueryBuilder('entry')
-      .where('entry.referenceType = :referenceType', {
-        referenceType: ADMIN_BONUS_REFERENCE_TYPE,
+      .where('entry.referenceType IN (:...referenceTypes)', {
+        referenceTypes: [
+          ADMIN_BONUS_REFERENCE_TYPE,
+          REFERRAL_BONUS_LEDGER_REFERENCE,
+        ],
       });
 
     const normalizedUserId = queryDto.userId?.trim();
@@ -439,6 +637,14 @@ export class AdminService {
         adminId: typeof metadata.adminId === 'string' ? metadata.adminId : null,
         adminEmail:
           typeof metadata.adminEmail === 'string' ? metadata.adminEmail : null,
+        bonusCategory:
+          typeof metadata.bonusCategory === 'string'
+            ? metadata.bonusCategory
+            : null,
+        wageringRequired:
+          typeof metadata.wageringRequired === 'boolean'
+            ? metadata.wageringRequired
+            : null,
         createdAt: entry.createdAt.toISOString(),
       };
     });

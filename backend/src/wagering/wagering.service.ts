@@ -45,6 +45,7 @@ import {
   WAGERING_WITHDRAWAL_BLOCKED_CODE,
 } from './dto/wagering.dto';
 import { WalletSourceService } from './wallet-source.service';
+import { validateBonusWageringMultiplier } from './bonus-categories';
 
 export const LOTTO_SOURCE_TYPE = 'LOTTO_TICKET';
 export const TRADE_SOURCE_TYPE = 'PULSE_TRADE';
@@ -100,6 +101,22 @@ export interface CreateObligationInput {
   sourceUsdtAmount?: string | Decimal | null;
   /** Credit timestamp, used for the activation cutoff. */
   creditedAt?: Date | null;
+  /**
+   * Optional admin-specified wagering multiplier (bonus distribution:
+   * 1X / 2X / 3X / CUSTOM positive decimal). When omitted, the user
+   * override / global default applies — unchanged behavior. The EXACT
+   * decimal multiplier is snapshotted at creation: requiredAmount is
+   * computed from it here, so later policy changes never affect this
+   * obligation.
+   */
+  multiplierOverride?: string | number | Decimal | null;
+  /**
+   * Optional explicit expiry. undefined → settings.expiryDays policy;
+   * null → explicitly no expiry; Date → exact expiry snapshot.
+   */
+  expiresAtOverride?: Date | null;
+  /** Extra creation-time snapshot data stored on the obligation row. */
+  metadata?: Record<string, unknown>;
 }
 
 export interface RecordWageredVolumeInput {
@@ -417,9 +434,32 @@ export class WageringService {
       const sourceTdx = dec(input.amountTdx);
       if (!sourceTdx.isFinite() || sourceTdx.lte(0)) return false;
 
-      const { multiplier } = await this.resolveEffectiveMultiplier(
-        input.userId,
-      );
+      // Effective multiplier: an explicit admin override wins (bonus
+      // distribution 1X/2X/3X/CUSTOM); otherwise the user override /
+      // global default applies — unchanged behavior for existing callers.
+      let multiplierDecimal: Decimal;
+      let multiplierColumnValue: number;
+      if (
+        input.multiplierOverride !== undefined &&
+        input.multiplierOverride !== null
+      ) {
+        const parsed = validateBonusWageringMultiplier(
+          input.multiplierOverride,
+        );
+        if (!parsed.ok) {
+          // Defense in depth — the admin service validates before calling;
+          // a direct caller passing an invalid multiplier must fail loudly.
+          throw new BadRequestException(parsed.reason);
+        }
+        multiplierDecimal = parsed.multiplier;
+        multiplierColumnValue = parsed.multiplier.isInteger()
+          ? parsed.multiplier.toNumber()
+          : 0; // CUSTOM sentinel — the exact value lives in metadata.
+      } else {
+        const resolved = await this.resolveEffectiveMultiplier(input.userId);
+        multiplierDecimal = dec(resolved.multiplier);
+        multiplierColumnValue = resolved.multiplier;
+      }
 
       // Snapshot the conversion rate from the immutable source evidence. A
       // non-deposit source has no USDT leg, so the rate is 0 (never NaN/Inf).
@@ -429,12 +469,14 @@ export class WageringService {
           ? sourceTdx.div(sourceUsdt).toFixed(DECIMAL_PLACES)
           : fixed(dec(0));
 
-      const required = sourceTdx.mul(multiplier);
+      const required = sourceTdx.mul(multiplierDecimal);
 
       const expiresAt =
-        settings.expiryDays > 0
-          ? new Date(Date.now() + settings.expiryDays * 86_400_000)
-          : null;
+        input.expiresAtOverride !== undefined
+          ? input.expiresAtOverride
+          : settings.expiryDays > 0
+            ? new Date(Date.now() + settings.expiryDays * 86_400_000)
+            : null;
 
       const obligation = await obligationRepo.save(
         obligationRepo.create({
@@ -447,13 +489,17 @@ export class WageringService {
           sourceTdxAmount: fixed(sourceTdx),
           conversionRate,
           depositAmountTdx: fixed(sourceTdx),
-          multiplier,
+          multiplier: multiplierColumnValue,
           requiredAmount: fixed(required),
           completedAmount: fixed(dec(0)),
           status: WageringObligationStatus.ACTIVE,
           policyVersion: settings.policyVersion,
           eligibleActivity: settings.eligibleActivity,
           expiresAt,
+          metadata: {
+            ...(input.metadata ?? {}),
+            multiplierDecimal: multiplierDecimal.toFixed(DECIMAL_PLACES),
+          },
         }),
       );
 
@@ -465,7 +511,7 @@ export class WageringService {
           {
             obligationId: obligation.id,
             sourceType,
-            multiplier,
+            multiplier: multiplierDecimal.toFixed(DECIMAL_PLACES),
             requiredAmount: obligation.requiredAmount,
           },
         );
@@ -516,6 +562,12 @@ export class WageringService {
       ledgerEntryId: string;
       amountTdx: string | Decimal;
       creditedAt: Date;
+      /** Admin-chosen multiplier (1X/2X/3X or CUSTOM decimal); optional. */
+      multiplierOverride?: string | number | Decimal | null;
+      /** Optional explicit expiry snapshot for this obligation. */
+      expiresAtOverride?: Date | null;
+      /** Provenance snapshot (bonus category, distribution source). */
+      metadata?: Record<string, unknown>;
     },
     manager?: EntityManager,
   ): Promise<boolean> {
@@ -529,6 +581,9 @@ export class WageringService {
         amountTdx: input.amountTdx,
         sourceUsdtAmount: null,
         creditedAt: input.creditedAt,
+        multiplierOverride: input.multiplierOverride,
+        expiresAtOverride: input.expiresAtOverride,
+        metadata: input.metadata,
       },
       manager,
     );
@@ -958,6 +1013,10 @@ export class WageringService {
       conversionRate: o.conversionRate,
       depositAmountTdx: o.depositAmountTdx,
       multiplier: o.multiplier,
+      multiplierDecimal:
+        typeof o.metadata?.multiplierDecimal === 'string'
+          ? o.metadata.multiplierDecimal
+          : null,
       requiredAmount: o.requiredAmount,
       completedAmount: o.completedAmount,
       remainingAmount: fixed(remaining),

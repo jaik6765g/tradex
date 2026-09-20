@@ -824,7 +824,7 @@ export class AdminService {
   static async distributeBonus(
     payload: DistributeBonusPayload,
   ): Promise<AdminBonusDistributionEnvelope> {
-    const body: Record<string, string | number> = {
+    const body: Record<string, string | number | boolean> = {
       userId: payload.userId,
       amount: payload.amount,
       description: payload.description,
@@ -833,6 +833,27 @@ export class AdminService {
     const idempotencyKey = payload.idempotencyKey?.trim();
     if (idempotencyKey) {
       body.idempotencyKey = idempotencyKey;
+    }
+
+    if (payload.bonusCategory) {
+      body.bonusCategory = payload.bonusCategory;
+    }
+
+    // Wagering control is sent explicitly so the backend enforces the
+    // category policy (REFERRAL_BONUS is always non-wagerable) instead of
+    // relying on any implicit default.
+    if (payload.wageringRequired !== undefined) {
+      body.wageringRequired = payload.wageringRequired;
+    }
+
+    const multiplier = payload.wageringMultiplier?.trim();
+    if (multiplier && payload.wageringRequired) {
+      body.wageringMultiplier = multiplier;
+    }
+
+    const expiresAt = payload.expiresAt?.trim();
+    if (expiresAt) {
+      body.expiresAt = expiresAt;
     }
 
     const response = await apiClient.post<AdminBonusDistributionEnvelope>(

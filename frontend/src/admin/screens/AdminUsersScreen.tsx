@@ -5,7 +5,9 @@ import { RefreshCw, Search, Eye, X, TrendingUp, TrendingDown, Wallet, History, G
 
 import { AdminService } from '../services/admin.service';
 import type {
+  AdminBonusCategory,
   AdminBonusHistoryItem,
+  AdminBonusWageringMultiplierMode,
   AdminUser,
   AdminUserFilterStatus,
   AdminUserStatus,
@@ -257,6 +259,29 @@ function UserTableRow({
 
 const ADMIN_BONUS_MAX = 10000;
 
+/** Max CUSTOM wagering multiplier — mirrors the backend cap exactly. */
+const MAX_CUSTOM_WAGERING_MULTIPLIER = 100;
+
+const BONUS_CATEGORY_OPTIONS: { value: AdminBonusCategory; label: string }[] = [
+  { value: 'MANUAL_BONUS', label: 'Manual Bonus' },
+  { value: 'DEPOSIT_BONUS', label: 'Deposit Bonus' },
+  { value: 'SALARY_BONUS', label: 'Salary Bonus' },
+  { value: 'REFERRAL_BONUS', label: 'Referral Bonus (non-wagerable)' },
+  { value: 'WELCOME_BONUS', label: 'Welcome Bonus' },
+  { value: 'PROMOTIONAL_BONUS', label: 'Promotional Bonus' },
+  { value: 'CASHBACK_BONUS', label: 'Cashback Bonus' },
+];
+
+const WAGERING_MULTIPLIER_MODES: AdminBonusWageringMultiplierMode[] = [
+  '1X',
+  '2X',
+  '3X',
+  'CUSTOM',
+];
+
+const SELECT_CLASS =
+  'rounded-lg border border-[#34343E] bg-[#15161C] px-2 py-1.5 text-xs font-semibold text-[#F5F5F7] outline-none focus-visible:ring-2 focus-visible:ring-[#7F56D9]';
+
 function BonusDistributionSection({
   userId,
   onDistributed,
@@ -267,6 +292,14 @@ function BonusDistributionSection({
   const [showForm, setShowForm] = useState(false);
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
+  // --- Bonus category + wagering control ---
+  const [bonusCategory, setBonusCategory] =
+    useState<AdminBonusCategory>('MANUAL_BONUS');
+  const [wageringRequired, setWageringRequired] = useState(true);
+  const [multiplierMode, setMultiplierMode] =
+    useState<AdminBonusWageringMultiplierMode>('2X');
+  const [customMultiplier, setCustomMultiplier] = useState('');
+  const [expiresAt, setExpiresAt] = useState('');
   const [distributing, setDistributing] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -293,7 +326,34 @@ function BonusDistributionSection({
   const amountValid =
     Number.isFinite(parsedAmount) && parsedAmount > 0 && parsedAmount <= ADMIN_BONUS_MAX;
   const descriptionValid = description.trim().length >= 3;
-  const canDistribute = amountValid && descriptionValid && !distributing;
+
+  const referralSelected = bonusCategory === 'REFERRAL_BONUS';
+  // REFERRAL_BONUS is always non-wagerable — the toggle is forced to NO.
+  const wagerEnabled = !referralSelected && wageringRequired;
+  const selectedMultiplier =
+    multiplierMode === 'CUSTOM' ? customMultiplier.trim() : multiplierMode.slice(0, 1);
+  const customMultiplierValid =
+    multiplierMode !== 'CUSTOM'
+      ? true
+      : /^\d+(\.\d+)?$/.test(customMultiplier.trim()) &&
+        Number(customMultiplier) > 0 &&
+        Number(customMultiplier) <= MAX_CUSTOM_WAGERING_MULTIPLIER;
+  const expiryValid =
+    expiresAt === '' || new Date(expiresAt).getTime() > Date.now();
+  const canDistribute =
+    amountValid &&
+    descriptionValid &&
+    (!wagerEnabled || customMultiplierValid) &&
+    expiryValid &&
+    !distributing;
+
+  const formatMultiplierLabel = (value: string | null): string =>
+    value === null || value === '' ? '' : String(Number(value));
+
+  const wageringPreview =
+    wagerEnabled && amountValid && customMultiplierValid
+      ? Number(selectedMultiplier) * parsedAmount
+      : null;
 
   const handleDistribute = async () => {
     if (!canDistribute) return;
@@ -307,16 +367,25 @@ function BonusDistributionSection({
         amount: parsedAmount,
         description: description.trim(),
         idempotencyKey: `bonus-${userId.slice(0, 8)}-${Date.now()}`,
+        bonusCategory,
+        wageringRequired: wagerEnabled,
+        ...(wagerEnabled ? { wageringMultiplier: selectedMultiplier } : {}),
+        ...(expiresAt ? { expiresAt: new Date(expiresAt).toISOString() } : {}),
       });
 
       const result = response.data;
+      const wageringNote = result.wageringRequired
+        ? ` · wagering ${formatMultiplierLabel(result.wageringMultiplier)}X required`
+        : ' · non-wagerable';
       setSuccess(
         result.replayed
           ? 'Bonus was already distributed for this request (no double credit).'
-          : `Bonus of ${formatTokenAmount(result.amount)} TDX distributed — new available balance: ${formatTokenAmount(result.availableBalanceAfter)} TDX`,
+          : `Bonus of ${formatTokenAmount(result.amount)} TDX distributed${wageringNote} — new available balance: ${formatTokenAmount(result.availableBalanceAfter)} TDX`,
       );
       setAmount('');
       setDescription('');
+      setCustomMultiplier('');
+      setExpiresAt('');
       setConfirming(false);
       setShowForm(false);
       onDistributed();
@@ -360,6 +429,33 @@ function BonusDistributionSection({
         <div className="mt-3 space-y-2">
           <div>
             <label className="text-[10px] font-bold text-[#E4E5E8]">
+              Bonus Category
+            </label>
+            <select
+              value={bonusCategory}
+              onChange={(e) => {
+                const next = e.target.value as AdminBonusCategory;
+                setBonusCategory(next);
+                // REFERRAL_BONUS is non-wagerable: force the toggle to NO.
+                if (next === 'REFERRAL_BONUS') setWageringRequired(false);
+              }}
+              className={`mt-1 w-full ${SELECT_CLASS}`}
+            >
+              {BONUS_CATEGORY_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            {referralSelected && (
+              <p className="mt-1 rounded-lg bg-[#1B1C24] px-2 py-1.5 text-[10px] text-[#A1A4AE]">
+                Referral Bonus is referral commission — always non-wagerable.
+                Wagering is disabled for this category.
+              </p>
+            )}
+          </div>
+          <div>
+            <label className="text-[10px] font-bold text-[#E4E5E8]">
               Amount (TDX, max {ADMIN_BONUS_MAX.toLocaleString()})
             </label>
             <input
@@ -389,6 +485,95 @@ function BonusDistributionSection({
               {description.trim().length}/500
             </p>
           </div>
+
+          {/* Wagering control — YES/NO, multiplier, optional expiry */}
+          <div className="rounded-lg border border-[#202229] bg-[#15161C] p-2">
+            <div className="flex items-center justify-between gap-2">
+              <label className="text-[10px] font-bold text-[#E4E5E8]">
+                Wagering Required
+              </label>
+              <select
+                value={wagerEnabled ? 'YES' : 'NO'}
+                disabled={referralSelected}
+                onChange={(e) => setWageringRequired(e.target.value === 'YES')}
+                className={`${SELECT_CLASS} disabled:cursor-not-allowed disabled:opacity-50`}
+              >
+                <option value="NO">NO</option>
+                <option value="YES">YES</option>
+              </select>
+            </div>
+
+            <div className="mt-2 flex items-center gap-2">
+              <label className="text-[10px] font-bold text-[#E4E5E8]">
+                Multiplier
+              </label>
+              <select
+                value={multiplierMode}
+                disabled={!wagerEnabled}
+                onChange={(e) =>
+                  setMultiplierMode(e.target.value as AdminBonusWageringMultiplierMode)
+                }
+                className={`${SELECT_CLASS} disabled:cursor-not-allowed disabled:opacity-50`}
+              >
+                {WAGERING_MULTIPLIER_MODES.map((mode) => (
+                  <option key={mode} value={mode}>
+                    {mode}
+                  </option>
+                ))}
+              </select>
+              {multiplierMode === 'CUSTOM' && (
+                <input
+                  type="number"
+                  min="0.01"
+                  max={MAX_CUSTOM_WAGERING_MULTIPLIER}
+                  step="0.01"
+                  value={customMultiplier}
+                  disabled={!wagerEnabled}
+                  onChange={(e) => setCustomMultiplier(e.target.value)}
+                  placeholder="e.g. 1.5"
+                  className="w-24 rounded-lg border border-[#34343E] bg-[#15161C] px-2 py-1.5 text-xs text-[#F5F5F7] outline-none focus:border-[#7F56D9] disabled:cursor-not-allowed disabled:opacity-50"
+                />
+              )}
+            </div>
+            {wagerEnabled && multiplierMode === 'CUSTOM' && !customMultiplierValid && (
+              <p className="mt-1 text-[10px] font-semibold text-[#F87171]">
+                Custom multiplier must be a positive decimal up to {MAX_CUSTOM_WAGERING_MULTIPLIER}.
+              </p>
+            )}
+
+            <div className="mt-2">
+              <label className="text-[10px] font-bold text-[#E4E5E8]">
+                Expiry (optional)
+              </label>
+              <input
+                type="datetime-local"
+                value={expiresAt}
+                disabled={!wagerEnabled}
+                onChange={(e) => setExpiresAt(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-[#34343E] bg-[#15161C] px-2 py-1.5 text-xs text-[#F5F5F7] outline-none focus:border-[#7F56D9] disabled:cursor-not-allowed disabled:opacity-50"
+              />
+              {!expiryValid && (
+                <p className="mt-1 text-[10px] font-semibold text-[#F87171]">
+                  Expiry must be in the future.
+                </p>
+              )}
+            </div>
+
+            {wageringPreview !== null && (
+              <p className="mt-1.5 rounded-lg bg-[#1B1733] px-2 py-1.5 text-[10px] font-semibold text-[#B7A5F7]">
+                Wagering obligation preview: {selectedMultiplier}X ×{' '}
+                {formatTokenAmount(String(parsedAmount))} ={' '}
+                {formatTokenAmount(String(wageringPreview))} TDX to wager before
+                the bonus is withdrawable.
+              </p>
+            )}
+            {!wagerEnabled && (
+              <p className="mt-1.5 text-[10px] text-[#A1A4AE]">
+                No wagering obligation will be created — the bonus is
+                immediately withdrawable.
+              </p>
+            )}
+          </div>
           {!confirming ? (
             <Button
               variant="primary"
@@ -407,6 +592,17 @@ function BonusDistributionSection({
               </p>
               <p className="mt-0.5 text-[10px] text-[#A1A4AE]">
                 Reason: {description.trim() || '—'}
+              </p>
+              <p className="mt-0.5 text-[10px] text-[#A1A4AE]">
+                Category: {bonusCategory.replace(/_/g, ' ')}
+              </p>
+              <p className="mt-0.5 text-[10px] text-[#A1A4AE]">
+                {wagerEnabled
+                  ? `Wagering: YES · ${selectedMultiplier}X`
+                  : 'Wagering: NO (non-wagerable)'}
+                {wagerEnabled && expiresAt
+                  ? ` · expires ${new Date(expiresAt).toLocaleString()}`
+                  : ''}
               </p>
               <div className="mt-2 flex gap-2">
                 <Button
@@ -459,8 +655,12 @@ function BonusDistributionSection({
                     {item.description}
                   </p>
                   <p className="text-[10px] text-[#A1A4AE]">
+                    {item.bonusCategory
+                      ? `${item.bonusCategory.replace(/_/g, ' ')} · `
+                      : ''}
                     {formatRelativeTime(item.createdAt)}
                     {item.adminEmail ? ` · by ${item.adminEmail}` : ''}
+                    {item.wageringRequired ? ' · wagering' : ''}
                   </p>
                 </div>
                 <span className="shrink-0 text-[11px] font-bold text-[#4ADE80]">

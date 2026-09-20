@@ -125,4 +125,15 @@ export class WageringObligation {
 
   @Column({ name: 'completedAt', type: 'timestamptz', nullable: true })
   completedAt: Date | null;
+
+  /**
+   * Creation-time policy snapshot extras (never recalculated):
+   *   - `multiplierDecimal` — the EXACT decimal wagering multiplier used to
+   *     compute requiredAmount. The integer `multiplier` column holds the
+   *     preset (1/2/3) and 0 as the sentinel for CUSTOM multipliers, whose
+   *     exact value lives only here.
+   *   - `bonusCategory` / `source` — provenance for bonus obligations.
+   */
+  @Column({ type: 'jsonb', default: {} })
+  metadata: Record<string, unknown>;
 }

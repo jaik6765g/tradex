@@ -784,11 +784,30 @@ export interface UpdateBotSettingsPayload {
 // ADMIN MANUAL BONUS DISTRIBUTION
 // ============================================================
 
+export type AdminBonusCategory =
+  | 'DEPOSIT_BONUS'
+  | 'SALARY_BONUS'
+  | 'REFERRAL_BONUS'
+  | 'WELCOME_BONUS'
+  | 'PROMOTIONAL_BONUS'
+  | 'CASHBACK_BONUS'
+  | 'MANUAL_BONUS';
+
+export type AdminBonusWageringMultiplierMode = '1X' | '2X' | '3X' | 'CUSTOM';
+
 export interface DistributeBonusPayload {
   userId: string;
   amount: number;
   description: string;
   idempotencyKey?: string;
+  /** Bonus category (SALARY_BONUS is salary inside the existing bonus flow). */
+  bonusCategory?: AdminBonusCategory;
+  /** Backend-enforced; REFERRAL_BONUS always forces/rejects to false. */
+  wageringRequired?: boolean;
+  /** 1 / 2 / 3 or a CUSTOM positive decimal (max 100). */
+  wageringMultiplier?: string;
+  /** Optional ISO 8601 expiry for the wagering obligation (future only). */
+  expiresAt?: string;
 }
 
 export interface AdminBonusDistributionResult {
@@ -804,6 +823,11 @@ export interface AdminBonusDistributionResult {
   idempotencyKey: string | null;
   replayed: boolean;
   distributedAt: string;
+  bonusCategory: string | null;
+  wageringRequired: boolean | null;
+  wageringMultiplier: string | null;
+  expiresAt: string | null;
+  obligationCreated: boolean;
 }
 
 export interface AdminBonusDistributionEnvelope {
@@ -826,6 +850,8 @@ export interface AdminBonusHistoryItem {
   description: string;
   adminId: string | null;
   adminEmail: string | null;
+  bonusCategory: string | null;
+  wageringRequired: boolean | null;
   createdAt: string;
 }
 

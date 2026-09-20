@@ -4,7 +4,10 @@ import {
   ApiPropertyOptional,
 } from '@nestjs/swagger';
 import {
+  IsBoolean,
+  IsIn,
   IsInt,
+  IsISO8601,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -15,6 +18,8 @@ import {
   Max,
   Min,
 } from 'class-validator';
+
+import { ALL_BONUS_CATEGORIES } from '../../wagering/bonus-categories';
 
 /** Maximum TDX that can be distributed as a single manual admin bonus. */
 export const ADMIN_BONUS_MAX_AMOUNT = 10000;
@@ -70,6 +75,43 @@ export class DistributeBonusDto {
     message: 'idempotencyKey must be 8-128 valid characters',
   })
   idempotencyKey?: string;
+
+  @ApiPropertyOptional({
+    enum: ALL_BONUS_CATEGORIES as unknown as string[],
+    default: 'MANUAL_BONUS',
+    description:
+      'Bonus category. Salary is handled as SALARY_BONUS inside this flow; REFERRAL_BONUS is always non-wagerable.',
+  })
+  @IsOptional()
+  @IsIn(ALL_BONUS_CATEGORIES as unknown as string[], {
+    message: `bonusCategory must be one of: ${ALL_BONUS_CATEGORIES.join(', ')}`,
+  })
+  bonusCategory?: string;
+
+  @ApiPropertyOptional({
+    default: true,
+    description:
+      'Create a wagering obligation for this bonus. Forced to false (and an explicit true is REJECTED) for REFERRAL_BONUS.',
+  })
+  @IsOptional()
+  @IsBoolean({ message: 'wageringRequired must be a boolean' })
+  wageringRequired?: boolean;
+
+  @ApiPropertyOptional({
+    example: '2',
+    description:
+      'Wagering multiplier: 1, 2, 3 or a CUSTOM positive decimal (max 100). Only used when wageringRequired=true; exact Decimal validation.',
+  })
+  @IsOptional()
+  wageringMultiplier?: string | number;
+
+  @ApiPropertyOptional({
+    example: '2026-12-31T23:59:59.000Z',
+    description: 'Optional expiry for the wagering obligation (ISO 8601, future).',
+  })
+  @IsOptional()
+  @IsISO8601({}, { message: 'expiresAt must be a valid ISO 8601 date-time' })
+  expiresAt?: string;
 }
 
 export class QueryAdminBonusHistoryDto {
