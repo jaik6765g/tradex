@@ -3,9 +3,15 @@ import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 
 import { AppModule } from './app.module';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { requestIdMiddleware } from './common/middleware/request-id.middleware';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Correlation id on every request (echoed as x-request-id) so a failing
+  // request can be traced to its exact exception in the server logs.
+  app.use(requestIdMiddleware);
 
   app.enableCors({
     origin: [
@@ -25,6 +31,11 @@ async function bootstrap() {
       transform: true,
     }),
   );
+
+  // Never hide the real exception behind a generic 500: log the true error
+  // (name, message, stack) with request context, and return a structured body
+  // carrying `code`, `exception` and `requestId`.
+  app.useGlobalFilters(new AllExceptionsFilter());
 
   const configService = app.get(ConfigService);
 

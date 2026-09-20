@@ -39,6 +39,7 @@ import { WageringUserOverride } from './wagering/entities/wagering-user-override
 import { WageringObligation } from './wagering/entities/wagering-obligation.entity';
 import { WageringEvent } from './wagering/entities/wagering-event.entity';
 import { WageringNotification } from './wagering/entities/wagering-notification.entity';
+import { WalletSourceAllocation } from './wagering/entities/wallet-source-allocation.entity';
 import { WageringModule } from './wagering/wagering.module';
 
 import { PulseTradeModule } from './pulse-trade/pulse-trade.module';
@@ -181,7 +182,17 @@ import { DepositGatewayModule } from './deposit-gateway/gateway.module';
             WageringObligation,
             WageringEvent,
             WageringNotification,
+            // FIFO source-attribution layer (bonus distribution / deposits /
+            // withdrawals all write buckets through WalletSourceService).
+            WalletSourceAllocation,
           ],
+          // Register every TypeOrmModule.forFeature() entity with the
+          // connection automatically. Without this, an entity used via
+          // forFeature but forgotten here throws
+          // "EntityMetadataNotFoundError" at RUNTIME (first repository use)
+          // even though the table exists — which is exactly how bonus
+          // distribution (and deposit crediting) failed with a 500.
+          autoLoadEntities: true,
           synchronize: false,
           // Query logging floods production logs with every SELECT —
           // enable only outside production (or via DATABASE_LOGGING=true).

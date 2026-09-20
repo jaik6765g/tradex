@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
@@ -97,6 +98,8 @@ export interface AdminBonusContext {
   adminEmail?: string | null;
   ipAddress: string | null;
   userAgent: string | null;
+  /** Correlation id from the request (for log tracing). Never a secret. */
+  requestId?: string | null;
 }
 
 export interface AdminBonusDistributionResult {
@@ -141,6 +144,8 @@ export interface AdminBonusHistoryResponse {
 
 @Injectable()
 export class AdminService {
+  private readonly logger = new Logger(AdminService.name);
+
   constructor(
     @InjectRepository(AdminAuditLog)
     private readonly adminAuditLogRepository: Repository<AdminAuditLog>,
@@ -300,6 +305,26 @@ export class AdminService {
       );
     } catch (error) {
       await queryRunner.rollbackTransaction();
+
+      // Structured diagnostics: the REAL cause must never be masked behind a
+      // generic 500. Logs request context + bonus context only — never
+      // headers, tokens, passwords or request bodies.
+      this.logger.error(
+        `BONUS_DISTRIBUTION_FAILED ${JSON.stringify({
+          requestId: context.requestId ?? null,
+          adminId: context.adminId,
+          targetUserId: dto.userId,
+          amount: normalizedAmount.toFixed(2),
+          bonusCategory,
+          wageringRequired,
+          hasIdempotencyKey: Boolean(idempotencyKey),
+          exception: error instanceof Error ? error.name : typeof error,
+          message: error instanceof Error ? error.message : String(error),
+          rolledBack: true,
+        })}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+
       throw error;
     } finally {
       await queryRunner.release();

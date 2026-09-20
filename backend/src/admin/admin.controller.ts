@@ -134,6 +134,8 @@ export class AdminController {
       adminEmail: req.user.email ?? null,
       ipAddress: this.extractClientIp(req),
       userAgent: req.get('user-agent') ?? null,
+      requestId:
+        (req as AuthenticatedRequest & { requestId?: string }).requestId ?? null,
     });
 
     return {
