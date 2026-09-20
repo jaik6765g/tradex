@@ -162,6 +162,12 @@ function makeHarness(options: {
       assertWithdrawalAllowed: jest.fn(async () => ({ allowed: true })),
     } as any,
     limitsService,
+    {
+      ensureLegacyAttribution: jest.fn(async () => undefined),
+      reserveFifo: jest.fn(async () => []),
+      releaseReservation: jest.fn(async () => undefined),
+      commitReservation: jest.fn(async () => undefined),
+    } as any,
   );
 
   // Private ownership check is stubbed so the flow reaches the transaction.

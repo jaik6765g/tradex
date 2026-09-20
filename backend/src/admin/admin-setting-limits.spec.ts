@@ -90,7 +90,14 @@ function makeHarness(
     transaction: async (cb: (m: any) => Promise<unknown>) => cb(manager),
   };
 
-  const service = new AdminService(auditRepo, repo, {} as any, dataSource);
+  const service = new AdminService(
+    auditRepo,
+    repo,
+    {} as any,
+    dataSource,
+    { createObligationForBonus: jest.fn(async () => true) } as any,
+    { recordCredit: jest.fn(async () => null) } as any,
+  );
 
   return { service, repo, auditRepo, calls, rows };
 }

@@ -33,13 +33,40 @@ export enum WithdrawalStatus {
 @Index('IDX_withdrawals_user_createdAt', ['userId', 'createdAt'])
 @Index('IDX_withdrawals_txHash', ['txHash'])
 @Index('IDX_withdrawals_user_status', ['userId', 'status'])
-@Index('IDX_withdrawals_payoutIdempotencyKey', ['payoutIdempotencyKey'])
+@Index('IDX_withdrawals_status', ['status'])
+/**
+ * One payout idempotency key may belong to at most one withdrawal. The
+ * migration for this index first scans for duplicates and moves the key of
+ * later duplicates into `metadata.payoutIdempotencyKeyDuplicate` (financial
+ * records are never deleted), so the constraint can be added safely.
+ */
+@Index('IDX_withdrawals_payoutIdempotencyKey_unique', ['payoutIdempotencyKey'], {
+  unique: true,
+  where: '"payoutIdempotencyKey" IS NOT NULL',
+})
+/**
+ * User-scoped client request idempotency anchor: replaying the same
+ * clientRequestId can never create a second withdrawal.
+ */
+@Index(
+  'IDX_withdrawals_user_clientRequestId_unique',
+  ['userId', 'clientRequestId'],
+  { unique: true, where: '"clientRequestId" IS NOT NULL' },
+)
 export class Withdrawal {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column({ type: 'uuid' })
   userId: string;
+
+  /**
+   * Optional user-scoped idempotency key supplied by the client. The same
+   * (userId, clientRequestId) can only ever create ONE withdrawal; replays
+   * return the original result. NULL for requests that did not supply one.
+   */
+  @Column({ type: 'varchar', length: 120, nullable: true })
+  clientRequestId?: string;
 
   @Column({ type: 'varchar', length: 42 })
   walletAddress: string;

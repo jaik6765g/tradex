@@ -115,6 +115,7 @@ export class WithdrawalsController {
       dto.chainId,
       dto.tokenAddress,
       dto.tdxAmount,
+      dto.clientRequestId,
     );
 
     return {

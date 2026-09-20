@@ -6,6 +6,12 @@ export type CreateWithdrawalRequest = {
   chainId: number;
   tokenAddress: string;
   tdxAmount: string;
+  /**
+   * Optional user-scoped idempotency key. Replaying the same value never
+   * creates a second withdrawal; reusing it with a different payload is
+   * rejected by the backend (409 WITHDRAWAL_IDEMPOTENCY_PAYLOAD_MISMATCH).
+   */
+  clientRequestId?: string;
 };
 
 export type WithdrawalStatus =
@@ -80,6 +86,24 @@ type WithdrawalApiErrorPayload = {
 const ACTIVE_WITHDRAWAL_CONFLICT_MESSAGE =
   'You already have an active withdrawal request. Please wait for it to finish before requesting another withdrawal.';
 
+const IDEMPOTENCY_PAYLOAD_MISMATCH_MESSAGE =
+  'This withdrawal request was already submitted with different details. Please start a new request.';
+
+/**
+ * Generates a user-scoped idempotency key for a single withdrawal attempt.
+ * A double-click / network retry therefore reuses the SAME key and can never
+ * create two withdrawals.
+ */
+const createWithdrawalClientRequestId = (): string => {
+  const globalCrypto = globalThis.crypto as
+    | { randomUUID?: () => string }
+    | undefined;
+  if (globalCrypto?.randomUUID) {
+    return globalCrypto.randomUUID();
+  }
+  return `wd-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+};
+
 const normalizeErrorMessage = (message?: string | string[]): string | undefined => {
   if (typeof message === 'string') {
     return message.trim() || undefined;
@@ -126,6 +150,10 @@ export const parseWithdrawalApiError = (error: unknown): Error => {
   }
 
   if (status === 409) {
+    if (data.code === 'WITHDRAWAL_IDEMPOTENCY_PAYLOAD_MISMATCH') {
+      return new Error(IDEMPOTENCY_PAYLOAD_MISMATCH_MESSAGE);
+    }
+
     if (upperMessage.includes('ACTIVE WITHDRAWAL REQUEST ALREADY EXISTS')) {
       return new Error(ACTIVE_WITHDRAWAL_CONFLICT_MESSAGE);
     }
@@ -157,6 +185,9 @@ export const withdrawalService = {
           chainId: payload.chainId,
           tokenAddress: payload.tokenAddress,
           tdxAmount: payload.tdxAmount,
+          ...(payload.clientRequestId
+            ? { clientRequestId: payload.clientRequestId }
+            : {}),
         },
         options,
       );
@@ -181,6 +212,7 @@ export const withdrawalService = {
         chainId,
         tokenAddress,
         tdxAmount,
+        clientRequestId: createWithdrawalClientRequestId(),
       },
       options,
     );

@@ -95,6 +95,9 @@ describe('LottoService result pre-computation (00:00 reveal integrity)', () => {
       {
         recordWageredVolume: jest.fn(async () => ({ status: 'COUNTED' })),
       } as never,
+      {
+        recordCredit: jest.fn(async () => null),
+      } as never,
     );
 
     const drawSpy = jest

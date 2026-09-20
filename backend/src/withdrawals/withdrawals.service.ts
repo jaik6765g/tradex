@@ -22,6 +22,7 @@ import { WalletsService } from '../wallets/wallets.service';
 import { Withdrawal, WithdrawalStatus } from './entities/withdrawal.entity';
 import { AdminSetting } from '../admin/entities/admin-setting.entity';
 import { WageringService } from '../wagering/wagering.service';
+import { WalletSourceService } from '../wagering/wallet-source.service';
 import {
   DAILY_WITHDRAWAL_LIMIT_EXCEEDED_CODE,
   DailyWithdrawalFrequency,
@@ -83,12 +84,40 @@ const ACTIVE_STATUSES = [
   WithdrawalStatus.HOLD,
 ];
 
+/**
+ * Statuses that BLOCK a new withdrawal for the same user. Every non-terminal
+ * lifecycle status — including APPROVED, HOLD, QUEUED, PROCESSING and SENT —
+ * represents funds still reserved for an in-flight payout, so a second
+ * withdrawal must not be created while any of them exists. Only the
+ * explicitly terminal REJECTED / FAILED / CANCELLED statuses are excluded.
+ *
+ * (Previously only the first four were treated as blocking, which let a user
+ * open a second withdrawal while a first was APPROVED or on HOLD.)
+ */
 const BLOCKING_STATUSES = [
   WithdrawalStatus.REQUESTED,
   WithdrawalStatus.RISK_CHECKING,
   WithdrawalStatus.LIQUIDITY_CHECK,
   WithdrawalStatus.PENDING_ADMIN_APPROVAL,
+  WithdrawalStatus.APPROVED,
+  WithdrawalStatus.QUEUED,
+  WithdrawalStatus.PROCESSING,
+  WithdrawalStatus.SENT,
+  WithdrawalStatus.HOLD,
 ];
+
+/** Canonical shape persisted on a withdrawal for its FIFO source legs. */
+interface SourceAllocationLeg {
+  bucketId: string;
+  sourceType: string;
+  amount: string;
+}
+
+interface SourceAllocationSnapshot {
+  legs: SourceAllocationLeg[];
+  reservedAt: string;
+}
+
 
 // Daily-withdrawal-frequency key/defaults live in LimitsService
 // (`maxWithdrawalsPerUserPerDay`), the single source of truth for limits.
@@ -144,6 +173,12 @@ export class WithdrawalsService {
     private readonly configService: ConfigService,
     private readonly wageringService: WageringService,
     private readonly limitsService: LimitsService,
+    /**
+     * FIFO source-attribution layer. Determines the withdrawable slice of the
+     * authoritative balance per funding source and reserves/commits/releases
+     * those attributions alongside the existing balance reserve.
+     */
+    private readonly walletSourceService: WalletSourceService,
   ) {}
 
   // ============================================================
@@ -156,6 +191,7 @@ export class WithdrawalsService {
     chainId: number,
     tokenAddress: string,
     tdxAmount: string,
+    clientRequestId?: string | null,
   ): Promise<Withdrawal> {
     this.validateAmount(tdxAmount);
     await this.validateWalletOwnership(userId, walletAddress, chainId);
@@ -169,82 +205,174 @@ export class WithdrawalsService {
       throw new BadRequestException('Withdrawal amount is below token precision');
     }
 
+    const normalizedClientRequestId = clientRequestId?.trim() || null;
+    const requestedAmount = this.fixed(tdxAmount);
+    const payload = {
+      walletAddress,
+      chainId,
+      tokenAddress,
+      tdxAmount: requestedAmount,
+    };
+
+    // Idempotency FAST PATH (pre-lock, performance only) and BEFORE any
+    // policy re-check: a replay must return the ORIGINAL result even if
+    // limits changed after the original request was accepted. The
+    // authoritative replay decision is re-made INSIDE the advisory-locked
+    // transaction, because a concurrent duplicate may commit while we wait.
+    if (normalizedClientRequestId) {
+      const replay = await this.withdrawalRepo.findOne({
+        where: { userId, clientRequestId: normalizedClientRequestId },
+      });
+      if (replay) {
+        this.assertIdempotentReplayMatches(replay, payload);
+        return replay;
+      }
+    }
+
     // Min/max withdrawal limits (5 / 500 USDT defaults) — fast-fail BEFORE
     // the transaction and re-asserted inside the locked transaction below
     // (backend is the single source of truth; limits are read from the DB
     // on every enforcement call). Throws 400 WITHDRAWAL_BELOW_MINIMUM /
     // WITHDRAWAL_ABOVE_MAXIMUM with zero mutations.
-    await this.limitsService.assertWithdrawalAmount(
-      this.decimal(usdtAmount),
-    );
+    await this.limitsService.assertWithdrawalAmount(this.decimal(usdtAmount));
 
-    const withdrawal = await this.dataSource.transaction(async (manager) => {
-      const repo = manager.getRepository(Withdrawal);
+    let outcome: { withdrawal: Withdrawal; replayed: boolean };
+    try {
+      outcome = await this.dataSource.transaction(async (manager) => {
+        const repo = manager.getRepository(Withdrawal);
 
-      // 1. Per-user serialization lock (transaction-scoped advisory lock).
-      //    Guarantees the daily-frequency count+insert are atomic even when
-      //    the user has zero existing withdrawal rows. Auto-released on
-      //    commit/rollback.
-      const [lockKey1, lockKey2] = withdrawalDailyLimitLockKeys(userId);
-      await manager.query('SELECT pg_advisory_xact_lock($1, $2)', [
-        lockKey1,
-        lockKey2,
-      ]);
+        // 1. Per-user serialization lock (transaction-scoped advisory lock),
+        //    acquired as the FIRST statement of the transaction. Guarantees
+        //    the idempotency re-check, the daily-frequency count+insert and
+        //    the source-allocation reserve are atomic even when the user has
+        //    zero withdrawal rows. Auto-released on commit/rollback.
+        const [lockKey1, lockKey2] = withdrawalDailyLimitLockKeys(userId);
+        await manager.query('SELECT pg_advisory_xact_lock($1, $2)', [
+          lockKey1,
+          lockKey2,
+        ]);
 
-      await repo
-        .createQueryBuilder('w')
-        .where('w.userId = :userId', { userId })
-        .setLock('pessimistic_write')
-        .getMany();
+        // 1b. Authoritative idempotency re-check under the lock.
+        if (normalizedClientRequestId) {
+          const replay = await repo.findOne({
+            where: { userId, clientRequestId: normalizedClientRequestId },
+          });
+          if (replay) {
+            this.assertIdempotentReplayMatches(replay, payload);
+            return { withdrawal: replay, replayed: true };
+          }
+        }
 
-      const blocking = await repo.findOne({
-        where: { userId, status: In(BLOCKING_STATUSES) },
-      });
+        // 2. Lock the user's withdrawal rows deterministically.
+        await repo
+          .createQueryBuilder('w')
+          .where('w.userId = :userId', { userId })
+          .setLock('pessimistic_write')
+          .getMany();
 
-      if (blocking) {
-        throw new ConflictException('An active withdrawal request already exists');
-      }
+        const blocking = await repo.findOne({
+          where: { userId, status: In(BLOCKING_STATUSES) },
+        });
 
-      // 2. Daily withdrawal frequency (accepted lifecycle entries, IST day,
-      //    machine-readable 409 on exceed). Runs under the advisory lock.
-      await this.assertWithinDailyWithdrawalLimit(userId, manager);
+        if (blocking) {
+          throw new ConflictException('An active withdrawal request already exists');
+        }
 
-      // 3. Min/max withdrawal limits — authoritative re-check inside the
-      //    locked transaction (settings read fresh from the DB, no cache).
-      await this.limitsService.assertWithdrawalAmount(
-        this.decimal(usdtAmount),
-      );
+        // 3. Daily withdrawal frequency (accepted lifecycle entries, IST day,
+        //    machine-readable 409 on exceed). Runs under the advisory lock.
+        await this.assertWithinDailyWithdrawalLimit(userId, manager);
 
-      // 4. Wagering enforcement — unchanged position: inside the locked
-      //    transaction, BEFORE any withdrawal row is created. Throws 403
-      //    WAGERING_REQUIREMENT_INCOMPLETE when obligations are incomplete.
-      await this.wageringService.assertWithdrawalAllowed(userId, manager);
+        // 4. Min/max withdrawal limits — authoritative re-check inside the
+        //    locked transaction (settings read fresh from the DB, no cache).
+        await this.limitsService.assertWithdrawalAmount(
+          this.decimal(usdtAmount),
+        );
 
-      const created = await repo.save(
-        repo.create({
+        // 5. Re-read the AUTHORITATIVE balance and lock the row. Any balance
+        //    that predates source attribution (legacy/untagged) is lazily
+        //    attributed to a single LEGACY bucket so it stays withdrawable
+        //    and never silently disappears from eligibility calculation.
+        const balance = await this.findBalanceForUpdate(manager, userId);
+        await this.walletSourceService.ensureLegacyAttribution(
           userId,
-          walletAddress,
-          chainId,
-          tokenAddress,
-          tdxAmount: this.fixed(tdxAmount),
-          usdtAmount: this.fixed(usdtAmount),
-          fee: '0',
-          status: WithdrawalStatus.REQUESTED,
-          riskPassed: false,
-          liquidityPassed: true,
-          adminApproved: false,
-          payoutAttempted: false,
-          metadata: {
-            withdrawalFlow: 'ADMIN_METAMASK_PAYOUT',
-            liquidityCheck: 'NOT_REQUIRED_AT_REQUEST',
-          },
-        }),
-      );
+          balance.availableBalance,
+          manager,
+        );
 
-      await this.reserve(manager, created);
-      created.status = WithdrawalStatus.RISK_CHECKING;
-      return repo.save(created);
-    });
+        // 6. Source-aware wagering enforcement. Only wagerable funds still
+        //    locked by an obligation are blocked; referral commission /
+        //    salary / legacy stay withdrawable while a deposit obligation is
+        //    still active. Throws 403 WAGERING_WITHDRAWAL_BLOCKED.
+        await this.wageringService.assertWithdrawalAllowed(
+          userId,
+          manager,
+          requestedAmount,
+        );
+
+        const created = await repo.save(
+          repo.create({
+            userId,
+            walletAddress,
+            chainId,
+            tokenAddress,
+            tdxAmount: requestedAmount,
+            usdtAmount: this.fixed(usdtAmount),
+            fee: '0',
+            status: WithdrawalStatus.REQUESTED,
+            riskPassed: false,
+            liquidityPassed: true,
+            adminApproved: false,
+            payoutAttempted: false,
+            clientRequestId: normalizedClientRequestId ?? undefined,
+            metadata: {
+              withdrawalFlow: 'ADMIN_METAMASK_PAYOUT',
+              liquidityCheck: 'NOT_REQUIRED_AT_REQUEST',
+            },
+          }),
+        );
+
+        // 7. Reserve the FIFO source attribution FIRST, then the balance
+        //    reserve. Both happen inside this transaction, so if either fails
+        //    the withdrawal rolls back and no attribution is consumed.
+        const legs = await this.walletSourceService.reserveFifo(
+          userId,
+          requestedAmount,
+          manager,
+        );
+        await this.reserve(manager, created);
+
+        created.metadata = {
+          ...(created.metadata ?? {}),
+          sourceAllocation: {
+            legs,
+            reservedAt: new Date().toISOString(),
+          } as SourceAllocationSnapshot,
+        };
+        created.status = WithdrawalStatus.RISK_CHECKING;
+        return { withdrawal: await repo.save(created), replayed: false };
+      });
+    } catch (error) {
+      // Concurrent duplicate: the unique (userId, clientRequestId) index won
+      // the race. Return the committed original instead of a second row.
+      if (
+        normalizedClientRequestId &&
+        this.isClientRequestUniqueViolation(error)
+      ) {
+        const replay = await this.withdrawalRepo.findOne({
+          where: { userId, clientRequestId: normalizedClientRequestId },
+        });
+        if (replay) {
+          this.assertIdempotentReplayMatches(replay, payload);
+          return replay;
+        }
+      }
+      throw error;
+    }
+
+    const withdrawal = outcome.withdrawal;
+    if (outcome.replayed) {
+      return withdrawal;
+    }
 
     const riskResult = this.runRiskChecks(walletAddress, chainId, tokenAddress);
     if (!riskResult.passed) {
@@ -1472,6 +1600,13 @@ export class WithdrawalsService {
 
       await this.releaseReserve(manager, withdrawal);
 
+      // Restore the FIFO source attributions that this withdrawal reserved so
+      // the capacity becomes eligible for a future withdrawal again.
+      await this.walletSourceService.releaseReservation(
+        this.getSourceAllocationLegs(withdrawal),
+        manager,
+      );
+
       withdrawal.status = status;
       withdrawal.rejectionReason = reason;
       withdrawal.adminApproved = false;
@@ -1616,6 +1751,13 @@ export class WithdrawalsService {
       available,
       'WITHDRAWAL',
     );
+
+    // reserved -> consumed for the FIFO source attributions. Idempotent and
+    // saturating, so a retried completion can never double-consume a bucket.
+    await this.walletSourceService.commitReservation(
+      this.getSourceAllocationLegs(withdrawal),
+      manager,
+    );
   }
 
   // ============================================================
@@ -1737,6 +1879,81 @@ export class WithdrawalsService {
   // ============================================================
   // PAYOUT STAGE
   // ============================================================
+
+  // ============================================================
+  // SOURCE ALLOCATION HELPERS
+  // ============================================================
+
+  /** Reads the persisted FIFO legs from a withdrawal's metadata. */
+  private getSourceAllocationLegs(
+    withdrawal: Withdrawal,
+  ): SourceAllocationLeg[] {
+    const snapshot = (withdrawal.metadata ?? {})[
+      'sourceAllocation'
+    ] as SourceAllocationSnapshot | undefined;
+    if (!snapshot || !Array.isArray(snapshot.legs)) return [];
+    return snapshot.legs.filter(
+      (leg) =>
+        leg &&
+        typeof leg.bucketId === 'string' &&
+        typeof leg.amount === 'string',
+    );
+  }
+
+  // ============================================================
+  // IDEMPOTENCY HELPERS
+  // ============================================================
+
+  /**
+   * A replay of the same (userId, clientRequestId) must describe the SAME
+   * withdrawal intent. A different payload with the same key is rejected so a
+   * key can never silently stand in for two different payouts.
+   */
+  private assertIdempotentReplayMatches(
+    existing: Withdrawal,
+    payload: {
+      walletAddress: string;
+      chainId: number;
+      tokenAddress: string;
+      tdxAmount: string;
+    },
+  ): void {
+    const sameAddress =
+      String(existing.walletAddress).toLowerCase() ===
+      String(payload.walletAddress).toLowerCase();
+    const sameToken =
+      String(existing.tokenAddress).toLowerCase() ===
+      String(payload.tokenAddress).toLowerCase();
+    const sameChain = Number(existing.chainId) === Number(payload.chainId);
+    const sameAmount = this.decimal(existing.tdxAmount).eq(
+      this.decimal(payload.tdxAmount),
+    );
+
+    if (!sameAddress || !sameToken || !sameChain || !sameAmount) {
+      throw new ConflictException({
+        statusCode: 409,
+        error: 'Conflict',
+        code: 'WITHDRAWAL_IDEMPOTENCY_PAYLOAD_MISMATCH',
+        message:
+          'clientRequestId was already used with a different withdrawal payload',
+      });
+    }
+  }
+
+  /** True when the error is the (userId, clientRequestId) unique violation. */
+  private isClientRequestUniqueViolation(error: unknown): boolean {
+    const driverError = (error as { driverError?: { code?: string; constraint?: string } })
+      ?.driverError;
+    const anyError = error as { code?: string; constraint?: string };
+    const code = driverError?.code ?? anyError?.code;
+    const constraint = driverError?.constraint ?? anyError?.constraint;
+    return (
+      code === '23505' &&
+      (constraint === 'IDX_withdrawals_user_clientRequestId_unique' ||
+        constraint === undefined ||
+        constraint === null)
+    );
+  }
 
   private isPayoutStage(status: WithdrawalStatus): boolean {
     return [

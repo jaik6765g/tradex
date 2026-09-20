@@ -16,6 +16,8 @@ import { BotSetting } from './entities/bot-setting.entity';
 import { Balance } from '../balances/balance.entity';
 import { User } from '../users/user.entity';
 import { LedgerEntry, LedgerType } from '../ledger/ledger.entity';
+import { WalletSourceService } from '../wagering/wallet-source.service';
+import { FUND_SOURCE_TYPE } from '../wagering/wagering-source';
 import {
   BotWalletTransaction,
   BotWalletTransactionStatus,
@@ -65,7 +67,15 @@ type BotActivityItem = {
 
 @Injectable()
 export class BotService {
-  constructor(private readonly dataSource: DataSource) {}
+  constructor(
+    private readonly dataSource: DataSource,
+    /**
+     * FIFO attribution. Bot first-activation referral payouts are referral
+     * commission: NON-wagerable, never create a wagering obligation, and
+     * remain withdrawable during active deposit wagering.
+     */
+    private readonly walletSourceService: WalletSourceService,
+  ) {}
 
   // ============================================================
   // CREATE BOT ACCOUNT
@@ -1053,7 +1063,24 @@ export class BotService {
       description: `Bot first activation referral L${level}`,
       metadata: { activationId, level, amount },
     });
-    await ledgerRepo.save(entry);
+    const saved = await ledgerRepo.save(entry);
+
+    // Attribution: referral commission is NON-wagerable and never creates a
+    // wagering obligation. Same transaction as the credit.
+    await this.walletSourceService.recordCredit({
+      manager,
+      userId,
+      sourceType: FUND_SOURCE_TYPE.REFERRAL_COMMISSION,
+      sourceId: saved.id,
+      ledgerEntryId: saved.id,
+      amountTdx: amount,
+      metadata: {
+        referenceType: 'BOT_FIRST_ACTIVATION_REFERRAL',
+        activationId,
+        level,
+        referenceId,
+      },
+    });
   }
 
   // ============================================================

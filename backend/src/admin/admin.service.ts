@@ -25,6 +25,9 @@ import {
 } from './dto/update-admin-setting.dto';
 import { AdminAuditLog } from './entities/admin-audit-log.entity';
 import { AdminSetting } from './entities/admin-setting.entity';
+import { WageringService } from '../wagering/wagering.service';
+import { WalletSourceService } from '../wagering/wallet-source.service';
+import { FUND_SOURCE_TYPE } from '../wagering/wagering-source';
 import {
   isDailyWithdrawalFrequencySettingKey,
   isNumericLimitSettingKey,
@@ -126,6 +129,13 @@ export class AdminService {
     private readonly ledgerEntryRepository: Repository<LedgerEntry>,
     @InjectDataSource()
     private readonly dataSource: DataSource,
+    /**
+     * Wagering + FIFO attribution. Every manual bonus must (a) be attributed
+     * to a BONUS bucket and (b) create exactly one BONUS wagering obligation,
+     * in the SAME transaction as the credit.
+     */
+    private readonly wageringService: WageringService,
+    private readonly walletSourceService: WalletSourceService,
   ) {}
 
   // ============================================================
@@ -263,6 +273,34 @@ export class AdminService {
       },
     });
     const savedEntry = await queryRunner.manager.save(ledgerEntry);
+
+    // 5b. FIFO source attribution + wagering obligation — SAME transaction.
+    // Either the bonus balance, its ledger entry, its attribution bucket and
+    // its single wagering obligation all commit, or nothing does.
+    await this.walletSourceService.recordCredit({
+      manager: queryRunner.manager,
+      userId: dto.userId,
+      sourceType: FUND_SOURCE_TYPE.BONUS,
+      sourceId: savedEntry.id,
+      ledgerEntryId: savedEntry.id,
+      amountTdx: normalizedAmount.toFixed(18),
+      metadata: {
+        category: ADMIN_BONUS_REFERENCE_TYPE,
+        idempotencyKey,
+        adminId: context.adminId,
+      },
+    });
+
+    await this.wageringService.createObligationForBonus(
+      {
+        userId: dto.userId,
+        bonusReference: savedEntry.id,
+        ledgerEntryId: savedEntry.id,
+        amountTdx: normalizedAmount.toFixed(18),
+        creditedAt: savedEntry.createdAt,
+      },
+      queryRunner.manager,
+    );
 
     // 6. Audit log — admin identity + reason, permanent trail.
     const auditLog = queryRunner.manager.create(AdminAuditLog, {

@@ -86,8 +86,11 @@ export class BalanceService {
      */
     manager?: EntityManager,
   ): Promise<Balance> {
-    const amountNum = typeof amount === 'string' ? parseFloat(amount) : amount;
-    if (!Number.isFinite(amountNum) || amountNum <= 0) {
+    // MONEY SAFETY: the original value is preserved as an exact decimal
+    // string (never routed through parseFloat/Number) so 18dp precision is
+    // never lost for large or high-precision amounts.
+    const amountStr = this.toFixed(this.toDecimal(amount));
+    if (!this.toDecimal(amountStr).isFinite() || this.toDecimal(amountStr).lte(0)) {
       throw new ConflictException(`Invalid credit amount: ${amount}`);
     }
 
@@ -95,7 +98,7 @@ export class BalanceService {
       return this.applyCredit(
         manager,
         userId,
-        amountNum,
+        amountStr,
         type,
         description,
         referenceId,
@@ -107,7 +110,7 @@ export class BalanceService {
       this.applyCredit(
         txManager,
         userId,
-        amountNum,
+        amountStr,
         type,
         description,
         referenceId,
@@ -119,7 +122,7 @@ export class BalanceService {
   private async applyCredit(
     manager: EntityManager,
     userId: string,
-    amountNum: number,
+    amount: string | number,
     type: LedgerType,
     description: string,
     referenceId?: string,
@@ -128,7 +131,14 @@ export class BalanceService {
     const balanceRepo = manager.getRepository(Balance);
     const ledgerRepo = manager.getRepository(LedgerEntry);
 
-    let balance = await balanceRepo.findOne({ where: { userId } });
+    // Serialize concurrent credits for the same user: without this lock two
+    // simultaneous credits can read the same balance and the second write
+    // silently drops the first (lost update). Created lazily when absent.
+    let balance = await balanceRepo
+      .createQueryBuilder('balance')
+      .setLock('pessimistic_write')
+      .where('balance.userId = :userId', { userId })
+      .getOne();
     if (!balance) balance = await this.createBalance(userId, manager);
 
     if (referenceId) {
@@ -149,7 +159,7 @@ export class BalanceService {
     }
 
     const before = this.toDecimal(balance.availableBalance);
-    const credit = this.toDecimal(amountNum);
+    const credit = this.toDecimal(amount);
     const after = before.plus(credit);
     const totalBefore = this.toDecimal(balance.totalBalance);
     const totalAfter = totalBefore.plus(credit);

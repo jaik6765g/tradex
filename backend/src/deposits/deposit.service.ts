@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like, FindOptionsWhere, DataSource } from 'typeorm';
+import { Repository, Like, FindOptionsWhere, DataSource, EntityManager } from 'typeorm';
 import Decimal from 'decimal.js';
 import { Deposit, DepositStatus } from './deposit.entity';
 import { BalanceService } from '../balances/balance.service';
@@ -19,6 +19,8 @@ import { BlockchainService } from '../blockchain/blockchain.service';
 import { AdminAuditLog } from '../admin/entities/admin-audit-log.entity';
 import { LimitsService } from '../limits/limits.service';
 import { WageringService } from '../wagering/wagering.service';
+import { WalletSourceService } from '../wagering/wallet-source.service';
+import { FUND_SOURCE_TYPE } from '../wagering/wagering-source';
 
 /** Audit actions for the below-minimum deposit recovery decisions. */
 export const DEPOSIT_BELOW_MINIMUM_CREDITED_ACTION =
@@ -27,6 +29,22 @@ export const DEPOSIT_BELOW_MINIMUM_REJECTED_ACTION =
   'DEPOSIT_BELOW_MINIMUM_REJECTED';
 
 export type BelowMinimumReviewDecision = 'CREDIT' | 'REJECT';
+
+/**
+ * Outcome of an atomic deposit credit. `alreadyCredited` is a successful
+ * no-op (idempotent replay), not an error.
+ */
+export interface DepositCreditResult {
+  /** True only when this call performed the credit. */
+  credited: boolean;
+  /** True when the deposit was already COMPLETED before this call. */
+  alreadyCredited: boolean;
+  deposit: Deposit;
+  /** Ledger entry that evidences the credit (null on idempotent replay). */
+  ledgerEntryId: string | null;
+  /** Whether a NEW wagering obligation was created. */
+  obligationCreated: boolean;
+}
 
 interface CountVolumeMetric {
   count: number;
@@ -78,6 +96,12 @@ export class DepositService {
      * withdrawn before its obligation exists (H1).
      */
     private readonly wageringService: WageringService,
+    /**
+     * FIFO source-attribution layer. A deposit credit records its bucket in
+     * the SAME transaction as the balance credit + ledger entry, so the
+     * credited funds are always classifiable when a withdrawal is attempted.
+     */
+    private readonly walletSourceService: WalletSourceService,
   ) {}
 
   // ============================================================
@@ -287,6 +311,22 @@ export class DepositService {
           });
         }
 
+        // Attribute the recovered deposit credit to its FIFO bucket in the
+        // same transaction, so the admin-credited funds are classified too.
+        await this.walletSourceService.recordCredit({
+          manager,
+          userId: saved.userId,
+          sourceType: FUND_SOURCE_TYPE.DEPOSIT,
+          sourceId: saved.id,
+          ledgerEntryId: creditedEntry.id,
+          amountTdx: new Decimal(String(saved.tdxAmount ?? '0')).toFixed(18),
+          metadata: {
+            depositId: saved.id,
+            transactionHash: saved.transactionHash,
+            recoveredByAdmin: context.adminId,
+          },
+        });
+
         // Returns false (no obligation) only when the platform policy says so:
         // wagering disabled, deposit predating activation, or zero TDX.
         await this.wageringService.createObligationForDeposit(
@@ -349,41 +389,180 @@ export class DepositService {
     return this.depositRepository.save(deposit);
   }
 
-  async creditDeposit(depositId: string): Promise<Deposit> {
-    const deposit = await this.getDepositById(depositId);
+  /**
+   * ATOMIC DEPOSIT CREDIT — the single authoritative credit path.
+   *
+   * Everything happens in ONE database transaction:
+   *   1. lock the deposit row FOR UPDATE (serializes concurrent credits)
+   *   2. re-verify status (idempotent: already COMPLETED -> no-op success)
+   *   3. credit the user balance (with a pessimistic balance-row lock)
+   *   4. insert the DEPOSIT ledger entry
+   *   5. create the wagering obligation for sourceType='DEPOSIT'
+   *   6. mark the deposit COMPLETED + creditedAt
+   *
+   * Any failure rolls back ALL of it. A retry can therefore never
+   * double-credit, and a credited deposit can never exist without its ledger
+   * entry and wagering obligation.
+   */
+  async creditDepositAtomic(
+    depositId: string,
+    manager?: EntityManager,
+  ): Promise<DepositCreditResult> {
+    if (manager) return this.runAtomicCredit(manager, depositId);
 
+    return this.dataSource.transaction((em) =>
+      this.runAtomicCredit(em, depositId),
+    );
+  }
+
+  private async runAtomicCredit(
+    em: EntityManager,
+    depositId: string,
+  ): Promise<DepositCreditResult> {
+    const depositRepo = em.getRepository(Deposit);
+
+    // 1. Row lock — the in-transaction serialization point.
+    const deposit = await depositRepo
+      .createQueryBuilder('d')
+      .setLock('pessimistic_write')
+      .where('d.id = :depositId', { depositId })
+      .getOne();
+
+    if (!deposit) {
+      throw new NotFoundException('Deposit not found');
+    }
+
+    // 2. Idempotency — an already-credited deposit is a successful no-op.
     if (deposit.status === DepositStatus.COMPLETED) {
-      throw new ConflictException('Deposit already credited');
+      return {
+        credited: false,
+        alreadyCredited: true,
+        deposit,
+        ledgerEntryId: null,
+        obligationCreated: false,
+      };
     }
 
     if (deposit.status !== DepositStatus.VERIFIED) {
-      throw new ConflictException('Deposit not verified yet');
+      throw new ConflictException(
+        `Deposit is not ready to be credited (status: ${deposit.status})`,
+      );
     }
 
-    const tdxAmount = Number(deposit.tdxAmount);
-
-    if (!Number.isFinite(tdxAmount) || tdxAmount <= 0) {
-      throw new Error(`Invalid TDX amount: ${tdxAmount}`);
+    const amountTdx = new Decimal(String(deposit.tdxAmount ?? '0'));
+    if (!amountTdx.isFinite() || amountTdx.lte(0)) {
+      throw new ConflictException(
+        `Invalid deposit TDX amount: ${deposit.tdxAmount}`,
+      );
     }
 
+    // 3 + 4. Balance credit and its ledger entry (exact decimal string).
     await this.balanceService.creditTDX(
       deposit.userId,
-      tdxAmount,
+      amountTdx.toFixed(18),
       LedgerType.DEPOSIT,
-      `Deposit of ${deposit.usdtAmount} USDT converted to ${tdxAmount} TDX`,
+      `Deposit of ${deposit.usdtAmount} USDT converted to ${amountTdx.toFixed(18)} TDX`,
       deposit.id,
       {
         usdtAmount: deposit.usdtAmount,
-        rate: 100,
-        transactionHash: deposit.transactionHash,
+        tdxAmount: amountTdx.toFixed(18),
         chainId: deposit.chainId,
+        token: 'USDT',
+        txHash: deposit.transactionHash,
+        transactionHash: deposit.transactionHash,
+        depositOrderId: deposit.orderId ?? undefined,
+        depositAddress: deposit.depositAddress ?? undefined,
       },
+      em,
     );
 
+    // 5. Resolve the credited ledger entry inside the SAME transaction.
+    const ledgerEntry = await em.getRepository(LedgerEntry).findOne({
+      where: {
+        referenceId: deposit.id,
+        referenceType: 'deposit',
+        type: LedgerType.DEPOSIT,
+      },
+      select: { id: true },
+    });
+
+    if (!ledgerEntry) {
+      // Refuse to commit a credit whose ledger anchor is missing.
+      throw new ConflictException({
+        statusCode: 409,
+        error: 'Conflict',
+        code: 'DEPOSIT_CREDIT_LEDGER_MISSING',
+        message:
+          'Credit ledger entry missing for this deposit — no changes were committed',
+      });
+    }
+
+    // 6. Mark the deposit credited — same transaction.
     deposit.status = DepositStatus.COMPLETED;
     deposit.creditedAt = new Date();
+    deposit.metadata = {
+      ...(deposit.metadata ?? {}),
+      credited: {
+        ledgerEntryId: ledgerEntry.id,
+        tdxAmount: amountTdx.toFixed(18),
+        creditedAt: deposit.creditedAt.toISOString(),
+      },
+    };
+    const saved = await depositRepo.save(deposit);
 
-    return this.depositRepository.save(deposit);
+    // 7. Attribute the credit to a FIFO source bucket — SAME transaction.
+    // A deposit credit is wagerable, so its bucket starts wagering-locked
+    // until the obligation below is satisfied.
+    await this.walletSourceService.recordCredit({
+      manager: em,
+      userId: saved.userId,
+      sourceType: FUND_SOURCE_TYPE.DEPOSIT,
+      sourceId: saved.id,
+      ledgerEntryId: ledgerEntry.id,
+      amountTdx: amountTdx.toFixed(18),
+      metadata: {
+        depositId: saved.id,
+        transactionHash: saved.transactionHash,
+        creditedAt: saved.creditedAt?.toISOString() ?? null,
+      },
+    });
+
+    // 8. Wagering obligation — same transaction, idempotent by depositId.
+    // Non-wagerable sources never reach this table; a deposit always does.
+    let obligationCreated = false;
+    try {
+      obligationCreated = await this.wageringService.createObligationForDeposit(
+        saved,
+        ledgerEntry.id,
+        em,
+      );
+    } catch (error) {
+      // A missing obligation must not silently pass: roll the whole credit
+      // back so reconciliation can retry cleanly instead of leaving credited
+      // funds with no recoverable obligation.
+      this.logger.error(
+        `Wagering obligation failed for deposit ${deposit.id}: ${String(error)}`,
+      );
+      throw error;
+    }
+
+    return {
+      credited: true,
+      alreadyCredited: false,
+      deposit: saved,
+      ledgerEntryId: ledgerEntry.id,
+      obligationCreated,
+    };
+  }
+
+  /**
+   * @deprecated Use {@link creditDepositAtomic}. Kept as a thin delegate so
+   * every existing caller automatically gains atomicity; the previous
+   * non-atomic implementation is intentionally gone.
+   */
+  async creditDeposit(depositId: string): Promise<Deposit> {
+    const result = await this.creditDepositAtomic(depositId);
+    return result.deposit;
   }
 
   // ============================================================

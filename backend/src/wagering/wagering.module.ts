@@ -13,10 +13,12 @@ import { WageringEvent } from './entities/wagering-event.entity';
 import { WageringNotification } from './entities/wagering-notification.entity';
 import { WageringSettings } from './entities/wagering-settings.entity';
 import { WageringUserOverride } from './entities/wagering-user-override.entity';
+import { WalletSourceAllocation } from './entities/wallet-source-allocation.entity';
 import { WageringAdminController } from './wagering-admin.controller';
 import { WageringController } from './wagering.controller';
 import { WageringReconciliationProcessor } from './wagering-reconciliation.processor';
 import { WageringService } from './wagering.service';
+import { WalletSourceService } from './wallet-source.service';
 
 /**
  * Standalone wagering module — imports no other FEATURE module, so deposit,
@@ -39,6 +41,7 @@ import { WageringService } from './wagering.service';
       WageringObligation,
       WageringEvent,
       WageringNotification,
+      WalletSourceAllocation,
       AdminAuditLog,
       Deposit,
       LedgerEntry,
@@ -48,8 +51,12 @@ import { WageringService } from './wagering.service';
     ]),
   ],
   controllers: [WageringController, WageringAdminController],
-  providers: [WageringService, WageringReconciliationProcessor],
-  exports: [WageringService],
+  providers: [
+    WageringService,
+    WalletSourceService,
+    WageringReconciliationProcessor,
+  ],
+  exports: [WageringService, WalletSourceService],
 })
 export class WageringModule implements OnApplicationBootstrap {
   constructor(

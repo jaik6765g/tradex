@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsString,
   Matches,
+  MaxLength,
   Min,
 } from 'class-validator';
 
@@ -13,6 +14,17 @@ export class CreateWithdrawalDto {
   @IsString()
   @IsNotEmpty()
   userId?: string;
+
+  /**
+   * Optional user-scoped idempotency key. Replaying the same value returns
+   * the original withdrawal; reusing it with a different payload is rejected
+   * with 409 WITHDRAWAL_IDEMPOTENCY_PAYLOAD_MISMATCH.
+   */
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(120)
+  clientRequestId?: string;
 
   @IsEthereumAddress()
   walletAddress: string;

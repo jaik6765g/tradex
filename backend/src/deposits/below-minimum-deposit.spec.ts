@@ -84,6 +84,7 @@ function makeHarness(
     limitsService,
     dataSource,
     wageringService,
+    { recordCredit: jest.fn(async () => null) } as any,
   );
 
   return {

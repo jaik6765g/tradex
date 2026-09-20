@@ -16,11 +16,13 @@ import { BotWalletTransaction } from '../bot/entities/bot-wallet-transaction.ent
 import { AdminPool } from '../modules/lotto/entities/admin-pool.entity';
 import { AdminAuthModule } from '../auth/admin-auth.module';
 import { DepositModule } from '../deposits/deposit.module';
+import { WageringModule } from '../wagering/wagering.module';
 
 @Module({
   imports: [
     AdminAuthModule,
     DepositModule,
+    WageringModule,
     TypeOrmModule.forFeature([
       AdminAuditLog,
       AdminSetting,

@@ -11,10 +11,12 @@ import { BotActivation } from './entities/bot-activation.entity';
 import { BotMonthlySettlement } from './entities/bot-monthly-settlement.entity';
 import { BotSetting } from './entities/bot-setting.entity';
 import { AdminAuthModule } from '../auth/admin-auth.module';
+import { WageringModule } from '../wagering/wagering.module';
 
 @Module({
   imports: [
     AdminAuthModule,
+    WageringModule,
     TypeOrmModule.forFeature([
       BotAccount,
       BotWallet,

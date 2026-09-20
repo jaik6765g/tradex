@@ -1,8 +1,10 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
@@ -10,6 +12,12 @@ import Decimal from 'decimal.js';
 
 import { AdminAuditLog } from '../admin/entities/admin-audit-log.entity';
 import { Deposit, DepositStatus } from '../deposits/deposit.entity';
+
+import {
+  isWagerableSourceType,
+  normalizeFundSourceType,
+  WAGERING_SOURCE_TYPE,
+} from './wagering-source';
 import { LedgerEntry, LedgerType } from '../ledger/ledger.entity';
 import { LottoTicket } from '../modules/lotto/entities/lotto-ticket.entity';
 import { Trade } from '../pulse-trade/entities/trade.entity';
@@ -36,6 +44,7 @@ import {
   WAGERING_SETTINGS_CONFLICT_CODE,
   WAGERING_WITHDRAWAL_BLOCKED_CODE,
 } from './dto/wagering.dto';
+import { WalletSourceService } from './wallet-source.service';
 
 export const LOTTO_SOURCE_TYPE = 'LOTTO_TICKET';
 export const TRADE_SOURCE_TYPE = 'PULSE_TRADE';
@@ -51,6 +60,47 @@ const DECIMAL_PLACES = 18;
 const fixed = (value: Decimal): string => value.toFixed(DECIMAL_PLACES);
 const dec = (value: string | number | Decimal): Decimal =>
   new Decimal(String(value));
+
+/**
+ * ============================================================
+ * reconciliationMaxAgeDays — EXPLICIT SEMANTICS
+ * ============================================================
+ *   0   => UNLIMITED: reconciliation sweeps ALL history since the wagering
+ *          activation timestamp. 0 must NEVER be interpreted as "turn
+ *          reconciliation off" (that was the audit finding).
+ *   >0  => sweep only records newer than N days.
+ *   invalid (NaN / Infinity / negative / non-numeric) => fail SAFE by
+ *          treating it as UNLIMITED (0), i.e. reconciliation still runs —
+ *          it is never silently disabled by a bad value.
+ *
+ * Hard-capped at 3650 days to bound scan windows.
+ */
+export const RECONCILIATION_MAX_AGE_DAYS_LIMIT = 3650;
+
+export function resolveReconciliationMaxAgeDays(value: unknown): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) return 0;
+  return Math.min(Math.floor(parsed), RECONCILIATION_MAX_AGE_DAYS_LIMIT);
+}
+
+
+export interface CreateObligationInput {
+  userId: string;
+  /** Wagerable source type — only DEPOSIT / BONUS are accepted. */
+  sourceType: string;
+  /** Immutable identity of the source (deposit id, bonus reference, ...). */
+  sourceReference: string;
+  /** Deposits-only convenience FK — null for non-deposit sources. */
+  depositId?: string | null;
+  /** Ledger entry that evidences the credit (audit linkage). */
+  ledgerEntryId: string;
+  /** Wagerable amount in TDX (exact Decimal or decimal string). */
+  amountTdx: string | Decimal;
+  /** Deposit-only USDT leg; omit/null for non-deposit sources. */
+  sourceUsdtAmount?: string | Decimal | null;
+  /** Credit timestamp, used for the activation cutoff. */
+  creditedAt?: Date | null;
+}
 
 export interface RecordWageredVolumeInput {
   userId: string;
@@ -126,6 +176,16 @@ export class WageringService {
     private readonly lottoTicketRepo: Repository<LottoTicket>,
     @InjectRepository(Trade)
     private readonly tradeRepo: Repository<Trade>,
+    /**
+     * Source-attribution layer (FIFO withdrawal eligibility).
+     *
+     * OPTIONAL on purpose: when absent (unit tests, or any deployment that
+     * has not wired the provider) enforcement keeps the previous user-wide
+     * semantics. When present, withdrawal enforcement becomes source-aware
+     * and only the wagerable portion is blocked.
+     */
+    @Optional()
+    private readonly walletSourceService?: WalletSourceService,
   ) {}
 
   // ============================================================
@@ -206,6 +266,20 @@ export class WageringService {
       if (dto.notifyUsers !== undefined) current.notifyUsers = dto.notifyUsers;
       if (dto.expiryDays !== undefined) current.expiryDays = dto.expiryDays;
       if (dto.reconciliationMaxAgeDays !== undefined) {
+        // Fail safely: reject nonsense instead of silently disabling the
+        // sweep. 0 is a VALID, explicitly-supported value meaning "unlimited".
+        if (
+          !Number.isInteger(dto.reconciliationMaxAgeDays) ||
+          dto.reconciliationMaxAgeDays < 0 ||
+          dto.reconciliationMaxAgeDays > RECONCILIATION_MAX_AGE_DAYS_LIMIT
+        ) {
+          throw new BadRequestException({
+            statusCode: 400,
+            error: 'Bad Request',
+            code: 'WAGERING_INVALID_RECONCILIATION_MAX_AGE_DAYS',
+            message: `reconciliationMaxAgeDays must be an integer between 0 (unlimited) and ${RECONCILIATION_MAX_AGE_DAYS_LIMIT}`,
+          });
+        }
         current.reconciliationMaxAgeDays = dto.reconciliationMaxAgeDays;
       }
       // Activation timestamp: set only on the false -> true transition so
@@ -286,41 +360,75 @@ export class WageringService {
     }
   }
 
-  /** Idempotent obligation creation with full creation-time snapshots. */
-  async createObligationForDeposit(
-    deposit: Deposit,
-    ledgerEntryId: string,
+  /**
+   * Idempotent, source-agnostic obligation creation with full creation-time
+   * snapshots.
+   *
+   * POLICY GUARD: only explicitly wagerable sources (DEPOSIT, BONUS) may
+   * create an obligation. Referral commission, salary and every unknown
+   * source are rejected here — so no credit path can ever make exempt funds
+   * wagerable, even by mistake.
+   *
+   * Idempotency: UNIQUE(sourceType, sourceReference) plus the pre-check
+   * below. A replayed credit returns true without a second obligation.
+   */
+  async createObligationForSource(
+    input: CreateObligationInput,
     manager?: EntityManager,
   ): Promise<boolean> {
     const run = async (em: EntityManager): Promise<boolean> => {
+      const sourceType = normalizeFundSourceType(input.sourceType);
+
+      // POLICY GUARD — fail closed. Never wagerable: referral, salary,
+      // legacy, other, and anything unrecognized.
+      if (!isWagerableSourceType(sourceType)) {
+        this.logger.warn(
+          `Refused wagering obligation for non-wagerable source ${sourceType} ` +
+            `(user ${input.userId}, reference ${input.sourceReference})`,
+        );
+        return false;
+      }
+
+      if (!input.sourceReference) {
+        return false;
+      }
+
       const settings = await this.getSettings(em);
       if (!settings.wageringEnabled) return false;
-      if (deposit.status !== DepositStatus.COMPLETED) return false;
 
-      // Activation cutoff: deposits credited before wagering was enabled
-      // (or with no activation timestamp) never create obligations.
+      // Activation cutoff: credits made before wagering was enabled never
+      // create obligations.
+      const creditedAt = input.creditedAt ?? null;
       if (
         !settings.activationTimestamp ||
-        !deposit.creditedAt ||
-        deposit.creditedAt < settings.activationTimestamp
+        !creditedAt ||
+        creditedAt < settings.activationTimestamp
       ) {
         return false;
       }
 
-      const existing = await em
-        .getRepository(WageringObligation)
-        .findOne({ where: { depositId: deposit.id } });
-      if (existing) return true; // idempotent — exactly one obligation per deposit
+      const obligationRepo = em.getRepository(WageringObligation);
 
-      const { multiplier } = await this.resolveEffectiveMultiplier(deposit.userId);
+      const existing = await obligationRepo.findOne({
+        where: { sourceType, sourceReference: input.sourceReference },
+      });
+      if (existing) return true; // idempotent — exactly one obligation per source
 
-      const sourceUsdt = dec(deposit.usdtAmount);
-      const sourceTdx = dec(deposit.tdxAmount);
-      if (sourceTdx.lte(0)) return false;
+      const sourceTdx = dec(input.amountTdx);
+      if (!sourceTdx.isFinite() || sourceTdx.lte(0)) return false;
 
-      // Snapshot conversion rate from the immutable deposit row — the
-      // obligation is never recalculated with a later rate.
-      const conversionRate = sourceTdx.div(sourceUsdt).toFixed(DECIMAL_PLACES);
+      const { multiplier } = await this.resolveEffectiveMultiplier(
+        input.userId,
+      );
+
+      // Snapshot the conversion rate from the immutable source evidence. A
+      // non-deposit source has no USDT leg, so the rate is 0 (never NaN/Inf).
+      const sourceUsdt = dec(input.sourceUsdtAmount ?? 0);
+      const conversionRate =
+        sourceUsdt.isFinite() && sourceUsdt.gt(0)
+          ? sourceTdx.div(sourceUsdt).toFixed(DECIMAL_PLACES)
+          : fixed(dec(0));
+
       const required = sourceTdx.mul(multiplier);
 
       const expiresAt =
@@ -328,39 +436,102 @@ export class WageringService {
           ? new Date(Date.now() + settings.expiryDays * 86_400_000)
           : null;
 
-      const obligation = await em
-        .getRepository(WageringObligation)
-        .save(
-          em.getRepository(WageringObligation).create({
-            userId: deposit.userId,
-            depositId: deposit.id,
-            ledgerEntryId,
-            sourceUsdtAmount: fixed(sourceUsdt),
-            sourceTdxAmount: fixed(sourceTdx),
-            conversionRate,
-            depositAmountTdx: fixed(sourceTdx),
-            multiplier,
-            requiredAmount: fixed(required),
-            completedAmount: fixed(dec(0)),
-            status: WageringObligationStatus.ACTIVE,
-            policyVersion: settings.policyVersion,
-            eligibleActivity: settings.eligibleActivity,
-            expiresAt,
-          }),
-        );
+      const obligation = await obligationRepo.save(
+        obligationRepo.create({
+          userId: input.userId,
+          sourceType,
+          sourceReference: input.sourceReference,
+          depositId: input.depositId ?? null,
+          ledgerEntryId: input.ledgerEntryId,
+          sourceUsdtAmount: fixed(sourceUsdt),
+          sourceTdxAmount: fixed(sourceTdx),
+          conversionRate,
+          depositAmountTdx: fixed(sourceTdx),
+          multiplier,
+          requiredAmount: fixed(required),
+          completedAmount: fixed(dec(0)),
+          status: WageringObligationStatus.ACTIVE,
+          policyVersion: settings.policyVersion,
+          eligibleActivity: settings.eligibleActivity,
+          expiresAt,
+        }),
+      );
 
       if (settings.notifyUsers) {
-        await this.queueNotification(em, deposit.userId, WageringNotificationKind.OBLIGATION_CREATED, {
-          obligationId: obligation.id,
-          multiplier,
-          requiredAmount: obligation.requiredAmount,
-        });
+        await this.queueNotification(
+          em,
+          input.userId,
+          WageringNotificationKind.OBLIGATION_CREATED,
+          {
+            obligationId: obligation.id,
+            sourceType,
+            multiplier,
+            requiredAmount: obligation.requiredAmount,
+          },
+        );
       }
       return true;
     };
 
     if (manager) return run(manager);
     return this.obligationRepo.manager.transaction(run);
+  }
+
+  /**
+   * Deposit convenience wrapper — unchanged public contract.
+   * Delegates to the generic source path with sourceType='DEPOSIT' and
+   * sourceReference=deposit.id (identical to the previous unique anchor).
+   */
+  async createObligationForDeposit(
+    deposit: Deposit,
+    ledgerEntryId: string,
+    manager?: EntityManager,
+  ): Promise<boolean> {
+    if (deposit.status !== DepositStatus.COMPLETED) return false;
+
+    return this.createObligationForSource(
+      {
+        userId: deposit.userId,
+        sourceType: WAGERING_SOURCE_TYPE.DEPOSIT,
+        sourceReference: deposit.id,
+        depositId: deposit.id,
+        ledgerEntryId,
+        amountTdx: deposit.tdxAmount,
+        sourceUsdtAmount: deposit.usdtAmount,
+        creditedAt: deposit.creditedAt,
+      },
+      manager,
+    );
+  }
+
+  /**
+   * Bonus convenience wrapper. Called in the SAME transaction as the bonus
+   * balance credit + ledger entry, so a credited bonus can never exist
+   * without its wagering obligation.
+   */
+  async createObligationForBonus(
+    input: {
+      userId: string;
+      bonusReference: string;
+      ledgerEntryId: string;
+      amountTdx: string | Decimal;
+      creditedAt: Date;
+    },
+    manager?: EntityManager,
+  ): Promise<boolean> {
+    return this.createObligationForSource(
+      {
+        userId: input.userId,
+        sourceType: WAGERING_SOURCE_TYPE.BONUS,
+        sourceReference: input.bonusReference,
+        depositId: null,
+        ledgerEntryId: input.ledgerEntryId,
+        amountTdx: input.amountTdx,
+        sourceUsdtAmount: null,
+        creditedAt: input.creditedAt,
+      },
+      manager,
+    );
   }
 
   // ============================================================
@@ -600,6 +771,18 @@ export class WageringService {
   async assertWithdrawalAllowed(
     userId: string,
     manager?: EntityManager,
+    /**
+     * TDX amount being withdrawn.
+     *
+     * When supplied AND the source-attribution layer is available,
+     * enforcement becomes SOURCE-AWARE: only wagerable funds (deposit /
+     * bonus) that are still wagering-locked are blocked, while exempt funds
+     * (referral commission, salary, legacy/other) stay withdrawable.
+     *
+     * When omitted the previous user-wide semantics are preserved, so
+     * existing callers and unit tests keep working unchanged.
+     */
+    requestedAmountTdx?: string | Decimal | null,
   ): Promise<WageringCheckResult> {
     const settings = await this.getSettings(manager);
     if (!settings.wageringEnabled || !settings.withdrawalEnforcement) {
@@ -607,6 +790,49 @@ export class WageringService {
     }
 
     const result = await this.getUserWageringSummary(userId, manager);
+    const activeObligationIds = result.obligations
+      .filter((o) => o.status === WageringObligationStatus.ACTIVE)
+      .map((o) => o.id);
+
+    // ---------------------------------------------------------
+    // SOURCE-AWARE PATH (preferred)
+    // ---------------------------------------------------------
+    if (
+      this.walletSourceService &&
+      requestedAmountTdx !== undefined &&
+      requestedAmountTdx !== null
+    ) {
+      const planResult = await this.walletSourceService.getWithdrawablePlan(
+        userId,
+        requestedAmountTdx,
+        manager,
+      );
+
+      if (planResult.plan.fullyFunded) {
+        return {
+          allowed: true,
+          remainingWagering: fixed(result.totalRemaining),
+          obligationIds: [],
+        };
+      }
+
+      throw new ForbiddenException({
+        statusCode: 403,
+        error: 'Forbidden',
+        code: WAGERING_WITHDRAWAL_BLOCKED_CODE,
+        message:
+          'Requested amount exceeds withdrawable funds — wagerable balance is still locked by wagering requirements',
+        remainingWagering: fixed(result.totalRemaining),
+        withdrawableAmount: planResult.plan.withdrawableAmount.toFixed(18),
+        blockedWagerableAmount:
+          planResult.plan.blockedWagerableAmount.toFixed(18),
+        obligationIds: activeObligationIds,
+      });
+    }
+
+    // ---------------------------------------------------------
+    // LEGACY USER-WIDE PATH (unchanged contract)
+    // ---------------------------------------------------------
     if (result.totalRemaining.gt(0)) {
       throw new ForbiddenException({
         statusCode: 403,
@@ -614,9 +840,7 @@ export class WageringService {
         code: WAGERING_WITHDRAWAL_BLOCKED_CODE,
         message: 'Wagering requirement incomplete before withdrawal',
         remainingWagering: fixed(result.totalRemaining),
-        obligationIds: result.obligations
-          .filter((o) => o.status === WageringObligationStatus.ACTIVE)
-          .map((o) => o.id),
+        obligationIds: activeObligationIds,
       });
     }
     return {
@@ -1024,30 +1248,29 @@ export class WageringService {
       return { scanned: 0, created: 0, skipped: 0 };
     }
 
-    const ageCutoffDays = settings.reconciliationMaxAgeDays;
+    const ageCutoffDays = resolveReconciliationMaxAgeDays(
+      settings.reconciliationMaxAgeDays,
+    );
     let created = 0;
     let scanned = 0;
     let skipped = 0;
 
     // Keyset pagination over recent completed deposits since activation.
-    const candidates = await this.depositRepo
+    // ageCutoffDays === 0 (or an invalid value coerced to 0) means UNLIMITED:
+    // every deposit since activation is in scope — reconciliation is NEVER
+    // disabled by the setting.
+    const depositQuery = this.depositRepo
       .createQueryBuilder('d')
       .where('d.status = :status', { status: DepositStatus.COMPLETED })
-      .andWhere('d.creditedAt >= :since', { since: settings.activationTimestamp })
-      .andWhere(
-        ageCutoffDays > 0
-          ? 'd.creditedAt >= :cutoff'
-          : 'd.creditedAt >= :cutoff0',
-        ageCutoffDays > 0
-          ? {
-              since: settings.activationTimestamp,
-              cutoff: new Date(Date.now() - ageCutoffDays * 86_400_000),
-            }
-          : {
-              since: settings.activationTimestamp,
-              cutoff0: new Date(0),
-            },
-      )
+      .andWhere('d.creditedAt >= :since', {
+        since: settings.activationTimestamp,
+      });
+    if (ageCutoffDays > 0) {
+      depositQuery.andWhere('d.creditedAt >= :cutoff', {
+        cutoff: new Date(Date.now() - ageCutoffDays * 86_400_000),
+      });
+    }
+    const candidates = await depositQuery
       .orderBy('d.creditedAt', 'DESC')
       .take(500)
       .getMany();
@@ -1145,15 +1368,22 @@ export class WageringService {
     const safetyCutoff = new Date(
       Date.now() - WageringService.EVENT_RECONCILE_SAFETY_WINDOW_MS,
     );
-    const ageCutoffDays = settings.reconciliationMaxAgeDays;
-    const maxAge = new Date(Date.now() - ageCutoffDays * 86_400_000);
+    const ageCutoffDays = resolveReconciliationMaxAgeDays(
+      settings.reconciliationMaxAgeDays,
+    );
+    // 0 => UNLIMITED (no lower bound). Invalid values are coerced to 0 here
+    // too, so a bad setting can never disable the reconciliation sweep.
+    const maxAge =
+      ageCutoffDays > 0
+        ? new Date(Date.now() - ageCutoffDays * 86_400_000)
+        : null;
 
     let scanned = 0;
     let counted = 0;
     let skipped = 0;
 
     // Deterministic ordering (createdAt ASC, id ASC) + bounded batches.
-    const candidates = await this.ledgerRepo
+    const eventQuery = this.ledgerRepo
       .createQueryBuilder('l')
       .where('l.type IN (:...types)', {
         types: [LedgerType.GAME_ENTRY, LedgerType.TRADE_ENTRY],
@@ -1161,8 +1391,11 @@ export class WageringService {
       .andWhere(
         "(l.\"referenceType\" = 'LOTTO_TICKET' OR l.\"referenceType\" = 'pulse_trade')",
       )
-      .andWhere('l."createdAt" < :safetyCutoff', { safetyCutoff })
-      .andWhere('l."createdAt" >= :maxAge', { maxAge })
+      .andWhere('l."createdAt" < :safetyCutoff', { safetyCutoff });
+    if (maxAge) {
+      eventQuery.andWhere('l."createdAt" >= :maxAge', { maxAge });
+    }
+    const candidates = await eventQuery
       .orderBy('l."createdAt"', 'ASC')
       .addOrderBy('l.id', 'ASC')
       .take(WageringService.EVENT_RECONCILE_BATCH)

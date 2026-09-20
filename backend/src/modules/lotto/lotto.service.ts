@@ -53,6 +53,8 @@ import {
   LOTTO_SOURCE_TYPE,
   WageringActivityType,
 } from '../../wagering/wagering.service';
+import { WalletSourceService } from '../../wagering/wallet-source.service';
+import { FUND_SOURCE_TYPE } from '../../wagering/wagering-source';
 import { formatWingoPeriodNumber } from '../period-sync/wingo-period-number';
 import {
   LOTTO_WIN_STRATEGY_SETTING_KEY,
@@ -271,6 +273,13 @@ export class LottoService {
     private dataSource: DataSource,
     private readonly configService: ConfigService,
     private readonly wageringService: WageringService,
+    /**
+     * FIFO attribution. Referral commission is explicitly NON-wagerable:
+     * it is recorded as a REFERRAL_COMMISSION bucket and never creates a
+     * wagering obligation, so it stays withdrawable even while a deposit
+     * obligation is still active.
+     */
+    private readonly walletSourceService: WalletSourceService,
   ) {}
 
   async getActiveRound(category?: Category) {
@@ -2235,6 +2244,24 @@ export class LottoService {
         // Update bonus with transaction ID
         savedBonus.transactionId = savedTx.id;
         await queryRunner.manager.save(savedBonus);
+
+        // FIFO source attribution — referral commission is NON-wagerable and
+        // therefore never creates a wagering obligation. Recorded in the SAME
+        // transaction as the credit so its withdrawability is always provable.
+        await this.walletSourceService.recordCredit({
+          manager: queryRunner.manager,
+          userId: referrer.id,
+          sourceType: FUND_SOURCE_TYPE.REFERRAL_COMMISSION,
+          sourceId: savedTx.id,
+          ledgerEntryId: savedTx.id,
+          amountTdx: bonusAmount.toFixed(18),
+          metadata: {
+            referenceType: 'REFERRAL_BONUS',
+            referralBonusId: savedBonus.id,
+            level,
+            ticketId: ticket.id,
+          },
+        });
       }
     }
   }

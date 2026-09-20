@@ -17,7 +17,13 @@ export enum WageringObligationStatus {
 }
 
 @Entity('wagering_obligations')
-@Index('UQ_wagering_obligations_deposit', ['depositId'], { unique: true })
+@Index('UQ_wagering_obligations_source', ['sourceType', 'sourceReference'], {
+  unique: true,
+})
+@Index('UQ_wagering_obligations_deposit', ['depositId'], {
+  unique: true,
+  where: '"depositId" IS NOT NULL',
+})
 @Index('IDX_wagering_obligations_user_status', ['userId', 'status'])
 export class WageringObligation {
   @PrimaryGeneratedColumn('uuid')
@@ -26,8 +32,30 @@ export class WageringObligation {
   @Column({ name: 'userId', type: 'uuid' })
   userId: string;
 
-  @Column({ name: 'depositId', type: 'uuid' })
-  depositId: string;
+  /**
+   * Wagerable obligation source. ONLY 'DEPOSIT' and 'BONUS' ever create an
+   * obligation — see wagering-source.ts. Referral commission and salary are
+   * explicitly excluded and never reach this table.
+   */
+  @Column({ name: 'sourceType', type: 'varchar', length: 30, default: 'DEPOSIT' })
+  sourceType: string;
+
+  /**
+   * Immutable identity of the source within `sourceType`:
+   *   DEPOSIT → deposits.id
+   *   BONUS   → bonus distribution id / idempotency key
+   * UNIQUE with sourceType — the exactly-once anchor for obligations.
+   */
+  @Column({ name: 'sourceReference', type: 'uuid', nullable: true })
+  sourceReference: string | null;
+
+  /**
+   * Deposits-only convenience FK. Now NULLABLE so bonus (and any future
+   * wagerable) sources can create obligations without a deposit row.
+   * Always populated for sourceType='DEPOSIT'.
+   */
+  @Column({ name: 'depositId', type: 'uuid', nullable: true })
+  depositId: string | null;
 
   @Column({ name: 'ledgerEntryId', type: 'uuid' })
   ledgerEntryId: string;

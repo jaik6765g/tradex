@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { WageringService } from './wagering.service';
+import { WalletSourceService } from './wallet-source.service';
 
 /**
  * Periodic reconciliation sweep for missed deposit obligations. Deposit
@@ -13,7 +14,10 @@ export class WageringReconciliationProcessor {
   private timer: ReturnType<typeof setInterval> | null = null;
   private running = false;
 
-  constructor(private readonly wageringService: WageringService) {}
+  constructor(
+    private readonly wageringService: WageringService,
+    private readonly walletSourceService: WalletSourceService,
+  ) {}
 
   start(intervalMs = 600_000): void {
     if (this.timer) return;
@@ -45,6 +49,15 @@ export class WageringReconciliationProcessor {
       if (eventResult.counted > 0) {
         this.logger.log(
           `Wagering event reconciliation: scanned=${eventResult.scanned} counted=${eventResult.counted} skipped=${eventResult.skipped}`,
+        );
+      }
+
+      // Detect (never rewrite) FIFO attribution mismatches.
+      const attribution =
+        await this.walletSourceService.reconcileAttribution();
+      if (attribution.mismatched > 0) {
+        this.logger.warn(
+          `Attribution reconciliation: scanned=${attribution.scanned} mismatched=${attribution.mismatched} users=${attribution.overAttributedUsers.join(',')}`,
         );
       }
     } catch (error) {

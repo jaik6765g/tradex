@@ -50,7 +50,14 @@ export class WageringSettings {
   @Column({ name: 'expiryDays', type: 'integer', default: 0 })
   expiryDays: number;
 
-  /** 0 = reconciliation sweep has no age cutoff. */
+  /**
+   * Reconciliation look-back window in days.
+   *   0  = UNLIMITED (no age cutoff) — sweeps all history since activation.
+   *        It is NOT a way to disable reconciliation.
+   *   >0 = only records newer than N days are swept.
+   * Invalid values are coerced to 0 (unlimited) so the sweep can never be
+   * accidentally turned off.
+   */
   @Column({
     name: 'reconciliationMaxAgeDays',
     type: 'integer',
