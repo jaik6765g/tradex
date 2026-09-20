@@ -42,4 +42,4 @@ dump.rdb
 
 # Evidence / artifacts (local test outputs)
 .artifacts/
-backend/.artifacts/
+backend/.artifacts/tradex-telegram-bot/
