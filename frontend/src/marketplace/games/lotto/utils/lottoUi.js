@@ -303,6 +303,24 @@ export const getNumberGroups = (num) => {
 };
 
 /**
+ * The number's ACTUAL colour-group tone (primary): GREEN for 0-7, RED for 8-F.
+ *
+ * This is the single source of truth for "number colour" in history views —
+ * the same tone the game-history Number/Colour columns and the result popup
+ * use. It deliberately does NOT follow the 4-tone digit-position scheme of
+ * the selection grid (which colours rows 0-3/4-7/8-B/C-F), because that made
+ * a GREEN-group number like 4 read red in history.
+ *
+ * @param {string|number} symbol hex symbol 0-F
+ * @returns {string|null} hex tone (GROUP_TONE.GREEN / GROUP_TONE.RED), or
+ *                        null for an invalid/unknown symbol
+ */
+export const symbolGroupTone = (symbol) => {
+  const groups = getNumberGroups(symbol);
+  return groups ? GROUP_TONE[groups.primary] : null;
+};
+
+/**
  * 2×2 dot-face patterns per group. Each pattern is an array of 4 dot
  * descriptors ordered: top-left, top-right, bottom-left, bottom-right.
  *

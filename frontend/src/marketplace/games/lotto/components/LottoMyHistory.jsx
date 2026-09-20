@@ -15,10 +15,8 @@ import {
 } from 'lucide-react';
 
 import { formatTdx, formatDateTime } from '../utils/lottoPresentation';
-import {
-  shortenId,
-  symbolToneClassName,
-} from '../utils/lottoUi';
+import { deriveTicketOutcomeStatus } from '../utils/lottoState';
+import { shortenId, symbolGroupTone } from '../utils/lottoUi';
 
 const STATUS_CONFIG = {
   WIN: { label: 'WIN', tone: 'bg-[#0C2417] text-[#4ADE80] border-[#1E4A32]', Icon: CheckCircle2 },
@@ -33,38 +31,26 @@ const STATUS_CONFIG = {
 
 const getPnl = (ticket) => {
   if (!ticket) return null;
-  const status = String(ticket.status || '').toUpperCase();
+  // WIN/LOSS is derived (SETTLED + payout → WIN, SETTLED + no payout → LOSS)
+  // so a settled ticket never shows an ambiguous "SETTLED" outcome.
+  const status = deriveTicketOutcomeStatus(ticket.status, ticket.winAmount);
   const amount = Number(ticket.amount || 0);
   const winAmount = Number(ticket.winAmount || 0);
 
   if (status === 'WIN') {
-    return {
-      // Total amount received on winning (full payout, not just the profit).
-      text: `+${formatTdx(winAmount)} TDX`,
-      tone: 'text-[#4ADE80]',
-    };
+    // Total amount received on winning (full payout, not just the profit).
+    return { text: `+${formatTdx(winAmount)} TDX`, tone: 'text-[#4ADE80]' };
   }
   if (status === 'LOSS') {
-    return {
-      text: `-${formatTdx(amount)} TDX`,
-      tone: 'text-[#F87171]',
-    };
+    return amount > 0
+      ? { text: `-${formatTdx(amount)} TDX`, tone: 'text-[#F87171]' }
+      : { text: 'LOSS', tone: 'text-[#F87171]' };
   }
   if (status === 'REFUNDED') {
     return {
       text: `Refunded ${formatTdx(winAmount > 0 ? winAmount : amount)} TDX`,
       tone: 'text-[#FDBA74]',
     };
-  }
-  if (status === 'SETTLED') {
-    if (winAmount > 0) {
-      // Total amount received on winning (full payout, not just the profit).
-      return {
-        text: `+${formatTdx(winAmount)} TDX`,
-        tone: 'text-[#4ADE80]',
-      };
-    }
-    return { text: 'Settled', tone: 'text-[#9A9BA8]' };
   }
   return { text: 'Pending', tone: 'text-[#818CF8]' };
 };
@@ -94,7 +80,12 @@ const LottoMyHistory = ({
       {tickets.length > 0 ? (
         <div className="mt-3 space-y-2">
           {tickets.map((ticket) => {
-            const statusKey = String(ticket.status || '').toUpperCase();
+            // Display status is DERIVED (settled tickets resolve to WIN/LOSS)
+            // so every settled card shows a clear win/loss outcome.
+            const statusKey = deriveTicketOutcomeStatus(
+              ticket.status,
+              ticket.winAmount,
+            );
             const statusConfig = STATUS_CONFIG[statusKey] ?? STATUS_CONFIG.PENDING;
             const pnl = getPnl(ticket);
             const selectedNumbers = Array.isArray(ticket.selectedNumbers)
@@ -125,17 +116,36 @@ const LottoMyHistory = ({
                   </span>
                 </div>
 
-                {/* Row 2: Selected numbers with colors */}
+                {/* Row 2: Selected numbers — tinted with the number's ACTUAL
+                    colour group (GREEN 0-7 / RED 8-F): the same source the
+                    game-history Number column and the result popup use, not
+                    the 4-tone digit scheme of the selection grid. */}
                 {selectedNumbers.length > 0 && (
                   <div className="mt-2.5 flex min-w-0 flex-wrap gap-1">
-                    {selectedNumbers.map((num) => (
-                      <span
-                        key={num}
-                        className={`inline-flex h-7 min-w-7 items-center justify-center rounded-lg border border-[#26262E] bg-[#101014] px-1.5 text-[11px] font-black ${symbolToneClassName(num)}`}
-                      >
-                        {num}
-                      </span>
-                    ))}
+                    {selectedNumbers.map((num) => {
+                      const tone = symbolGroupTone(num);
+                      return (
+                        <span
+                          key={num}
+                          className="inline-flex h-7 min-w-7 items-center justify-center rounded-lg border px-1.5 text-[11px] font-black"
+                          style={
+                            tone
+                              ? {
+                                  color: tone,
+                                  borderColor: `${tone}73`,
+                                  backgroundColor: `${tone}1F`,
+                                }
+                              : {
+                                  color: '#9A9BA8',
+                                  borderColor: '#26262E',
+                                  backgroundColor: '#101014',
+                                }
+                          }
+                        >
+                          {num}
+                        </span>
+                      );
+                    })}
                   </div>
                 )}
 
