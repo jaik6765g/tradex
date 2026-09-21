@@ -1,6 +1,6 @@
 // frontend/src/wallet/withdrawal/screens/WithdrawalScreen.tsx
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   AlertCircle,
   ArrowUpFromLine,
@@ -46,17 +46,40 @@ interface Transaction {
 
 // ============================================================
 // SAVED PAYOUT — the withdrawal destination (address + chain) is
-// persisted on the device, so EVERY withdrawal always goes to the
-// same saved address until the user changes it.
+// persisted on the device PER USER, so a shared browser can never
+// pre-fill one account with another account's saved destination.
+// Nothing is stored until a withdrawal has actually been accepted
+// by the backend.
 // ============================================================
 
-const PAYOUT_STORAGE_KEY = 'tradex_withdraw_payout';
+const PAYOUT_STORAGE_KEY_PREFIX = 'tradex_withdraw_payout';
+
+/** Storage key is user-scoped; without a userId nothing is read or written. */
+const payoutStorageKey = (userId: string | null | undefined): string | null =>
+  userId ? `${PAYOUT_STORAGE_KEY_PREFIX}:${userId}` : null;
 
 export interface SavedPayout {
   address: string;
   chain: string;
   savedAt: number;
 }
+
+/** A wallet LINKED (signature-verified) to the signed-in account. */
+export interface LinkedWallet {
+  id: string;
+  address: string;
+  chainId: number;
+  isPrimary: boolean;
+}
+
+/**
+ * `idle`    — account not ready yet.
+ * `loading` — list request in flight.
+ * `ready`   — list is authoritative (it may legitimately be empty).
+ * `error`   — list unavailable; the backend stays the authority, so the form
+ *             must NOT hard-block on a list that merely failed to load.
+ */
+type LinkedWalletsStatus = 'idle' | 'loading' | 'ready' | 'error';
 
 /**
  * Renders a backend resetsAt ISO instant as a short local countdown/datetime
@@ -79,9 +102,12 @@ const formatResetCountdown = (iso: string): string => {
 /** Supported payout chains (backend pays out on BSC/BEP-20). */
 const SUPPORTED_CHAINS = [{ id: 'BSC', label: 'BSC (BEP-20)' }] as const;
 
-const loadSavedPayout = (): SavedPayout | null => {
+const loadSavedPayout = (userId: string | null | undefined): SavedPayout | null => {
+  const key = payoutStorageKey(userId);
+  if (!key) return null;
+
   try {
-    const raw = localStorage.getItem(PAYOUT_STORAGE_KEY);
+    const raw = localStorage.getItem(key);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<SavedPayout>;
     if (!parsed?.address || !parsed?.chain) return null;
@@ -95,10 +121,17 @@ const loadSavedPayout = (): SavedPayout | null => {
   }
 };
 
-const persistPayout = (address: string, chain: string): void => {
+const persistPayout = (
+  userId: string | null | undefined,
+  address: string,
+  chain: string,
+): void => {
+  const key = payoutStorageKey(userId);
+  if (!key) return;
+
   try {
     localStorage.setItem(
-      PAYOUT_STORAGE_KEY,
+      key,
       JSON.stringify({ address, chain, savedAt: Date.now() }),
     );
   } catch {
@@ -118,10 +151,20 @@ export default function WithdrawalScreen() {
     tdxBalance,
     usdtBalance,
     refresh: refreshWallet,
+    // Wallet-connection state used by the "Link Wallet" flow: a withdrawal is
+    // only ever paid to a wallet linked to this account.
+    isConnected,
+    isWrongNetwork,
+    requiredChainId,
+    openWallet,
+    switchToRequiredNetwork,
+    authenticateWallet,
+    isAuthenticating,
+    authError,
   } = useWalletContext();
 
   const [amount, setAmount] = useState('');
-  const savedPayout = useMemo(() => loadSavedPayout(), []);
+  const savedPayout = useMemo(() => loadSavedPayout(userId), [userId]);
   const [payoutAddress, setPayoutAddress] = useState(
     savedPayout?.address || authUser?.walletAddress || '',
   );
@@ -135,6 +178,12 @@ export default function WithdrawalScreen() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [transactionsLoading, setTransactionsLoading] = useState(false);
 
+  // The wallets LINKED (signature-verified) to this account. The backend pays
+  // out ONLY to one of these, so the form is gated on this list.
+  const [linkedWallets, setLinkedWallets] = useState<LinkedWallet[]>([]);
+  const [linkedWalletsStatus, setLinkedWalletsStatus] =
+    useState<LinkedWalletsStatus>('idle');
+
   const { withdraw, status, error, isLoading, isSuccess, reset } = useWithdraw(userId);
 
   // Supplementary limits UI only — the backend enforces every limit inside
@@ -142,10 +191,46 @@ export default function WithdrawalScreen() {
   // strings; TDX equivalents are derived with string arithmetic only.
   const { withdrawMin, withdrawMax, dailyWithdrawals } = useWalletLimits();
 
-  // Account readiness — a signed-in account is enough (no wallet connection
-  // required). Declared before the wagering summary hook because both the
-  // hook call and the derived eligibility flags below depend on it.
+  // Account readiness — a signed-in account is required. (A connected browser
+  // wallet alone is NOT enough: the destination must be a wallet LINKED to
+  // this account, which is what the withdrawal endpoint enforces.)
+  // Declared before the wagering summary hook because both the hook call and
+  // the derived eligibility flags below depend on it.
   const accountReady = Boolean(isAuthenticated && userId);
+
+  // ---- Linked wallets — the only payout destinations the backend accepts ---
+  const fetchLinkedWallets = useCallback(async () => {
+    if (!accountReady) {
+      setLinkedWallets([]);
+      setLinkedWalletsStatus('idle');
+      return;
+    }
+
+    setLinkedWalletsStatus('loading');
+    try {
+      const response = await apiClient.get('/wallets/me');
+      const data = response.data?.data ?? response.data ?? [];
+      setLinkedWallets(Array.isArray(data) ? (data as LinkedWallet[]) : []);
+      setLinkedWalletsStatus('ready');
+    } catch {
+      // A list that failed to load must never be read as "no wallet linked" —
+      // that would block a legitimately linked user. The backend remains the
+      // authority and still rejects an unlinked address with a clear message.
+      setLinkedWalletsStatus('error');
+    }
+  }, [accountReady]);
+
+  useEffect(() => {
+    void fetchLinkedWallets();
+  }, [fetchLinkedWallets]);
+
+  // The saved destination can only be read once the userId is known (the
+  // storage key is user-scoped), so hydrate the field when it arrives.
+  useEffect(() => {
+    if (!savedPayout) return;
+    setPayoutAddress((current) => (current ? current : savedPayout.address));
+    setIsAddressSaved((current) => current || Boolean(savedPayout));
+  }, [savedPayout]);
 
   // Wagering summary from the existing backend summary endpoint
   // (GET /wagering/me). Display guidance only — the backend remains the
@@ -224,9 +309,25 @@ export default function WithdrawalScreen() {
   const dailyLimitReached =
     remainingWithdrawalsToday !== null && remainingWithdrawalsToday <= 0;
 
-  // No wallet connection required — a signed-in account with a payout
-  // address is enough (the destination is entered by the user).
+  // The destination must be a well-formed EVM address AND a wallet linked to
+  // this account — the backend rejects any other payout destination.
   const addressValid = /^0x[a-fA-F0-9]{40}$/.test(payoutAddress.trim());
+
+  const linkedWalletCheckReady = linkedWalletsStatus === 'ready';
+  const hasLinkedWallet = linkedWallets.length > 0;
+  const payoutAddressNormalized = payoutAddress.trim().toLowerCase();
+  // The backend matches on (address, chainId), so the pre-check does too — a
+  // wallet linked on another chain can never be a payout destination.
+  const payoutAddressLinked = linkedWallets.some(
+    (wallet) =>
+      wallet.chainId === requiredChainId &&
+      wallet.address.trim().toLowerCase() === payoutAddressNormalized,
+  );
+  const addressNotLinked =
+    linkedWalletCheckReady &&
+    hasLinkedWallet &&
+    addressValid &&
+    !payoutAddressLinked;
 
   // --- Eligibility banner + submit gating ---
 
@@ -239,12 +340,35 @@ export default function WithdrawalScreen() {
   };
 
   // Save the destination (address + chain) so every future withdrawal
-  // defaults to it.
+  // defaults to it. Only a LINKED wallet is savable — anything else would be
+  // rejected by the backend.
   const handleSavePayout = () => {
     const trimmed = payoutAddress.trim();
     if (!addressValid) return;
-    persistPayout(trimmed, chain);
+    if (linkedWalletCheckReady && !payoutAddressLinked) return;
+    persistPayout(userId, trimmed, chain);
     setIsAddressSaved(true);
+  };
+
+  // Link a wallet to this account (signature-verified in the backend). Without
+  // a linked wallet the backend cannot create a withdrawal at all.
+  const handleLinkWallet = async () => {
+    try {
+      if (!isConnected) {
+        openWallet();
+        return;
+      }
+
+      if (isWrongNetwork) {
+        await switchToRequiredNetwork();
+        return;
+      }
+
+      await authenticateWallet();
+      await fetchLinkedWallets();
+    } catch {
+      // WalletContext surfaces the failure through `authError` (rendered below).
+    }
   };
 
   // ============================================================
@@ -332,6 +456,7 @@ export default function WithdrawalScreen() {
   // decides both the banner and the button.
   type BlockReason =
     | 'LOGIN'
+    | 'NO_LINKED_WALLET'
     | 'WAGERING_INCOMPLETE'
     | 'DAILY_LIMIT_REACHED'
     | 'NO_WITHDRAWABLE_BALANCE'
@@ -339,27 +464,32 @@ export default function WithdrawalScreen() {
     | 'AMOUNT_ABOVE_MAX'
     | 'AMOUNT_INVALID'
     | 'ADDRESS_INVALID'
+    | 'ADDRESS_NOT_LINKED'
     | null;
 
   const blockReason: BlockReason = !accountReady
     ? 'LOGIN'
-    : wageringIncomplete
-      ? 'WAGERING_INCOMPLETE'
-      : dailyLimitReached
-        ? 'DAILY_LIMIT_REACHED'
-        : !hasWithdrawableBalance
-          ? 'NO_WITHDRAWABLE_BALANCE'
-          : !hasTypedAmount
-            ? null
-            : !amountValidDecimal
-              ? 'AMOUNT_INVALID'
-              : amountBelowMin
-                ? 'AMOUNT_BELOW_MIN'
-                : amountAboveMax
-                  ? 'AMOUNT_ABOVE_MAX'
-                  : !addressValid
-                    ? 'ADDRESS_INVALID'
-                    : null;
+    : linkedWalletCheckReady && !hasLinkedWallet
+      ? 'NO_LINKED_WALLET'
+      : wageringIncomplete
+        ? 'WAGERING_INCOMPLETE'
+        : dailyLimitReached
+          ? 'DAILY_LIMIT_REACHED'
+          : !hasWithdrawableBalance
+            ? 'NO_WITHDRAWABLE_BALANCE'
+            : !hasTypedAmount
+              ? null
+              : !amountValidDecimal
+                ? 'AMOUNT_INVALID'
+                : amountBelowMin
+                  ? 'AMOUNT_BELOW_MIN'
+                  : amountAboveMax
+                    ? 'AMOUNT_ABOVE_MAX'
+                    : !addressValid
+                      ? 'ADDRESS_INVALID'
+                      : addressNotLinked
+                        ? 'ADDRESS_NOT_LINKED'
+                        : null;
 
   const eligibilityBanner: {
     tone: 'amber' | 'green' | 'red';
@@ -388,12 +518,15 @@ export default function WithdrawalScreen() {
           title: 'No withdrawable balance',
           body: 'Your withdrawable balance is 0 TDX. Deposit funds or complete wagering to enable withdrawals.',
         };
-      // Amount and address problems are shown inline (next to the amount
-      // input and the destination field), so they render no banner.
+      // A missing linked wallet renders its own card with the "Link Wallet"
+      // CTA; the amount / address problems are shown inline next to their
+      // inputs. None of these render the generic banner.
+      case 'NO_LINKED_WALLET':
       case 'AMOUNT_BELOW_MIN':
       case 'AMOUNT_ABOVE_MAX':
       case 'AMOUNT_INVALID':
       case 'ADDRESS_INVALID':
+      case 'ADDRESS_NOT_LINKED':
         return null;
       default:
         if (wageringKnown && wageringSatisfied && hasTypedAmount && amountValidDecimal) {
@@ -427,11 +560,23 @@ export default function WithdrawalScreen() {
 
   const handleWithdraw = async () => {
     if (!accountReady || !addressValid) return;
-    // Every withdrawal goes to the SAVED destination — persist it here so
-    // it is always pre-filled for future withdrawals.
-    persistPayout(payoutAddress.trim(), chain);
-    setIsAddressSaved(true);
-    await withdraw(amount, payoutAddress.trim());
+
+    // Hard gate mirroring the backend: only a wallet LINKED to this account
+    // can be paid out. When the list could not be loaded we defer to the
+    // backend instead of blocking a legitimately linked user.
+    if (linkedWalletCheckReady && (!hasLinkedWallet || !payoutAddressLinked)) {
+      return;
+    }
+
+    const trimmedAddress = payoutAddress.trim();
+    const result = await withdraw(amount, trimmedAddress);
+
+    // The destination is remembered ONLY after the backend accepted the
+    // request — a rejected address is never persisted.
+    if (result.success) {
+      persistPayout(userId, trimmedAddress, chain);
+      setIsAddressSaved(true);
+    }
   };
 
   useEffect(() => {
@@ -630,7 +775,7 @@ export default function WithdrawalScreen() {
                     <label className="block text-sm font-semibold text-[#A1A4AE]">
                       Destination Wallet
                     </label>
-                    {isAddressSaved && addressValid && (
+                    {isAddressSaved && addressValid && !addressNotLinked && (
                       <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#4ADE80] bg-[#10251A] px-2 py-0.5 rounded-full border border-[#123A24]">
                         <Check size={10} />
                         Saved
@@ -662,8 +807,11 @@ export default function WithdrawalScreen() {
                       value={chain}
                       onChange={(e) => {
                         setChain(e.target.value);
-                        if (addressValid) {
-                          persistPayout(payoutAddress.trim(), e.target.value);
+                        if (
+                          addressValid &&
+                          (!linkedWalletCheckReady || payoutAddressLinked)
+                        ) {
+                          persistPayout(userId, payoutAddress.trim(), e.target.value);
                           setIsAddressSaved(true);
                         }
                       }}
@@ -678,17 +826,26 @@ export default function WithdrawalScreen() {
                   </div>
 
                   <div className="mt-2 flex items-center justify-between gap-2">
-                    <p className="text-[10px] text-[#70737E] flex-1">
+                    <p
+                      className={`text-[10px] flex-1 ${
+                        addressNotLinked ? 'text-[#F87171]' : 'text-[#70737E]'
+                      }`}
+                    >
                       {payoutAddress && !addressValid
                         ? 'Enter a valid BSC (BEP-20) wallet address'
-                        : isAddressSaved
-                          ? 'Saved — every withdrawal is sent to this address'
-                          : 'Save this address so every withdrawal goes here'}
+                        : addressNotLinked
+                          ? 'Not linked to your account — link this wallet before withdrawing'
+                          : isAddressSaved
+                            ? 'Saved — every withdrawal is sent to this address'
+                            : 'Save this address so every withdrawal goes here'}
                     </p>
                     <button
                       type="button"
                       onClick={handleSavePayout}
-                      disabled={!addressValid}
+                      disabled={
+                        !addressValid ||
+                        (linkedWalletCheckReady && !payoutAddressLinked)
+                      }
                       className={`inline-flex shrink-0 items-center gap-1 rounded-lg border px-3 py-1.5 text-[10px] font-bold transition disabled:opacity-40 disabled:cursor-not-allowed ${
                         isAddressSaved
                           ? 'border-[#123A24] bg-[#10251A] text-[#4ADE80]'
@@ -700,6 +857,50 @@ export default function WithdrawalScreen() {
                     </button>
                   </div>
                 </div>
+
+                {/* Linked payout wallet required — the backend pays out ONLY to
+                    a wallet linked (signature-verified) to this account */}
+                {linkedWalletCheckReady && !hasLinkedWallet && (
+                  <div className="mt-4 rounded-xl border border-[#8F4817] bg-[#2A190D] p-3">
+                    <div className="flex items-start gap-2">
+                      <ShieldAlert size={16} className="mt-0.5 shrink-0 text-[#FF8F3D]" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-extrabold text-[#FF8F3D]">
+                          No wallet linked yet
+                        </p>
+                        <p className="mt-0.5 text-xs text-[#A1A4AE]">
+                          Withdrawals are paid only to a wallet linked to your account.
+                          Link your own BSC (BEP-20) wallet first — any other address is
+                          rejected by the backend.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => void handleLinkWallet()}
+                          disabled={isAuthenticating}
+                          className="mt-2.5 inline-flex items-center gap-1.5 rounded-lg bg-[#FF7A18] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-[#FF8F3D] disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {isAuthenticating ? (
+                            <>
+                              <Loader2 size={12} className="animate-spin" /> Linking…
+                            </>
+                          ) : (
+                            <>
+                              <Wallet size={12} />
+                              {!isConnected
+                                ? 'Connect Wallet'
+                                : isWrongNetwork
+                                  ? 'Switch to BNB Smart Chain'
+                                  : 'Link Wallet'}
+                            </>
+                          )}
+                        </button>
+                        {authError && (
+                          <p className="mt-1.5 text-[10px] text-[#F87171]">{authError}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Withdraw Button */}
                 <button

@@ -1,4 +1,5 @@
 import { AxiosError } from 'axios';
+import { getAddress } from 'ethers';
 import { apiClient } from '../../../core/api/client';
 
 export type CreateWithdrawalRequest = {
@@ -104,6 +105,45 @@ const createWithdrawalClientRequestId = (): string => {
   return `wd-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
 };
 
+/**
+ * EIP-55 checksum normalization of the payout address.
+ *
+ * Linked wallets are stored checksummed on the backend, so submitting the
+ * address in that exact form removes every casing ambiguity from the
+ * ownership lookup. This is the SAME normalization the backend uses when it
+ * links a wallet (ethers `getAddress`).
+ *
+ * - uniform lowercase / uppercase input is normalized to the checksummed form
+ * - a mixed-case address whose checksum does not verify is REJECTED: that
+ *   mismatch almost always means a typo, and a mistyped payout address cannot
+ *   be recovered once the funds leave the platform
+ * - malformed input (wrong length, non-hex, empty) is rejected up-front with
+ *   a clear message instead of a confusing backend "wallet not found"
+ */
+const normalizeWalletAddress = (rawAddress: string): string => {
+  const trimmed = typeof rawAddress === 'string' ? rawAddress.trim() : '';
+
+  if (!trimmed) {
+    throw new Error('Enter your payout wallet address.');
+  }
+
+  // ethers verifies the EIP-55 checksum and only accepts uniform-lowercase
+  // input as "unchecksummed", so a uniformly cased address is folded to lower
+  // case first. The checksum only carries information in MIXED case — which
+  // is still validated strictly below.
+  const isUniformCase =
+    trimmed === trimmed.toLowerCase() || trimmed === trimmed.toUpperCase();
+  const candidate = isUniformCase ? trimmed.toLowerCase() : trimmed;
+
+  try {
+    return getAddress(candidate);
+  } catch {
+    throw new Error(
+      'Invalid wallet address. Please enter a valid BSC (BEP-20) address.',
+    );
+  }
+};
+
 const normalizeErrorMessage = (message?: string | string[]): string | undefined => {
   if (typeof message === 'string') {
     return message.trim() || undefined;
@@ -205,10 +245,12 @@ export const withdrawalService = {
   ): Promise<RequestWithdrawalResponse> => {
     const chainId = Number(import.meta.env.VITE_BSC_CHAIN_ID || '56');
     const tokenAddress = import.meta.env.VITE_BSC_USDT_CONTRACT || '';
+    // Throws a clear validation error for malformed / mistyped addresses.
+    const normalizedWalletAddress = normalizeWalletAddress(walletAddress);
 
     const withdrawal = await withdrawalService.createWithdrawal(
       {
-        walletAddress,
+        walletAddress: normalizedWalletAddress,
         chainId,
         tokenAddress,
         tdxAmount,

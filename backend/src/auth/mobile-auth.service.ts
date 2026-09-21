@@ -25,6 +25,12 @@ import {
 const MOBILE_REGEX = /^\+[1-9]\d{6,14}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/**
+ * Withdrawals are paid out on BNB Smart Chain (BEP-20) only, so a wallet
+ * linked on any other chain could never be used as a payout destination.
+ */
+const PAYOUT_CHAIN_ID = 56;
+
 interface SupabaseIdentity {
   authUserId: string;
   email: string;
@@ -262,6 +268,9 @@ export class MobileAuthService {
       dto.message,
     );
     this.assertSupportedChain(dto.chainId);
+    // Payout destinations must be on the chain the platform actually pays on
+    // (BSC/56). assertSupportedChain keeps its existing wider policy.
+    this.assertPayoutChain(dto.chainId);
 
     const wallet = await this.walletsService.findOrCreate(
       userId,
@@ -416,6 +425,20 @@ export class MobileAuthService {
 
     if (!supported.includes(Number(chainId))) {
       throw new BadRequestException('Unsupported blockchain network');
+    }
+  }
+
+  /**
+   * Wallet LINKING is payout-oriented: only BSC mainnet wallets can ever be
+   * used as a withdrawal destination, so linking is restricted to chain 56.
+   * The wider supported-chain policy (56/137, +97 in dev/test) is deliberately
+   * left untouched.
+   */
+  private assertPayoutChain(chainId: number): void {
+    if (Number(chainId) !== PAYOUT_CHAIN_ID) {
+      throw new BadRequestException(
+        `Only BNB Smart Chain (chain ID ${PAYOUT_CHAIN_ID}) wallets can be linked for withdrawals`,
+      );
     }
   }
 

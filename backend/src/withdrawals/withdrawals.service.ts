@@ -3,6 +3,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   Logger,
   NotFoundException,
@@ -1853,6 +1854,19 @@ export class WithdrawalsService {
   // WALLET OWNERSHIP
   // ============================================================
 
+  /**
+   * A withdrawal may only be paid to a wallet that is LINKED (signature
+   * verified) to the authenticated user.
+   *
+   * Two distinct failures are reported, so the client can tell them apart:
+   *   - 404 WALLET_NOT_LINKED          → this address is not linked to ANY
+   *     account yet; the user must link it first.
+   *   - 403 WALLET_OWNED_BY_ANOTHER_ACCOUNT → the address IS linked, but to a
+   *     different user (authorization failure, never a "not found").
+   *
+   * Runs BEFORE the transaction, so a rejected request never creates a
+   * withdrawal row and never reserves balance / ledger entries.
+   */
   private async validateWalletOwnership(
     userId: string,
     walletAddress: string,
@@ -1860,9 +1874,27 @@ export class WithdrawalsService {
   ): Promise<void> {
     this.validateEvmAddress(walletAddress, 'Invalid withdrawal wallet address');
 
-    const wallet = await this.walletsService.findByAddressAndChainId(walletAddress, chainId);
-    if (!wallet || wallet.userId !== userId) {
-      throw new NotFoundException('Wallet not found or does not belong to user');
+    // Lookup is trim/case-insensitive: the row is stored checksummed, but a
+    // pasted lowercase address must still resolve to the same wallet.
+    const wallet = await this.walletsService.findByAddressAndChainId(
+      walletAddress,
+      chainId,
+    );
+
+    if (!wallet) {
+      throw new NotFoundException({
+        code: 'WALLET_NOT_LINKED',
+        message:
+          'This payout wallet is not linked to your account. Link this wallet to your TradeX account first, then request the withdrawal.',
+      });
+    }
+
+    if (wallet.userId !== userId) {
+      throw new ForbiddenException({
+        code: 'WALLET_OWNED_BY_ANOTHER_ACCOUNT',
+        message:
+          'This payout wallet is linked to a different account. Use a wallet that is linked to your own account.',
+      });
     }
   }
 
