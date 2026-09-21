@@ -196,23 +196,18 @@ export default function WithdrawalScreen() {
       ? trimDecimalZeros(String(remainingTdx))
       : '0';
 
-  // Withdrawable balance: exact display math only.
+  // Withdrawable balance: exact display math only, rendered in TDX — the
+  // same unit as the Amount input above (no TDX→USDT conversion here).
   const availableTdxRaw = String(tdxBalance ?? '0');
   const availableTdxDisplay = isPositiveDecimal(availableTdxRaw)
     ? trimDecimalZeros(availableTdxRaw)
     : '0';
 
-  // Withdrawable amount in USDT — 0 while wagering is incomplete.
-  const withdrawableUsdtDisplay = !accountReady
-    ? '—'
-    : wageringIncomplete
-      ? '0'
-      : isPositiveDecimal(availableTdxDisplay)
-        ? (tdxToUsdt(availableTdxDisplay) ?? '0')
-        : '0';
+  // Every '0' here is a REAL zero: account not ready, wagering-locked
+  // funds, or a genuinely zero available balance.
 
   // The withdrawal button stays disabled (blurred) until there is a real,
-  // withdrawable amount — a 0 USDT withdrawable balance can never be submitted.
+  // withdrawable amount — a 0 TDX withdrawable balance can never be submitted.
   const hasWithdrawableBalance =
     accountReady && !wageringIncomplete && isPositiveDecimal(availableTdxDisplay);
 
@@ -391,7 +386,7 @@ export default function WithdrawalScreen() {
         return {
           tone: 'amber',
           title: 'No withdrawable balance',
-          body: 'Your withdrawable balance is 0 USDT. Deposit funds or complete wagering to enable withdrawals.',
+          body: 'Your withdrawable balance is 0 TDX. Deposit funds or complete wagering to enable withdrawals.',
         };
       // Amount and address problems are shown inline (next to the amount
       // input and the destination field), so they render no banner.
@@ -425,8 +420,9 @@ export default function WithdrawalScreen() {
     setAmount(capped);
   };
 
-  // Exact string form of the USDT preview (display only).
-  const usdtAmountExact = usdtPreviewExact ?? '0';
+  // Exact string form of the USDT preview (display only). `usdtPreviewExact`
+  // is null when the typed amount cannot be converted exactly — the view
+  // renders "Conversion unavailable" for that case, never a 0.00 USDT.
   void TDX_RATE;
 
   const handleWithdraw = async () => {
@@ -550,13 +546,17 @@ export default function WithdrawalScreen() {
                     </button>
                   </div>
                 </div>
-                {/* Withdrawable Balance — the amount actually available to withdraw */}
+                {/* Withdrawable Balance — the amount actually available to withdraw (TDX) */}
                 <p className="mt-2 text-xs font-semibold text-[#A1A4AE]">
                   Withdrawable Balance:{' '}
-                  <span className={hasWithdrawableBalance ? 'text-[#4ADE80]' : 'text-[#FF8F3D]'}>
+                  <span
+                    className={
+                      !hasWithdrawableBalance ? 'text-[#FF8F3D]' : 'text-[#4ADE80]'
+                    }
+                  >
                     {wageringLoading || !accountReady
                       ? '…'
-                      : `${formatDecimalString(withdrawableUsdtDisplay)} USDT`}
+                      : `${formatDecimalString(availableTdxDisplay)} TDX`}
                   </span>
                 </p>
                 {(amountBelowMin || amountAboveMax) && (
@@ -610,8 +610,14 @@ export default function WithdrawalScreen() {
                   <div className="mt-3 p-3 bg-[#10251A] rounded-xl border border-[#123A24]">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-[#A1A4AE]">You will receive:</span>
-                      <span className="text-lg font-bold text-[#4ADE80]">
-                        {formatDecimalString(usdtAmountExact)} USDT
+                      <span
+                        className={`text-lg font-bold ${
+                          usdtPreviewExact === null ? 'text-[#FF8F3D]' : 'text-[#4ADE80]'
+                        }`}
+                      >
+                        {usdtPreviewExact === null
+                          ? 'Conversion unavailable'
+                          : `${formatDecimalString(usdtPreviewExact)} USDT`}
                       </span>
                     </div>
                   </div>

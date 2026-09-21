@@ -69,12 +69,19 @@ export function isPositiveDecimal(value: unknown): value is string {
 /**
  * Trims insignificant trailing zeros without ever touching a float.
  * Returns the original string when it is not an exact decimal.
+ *
+ * Only the FRACTION's trailing zeros are removed; the integer part is never
+ * touched (trailing zeros there are significant: '1000' must stay '1000').
+ * The previous implementation appended `int + '.' + frac` before trimming,
+ * so an empty fraction produced '1000.' — the anchored `\.?0+$` regex could
+ * then never match (the dot blocks it), and the trailing dot made the result
+ * fail isDecimalString() downstream (integer balances rendered as 0.00 USDT).
  */
 export function trimDecimalZeros(value: string): string {
   const parts = splitDecimal(value);
   if (!parts) return value;
-  const trimmed = `${parts.int}.${parts.frac}`.replace(/\.?0+$/, '');
-  const canonical = trimmed === '' ? '0' : trimmed;
+  const frac = parts.frac.replace(/0+$/, '');
+  const canonical = frac ? `${parts.int}.${frac}` : parts.int;
   return parts.sign === -1 && canonical !== '0' ? `-${canonical}` : canonical;
 }
 
@@ -141,10 +148,36 @@ export function divideDecimalByInteger(
   maxDecimals = 18,
 ): string | null {
   const parts = splitDecimal(value);
-  if (!parts || !Number.isInteger(divisor) || divisor <= 0) return null;
+  if (
+    !parts ||
+    !Number.isInteger(divisor) ||
+    divisor <= 0 ||
+    // The digit loop keeps `remainder < 10 × divisor` in a JS number; an
+    // unsafe divisor would silently corrupt the result, so fail closed.
+    !Number.isSafeInteger(divisor * 10) ||
+    !Number.isInteger(maxDecimals) ||
+    maxDecimals < 0
+  ) {
+    return null;
+  }
 
-  const digits = (parts.int.replace(/^0+(?=\d)/, '') || '0') + parts.frac;
-  const shift = maxDecimals + parts.frac.length;
+  // Exact long division. X = N × 10^f (N = int+frac digits, f = frac length),
+  // so the dividend for floor(X × 10^maxDecimals ÷ divisor) is the digit
+  // string of N × 10^(maxDecimals − f):
+  //   - append (maxDecimals − f) zeros when f ≤ maxDecimals;
+  //   - when f > maxDecimals, TRUNCATE the surplus fractional digits first
+  //     (floor semantics — digits beyond maxDecimals are dropped, never
+  //     rounded).
+  // The quotient is then re-pointed maxDecimals positions from the right.
+  // The previous implementation appended NO zeros (fractional quotient digits
+  // were never generated, turning 1000 ÷ 100 into 1e-17).
+  const intDigits = parts.int.replace(/^0+(?=\d)/, '') || '0';
+  const fracLen = parts.frac.length;
+  const allDigits = intDigits + parts.frac;
+  const digits =
+    fracLen > maxDecimals
+      ? allDigits.slice(0, allDigits.length - (fracLen - maxDecimals))
+      : allDigits + '0'.repeat(maxDecimals - fracLen);
 
   let remainder = 0;
   let quotient = '';
@@ -155,9 +188,9 @@ export function divideDecimalByInteger(
   }
   quotient = quotient.replace(/^0+(?=\d)/, '') || '0';
 
-  const padded = quotient.padStart(shift + 1, '0');
-  const intPart = padded.slice(0, padded.length - shift) || '0';
-  const fracPart = padded.slice(padded.length - shift).replace(/0+$/, '');
+  const padded = quotient.padStart(maxDecimals + 1, '0');
+  const intPart = padded.slice(0, padded.length - maxDecimals) || '0';
+  const fracPart = padded.slice(padded.length - maxDecimals).replace(/0+$/, '');
   const out = fracPart ? `${intPart}.${fracPart}` : intPart;
   return parts.sign === -1 && out !== '0' ? `-${out}` : out;
 }
